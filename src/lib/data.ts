@@ -8,7 +8,9 @@ import type {
   Profile,
   Transport,
   Trip,
+  TripWithAccess,
   TripMember,
+  TripAccessRequest,
 } from "@/lib/types";
 
 // --- Autorización ---
@@ -59,21 +61,14 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
 // --- Viajes ---
 
-export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
+export async function getTrips(): Promise<TripWithAccess[]> {
   const user = await getCurrentUser();
   if (!user) return [];
 
   const supabase = createSupabaseAdminClient();
-  // Solo los viajes donde el usuario es miembro
-  const { data: memberships } = await supabase
-    .from("trip_members")
-    .select("trip_id")
-    .eq("user_id", user.id);
 
-  const tripIds = (memberships ?? []).map((m) => m.trip_id);
-  if (tripIds.length === 0) return [];
-
-  const { data } = await supabase
+  // Obtener todos los viajes
+  const { data: trips } = await supabase
     .from("trips")
     .select(
       `
@@ -81,19 +76,35 @@ export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
       trip_members(count)
     `,
     )
-    .in("id", tripIds)
     .order("created_at", { ascending: false });
 
-  return (data ?? []).map((t) => ({
+  if (!trips) return [];
+
+  // Obtener los trip_ids donde el usuario es miembro
+  const { data: memberships } = await supabase
+    .from("trip_members")
+    .select("trip_id")
+    .eq("user_id", user.id);
+  const memberTripIds = new Set((memberships ?? []).map((m) => m.trip_id));
+
+  // Obtener las solicitudes de acceso del usuario
+  const { data: requests } = await supabase
+    .from("trip_access_requests")
+    .select("trip_id, status")
+    .eq("user_id", user.id);
+  const requestStatusByTrip = new Map(
+    (requests ?? []).map((r) => [r.trip_id, r.status]),
+  );
+
+  return trips.map((t) => ({
     ...t,
     member_count: t.trip_members?.[0]?.count ?? 0,
-  })) as (Trip & { member_count: number })[];
+    is_member: memberTripIds.has(t.id),
+    access_request_status: requestStatusByTrip.get(t.id) ?? null,
+  })) as TripWithAccess[];
 }
 
 export async function getTrip(tripId: string): Promise<Trip | null> {
-  const member = await isTripMember(tripId);
-  if (!member) return null;
-
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trips")
@@ -238,3 +249,39 @@ export async function getTripBalances(tripId: string): Promise<Balance[]> {
 
 // Exportar helpers de autorización para usar en Server Actions
 export { isTripMember, isTripOwner };
+
+// --- Solicitudes de acceso ---
+
+// Obtiene la solicitud de acceso del usuario actual para un viaje
+export async function getMyAccessRequest(
+  tripId: string,
+): Promise<TripAccessRequest | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("trip_access_requests")
+    .select("*")
+    .eq("trip_id", tripId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return data as TripAccessRequest | null;
+}
+
+// Obtiene todas las solicitudes pendientes para un viaje (para owners)
+export async function getPendingAccessRequests(
+  tripId: string,
+): Promise<TripAccessRequest[]> {
+  const owner = await isTripOwner(tripId);
+  if (!owner) return [];
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("trip_access_requests")
+    .select("*, profile:profiles!user_id(*)")
+    .eq("trip_id", tripId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  return (data ?? []) as TripAccessRequest[];
+}

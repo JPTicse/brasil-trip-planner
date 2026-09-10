@@ -1,9 +1,9 @@
-import { getTripMembers } from "@/lib/data";
+import { getTripMembers, getPendingAccessRequests } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { AddMemberForm } from "@/components/add-member-form";
 import { DeleteButton } from "@/components/ui";
-import { removeTripMember, deleteTrip } from "@/lib/actions";
-import type { TripMember } from "@/lib/types";
+import { removeTripMember, deleteTrip, resolveAccessRequest } from "@/lib/actions";
+import type { TripMember, TripAccessRequest } from "@/lib/types";
 
 export default async function MembersPage({
   params,
@@ -17,6 +17,9 @@ export default async function MembersPage({
   const currentUserMember = members.find((m) => m.user_id === user?.id);
   const isOwner = currentUserMember?.role === "owner";
 
+  // Obtener solicitudes pendientes (solo para owners)
+  const pendingRequests = isOwner ? await getPendingAccessRequests(id) : [];
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -25,6 +28,18 @@ export default async function MembersPage({
           {members.length} {members.length === 1 ? "persona" : "personas"}
         </span>
       </div>
+
+      {/* Solicitudes de acceso pendientes */}
+      {isOwner && pendingRequests.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-amber-700">
+            Solicitudes de acceso ({pendingRequests.length})
+          </h3>
+          {pendingRequests.map((req) => (
+            <AccessRequestCard key={req.id} request={req} tripId={id} />
+          ))}
+        </div>
+      )}
 
       <div className="space-y-2">
         {members.map((m) => (
@@ -58,6 +73,64 @@ export default async function MembersPage({
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+function AccessRequestCard({
+  request,
+  tripId,
+}: {
+  request: TripAccessRequest;
+  tripId: string;
+}) {
+  const name = request.profile?.name ?? "Usuario";
+  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-amber-600 text-sm font-semibold text-white">
+          {request.profile?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={request.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-zinc-900">{name}</p>
+          {request.message && (
+            <p className="mt-0.5 truncate text-xs text-zinc-500">
+              &ldquo;{request.message}&rdquo;
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <form action={resolveAccessRequest} className="flex-1">
+          <input type="hidden" name="request_id" value={request.id} />
+          <input type="hidden" name="trip_id" value={tripId} />
+          <input type="hidden" name="action" value="approve" />
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Aprobar
+          </button>
+        </form>
+        <form action={resolveAccessRequest} className="flex-1">
+          <input type="hidden" name="request_id" value={request.id} />
+          <input type="hidden" name="trip_id" value={tripId} />
+          <input type="hidden" name="action" value="reject" />
+          <button
+            type="submit"
+            className="w-full rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            Rechazar
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

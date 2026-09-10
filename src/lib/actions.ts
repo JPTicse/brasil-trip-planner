@@ -41,6 +41,56 @@ export async function createTrip(formData: FormData) {
   redirect(`/trips/${trip.id}`);
 }
 
+// --- Solicitudes de acceso ---
+
+export async function requestTripAccess(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const tripId = formData.get("trip_id") as string;
+  const message = (formData.get("message") as string) || null;
+
+  // Verificar que no es ya miembro
+  const member = await isTripMember(tripId);
+  if (member) throw new Error("Ya eres miembro de este viaje");
+
+  const { error } = await supabase
+    .from("trip_access_requests")
+    .upsert(
+      { trip_id: tripId, user_id: user.id, message, status: "pending" },
+      { onConflict: "trip_id,user_id" },
+    );
+
+  if (error) throw new Error(`Error al solicitar acceso: ${error.message}`);
+
+  revalidatePath("/trips");
+  revalidatePath(`/trips/${tripId}`);
+}
+
+export async function resolveAccessRequest(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const requestId = formData.get("request_id") as string;
+  const tripId = formData.get("trip_id") as string;
+  const action = formData.get("action") as string; // "approve" | "reject"
+
+  const owner = await isTripOwner(tripId);
+  if (!owner) throw new Error("Solo el creador puede gestionar solicitudes");
+
+  const status = action === "approve" ? "approved" : "rejected";
+
+  const { error } = await supabase
+    .from("trip_access_requests")
+    .update({ status, resolved_at: new Date().toISOString(), resolved_by: user.id })
+    .eq("id", requestId);
+
+  if (error) throw new Error(`Error al procesar solicitud: ${error.message}`);
+
+  revalidatePath(`/trips/${tripId}`);
+  revalidatePath(`/trips/${tripId}/members`);
+}
+
 export async function deleteTrip(formData: FormData) {
   const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");

@@ -18,6 +18,24 @@ export type Trip = {
   created_at: string;
 };
 
+export type TripWithAccess = Trip & {
+  member_count: number;
+  is_member: boolean;
+  access_request_status: string | null; // null | 'pending' | 'approved' | 'rejected'
+};
+
+export type TripAccessRequest = {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  message: string | null;
+  status: string; // pending | approved | rejected
+  created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  profile?: Profile | null;
+};
+
 export type TripMember = {
   id: string;
   trip_id: string;
