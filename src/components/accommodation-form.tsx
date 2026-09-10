@@ -5,6 +5,7 @@ import { createAccommodation } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { CURRENCIES, type Profile } from "@/lib/types";
+import { FloatingActionButton } from "@/components/floating-button";
 
 export function AccommodationForm({
   tripId,
@@ -16,23 +17,33 @@ export function AccommodationForm({
   const [open, setOpen] = useState(false);
 
   if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/50 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
-      >
-        <PlusIcon /> Añadir hotel
-      </button>
-    );
+    return <FloatingActionButton onClick={() => setOpen(true)} label="Añadir hotel" />;
   }
 
   return (
-    <form action={createAccommodation} className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <input type="hidden" name="trip_id" value={tripId} />
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
+      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-zinc-200" />
+        </div>
+        <div className="flex items-center justify-between px-5 pb-2">
+          <h3 className="text-base font-bold text-zinc-900">Añadir hotel</h3>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+        <form action={createAccommodation} className="max-h-[70vh] space-y-3 overflow-y-auto px-5 pb-6 pt-1">
+          <input type="hidden" name="trip_id" value={tripId} />
 
-      <Field label="Nombre / Hotel *">
-        <TextInput name="name" required placeholder="Ej: Hotel Copacabana Palace" />
-      </Field>
+          <Field label="Nombre / Hotel *">
+            <TextInput name="name" required placeholder="Ej: Hotel Copacabana Palace" />
+          </Field>
 
       <Field label="Dirección">
         <TextInput name="address" placeholder="Ej: Av. Atlântica, 1702 - Copacabana, Rio" />
@@ -78,7 +89,7 @@ export function AccommodationForm({
       </Field>
 
       <div className="flex gap-2 pt-1">
-        <SubmitButton>Añadir</SubmitButton>
+        <SubmitButton className="flex-1">Añadir</SubmitButton>
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -88,13 +99,7 @@ export function AccommodationForm({
         </button>
       </div>
     </form>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-    </svg>
+      </div>
+    </>
   );
 }
