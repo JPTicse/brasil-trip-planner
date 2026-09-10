@@ -2,6 +2,7 @@ import { getActivities, getTrip, getTripMembers } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { ActivityForm } from "@/components/activity-form";
 import { EmptyState } from "@/components/ui";
+import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { deleteActivity, joinActivity, leaveActivity } from "@/lib/actions";
 import {
   ACTIVITY_TYPE_LABELS,
@@ -9,6 +10,15 @@ import {
   type ActivityType,
 } from "@/lib/types";
 import { formatDate, formatTime, formatCurrency, getDaysBetween } from "@/lib/format";
+
+const TYPE_GRADIENT: Record<ActivityType, string> = {
+  visit: "from-blue-500 to-cyan-400",
+  tour: "from-purple-500 to-pink-400",
+  meal: "from-orange-500 to-amber-400",
+  event: "from-red-500 to-rose-400",
+  free: "from-green-500 to-emerald-400",
+  transport: "from-zinc-600 to-slate-400",
+};
 
 const TYPE_ICON: Record<ActivityType, string> = {
   visit: "M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M9 10v11M15 10v11",
@@ -34,75 +44,121 @@ export default async function ItineraryPage({
     .map((m) => m.profile)
     .filter((p): p is NonNullable<typeof p> => p !== null && p !== undefined);
 
-  // Agrupar por fecha
-  const byDate = new Map<string, Activity[]>();
-  for (const a of activities) {
-    const list = byDate.get(a.date) ?? [];
+  const currentUserId = user?.id ?? "";
+
+  // Separar en "mis planes" (unidos) y "explorar" (todos los demás)
+  const myActivities = activities.filter((a) =>
+    (a.participants ?? []).some((p) => p.user_id === currentUserId),
+  );
+  const exploreActivities = activities.filter((a) =>
+    !(a.participants ?? []).some((p) => p.user_id === currentUserId),
+  );
+
+  // Agrupar "mis planes" por fecha
+  const myByDate = new Map<string, Activity[]>();
+  for (const a of myActivities) {
+    const list = myByDate.get(a.date) ?? [];
     list.push(a);
-    byDate.set(a.date, list);
+    myByDate.set(a.date, list);
   }
 
   const days =
     trip?.start_date && trip?.end_date
       ? getDaysBetween(trip.start_date, trip.end_date)
-      : [...byDate.keys()].sort();
-
-  const currentUserId = user?.id ?? "";
+      : [...myByDate.keys()].sort();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-zinc-900">Itinerario</h2>
         <span className="text-sm text-zinc-400">
-          {activities.length} {activities.length === 1 ? "actividad" : "actividades"}
+          {myActivities.length} míos · {exploreActivities.length} por explorar
         </span>
       </div>
 
-      {days.length === 0 ? (
-        <div className="space-y-4">
-          <EmptyState
-            icon={<CalendarIcon />}
-            title="El itinerario está vacío"
-            description="Propón actividades, tours o visitas para cada día del viaje. Los demás podrán unirse."
-          />
-          <ActivityForm tripId={id} members={memberProfiles} />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {days.map((day, idx) => {
-            const dayActivities = byDate.get(day) ?? [];
-            return (
-              <div key={day} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
-                    {idx + 1}
+      {/* Mis planes */}
+      <section>
+        <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-zinc-700">
+          <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Mis planes
+        </h3>
+
+        {myActivities.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 bg-white/50 px-4 py-8 text-center">
+            <p className="text-sm text-zinc-400">
+              No te has unido a ningún plan todavía.
+              <br />
+              Explora las actividades abajo y únete.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {days
+              .filter((day) => (myByDate.get(day) ?? []).length > 0)
+              .map((day, idx) => {
+                const dayActivities = myByDate.get(day) ?? [];
+                return (
+                  <div key={day} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+                        {idx + 1}
+                      </div>
+                      <h4 className="text-sm font-semibold text-zinc-700">
+                        {formatDate(day)}
+                      </h4>
+                    </div>
+                    <div className="ml-4 space-y-2 border-l-2 border-emerald-200 pl-4">
+                      {dayActivities.map((a) => (
+                        <ActivityCard
+                          key={a.id}
+                          activity={a}
+                          tripId={id}
+                          currentUserId={currentUserId}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <h3 className="text-sm font-semibold text-zinc-700">
-                    {formatDate(day)}
-                  </h3>
-                </div>
+                );
+              })}
+          </div>
+        )}
+      </section>
 
-                <div className="ml-4 space-y-2 border-l-2 border-zinc-200 pl-4">
-                  {dayActivities.length === 0 ? (
-                    <p className="py-2 text-xs text-zinc-400">Día libre</p>
-                  ) : (
-                    dayActivities.map((a) => (
-                      <ActivityCard
-                        key={a.id}
-                        activity={a}
-                        tripId={id}
-                        currentUserId={currentUserId}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      {/* Explorar */}
+      <section>
+        <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-zinc-700">
+          <svg className="h-4 w-4 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Explorar actividades
+        </h3>
 
-          <ActivityForm tripId={id} members={memberProfiles} />
-        </div>
-      )}
+        {exploreActivities.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 bg-white/50 px-4 py-8 text-center">
+            <p className="text-sm text-zinc-400">
+              No hay actividades por explorar.
+              <br />
+              ¡Propón una nueva!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {exploreActivities.map((a) => (
+              <ActivityCard
+                key={a.id}
+                activity={a}
+                tripId={id}
+                currentUserId={currentUserId}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <ActivityForm tripId={id} members={memberProfiles} />
     </div>
   );
 }
@@ -122,143 +178,156 @@ function ActivityCard({
   const participantCount = participants.length;
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
-      {/* Header: icono + título + eliminar */}
-      <div className="flex items-start gap-2.5 p-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100">
-          <svg className="h-4 w-4 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d={TYPE_ICON[activity.type] ?? TYPE_ICON.visit} />
-          </svg>
+    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+      {/* Banda de color por tipo */}
+      <div className={`h-1 bg-gradient-to-r ${TYPE_GRADIENT[activity.type] ?? TYPE_GRADIENT.visit}`} />
+
+      <div className="p-3">
+        {/* Header */}
+        <div className="flex items-start gap-2.5">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${TYPE_GRADIENT[activity.type] ?? TYPE_GRADIENT.visit} text-white`}>
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d={TYPE_ICON[activity.type] ?? TYPE_ICON.visit} />
+            </svg>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h4 className="text-sm font-semibold text-zinc-900">{activity.title}</h4>
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400">
+              <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-medium text-zinc-500">
+                {ACTIVITY_TYPE_LABELS[activity.type]}
+              </span>
+              {(activity.start_time || activity.end_time) && (
+                <span className="flex items-center gap-0.5">
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {formatTime(activity.start_time)}
+                  {activity.end_time && ` – ${formatTime(activity.end_time)}`}
+                </span>
+              )}
+              {activity.location && (
+                <span className="flex items-center gap-0.5">
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span className="max-w-[120px] truncate">{activity.location}</span>
+                </span>
+              )}
+              {activity.cost !== null && activity.cost > 0 && (
+                <span className="font-medium text-emerald-700">
+                  {formatCurrency(activity.cost, activity.currency)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {isCreator && (
+            <form action={deleteActivity}>
+              <input type="hidden" name="activity_id" value={activity.id} />
+              <input type="hidden" name="trip_id" value={tripId} />
+              <button
+                type="submit"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500"
+                title="Eliminar actividad"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </form>
+          )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold text-zinc-900">{activity.title}</h4>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400">
-            <span className="rounded bg-zinc-100 px-1.5 py-0.5 font-medium text-zinc-500">
-              {ACTIVITY_TYPE_LABELS[activity.type]}
-            </span>
-            {(activity.start_time || activity.end_time) && (
-              <span className="flex items-center gap-0.5">
-                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {formatTime(activity.start_time)}
-                {activity.end_time && ` – ${formatTime(activity.end_time)}`}
-              </span>
-            )}
-            {activity.location && (
-              <span className="flex items-center gap-0.5">
-                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <span className="max-w-[120px] truncate">{activity.location}</span>
-              </span>
-            )}
-            {activity.cost !== null && activity.cost > 0 && (
-              <span className="font-medium text-emerald-700">
-                {formatCurrency(activity.cost, activity.currency)}
-              </span>
+        {/* Footer: participantes + botón */}
+        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-zinc-100 pt-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {participantCount > 0 ? (
+              <>
+                <div className="flex -space-x-1.5">
+                  {participants.slice(0, 5).map((p) => {
+                    const name = p.profile?.name ?? "Usuario";
+                    const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-emerald-600 text-[8px] font-semibold text-white"
+                        title={name}
+                      >
+                        {p.profile?.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          initials
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <span className="text-[11px] text-zinc-400">
+                  {participantCount} {participantCount === 1 ? "unido" : "unidos"}
+                </span>
+              </>
+            ) : (
+              <span className="text-[11px] text-zinc-400">Nadie se ha unido aún</span>
             )}
           </div>
-          {activity.notes && (
-            <p className="mt-1.5 rounded bg-zinc-50 px-2 py-1 text-xs text-zinc-500">
-              {activity.notes}
-            </p>
-          )}
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Botón ver detalle */}
+            <ActivityDetailModal
+              activity={activity}
+              tripId={tripId}
+              currentUserId={currentUserId}
+              trigger={
+                <button
+                  type="button"
+                  className="flex items-center gap-0.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-50"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Ver
+                </button>
+              }
+            />
+
+            {/* Botón unirse/salir */}
+            {isJoined ? (
+              <form action={leaveActivity}>
+                <input type="hidden" name="activity_id" value={activity.id} />
+                <input type="hidden" name="trip_id" value={tripId} />
+                <button
+                  type="submit"
+                  className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-200 active:scale-95"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Unido
+                </button>
+              </form>
+            ) : (
+              <form action={joinActivity}>
+                <input type="hidden" name="activity_id" value={activity.id} />
+                <input type="hidden" name="trip_id" value={tripId} />
+                <button
+                  type="submit"
+                  className="flex items-center gap-0.5 rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-50 active:scale-95"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  </svg>
+                  Unirme
+                </button>
+              </form>
+            )}
+          </div>
         </div>
-
-        {isCreator && (
-          <form action={deleteActivity}>
-            <input type="hidden" name="activity_id" value={activity.id} />
-            <input type="hidden" name="trip_id" value={tripId} />
-            <button
-              type="submit"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500"
-              title="Eliminar actividad"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </form>
-        )}
-      </div>
-
-      {/* Footer: participantes + botón unirse/salir */}
-      <div className="flex items-center justify-between gap-2 border-t border-zinc-100 px-3 py-2">
-        <div className="flex min-w-0 items-center gap-1.5">
-          {participantCount > 0 ? (
-            <>
-              <div className="flex -space-x-1.5">
-                {participants.slice(0, 5).map((p) => {
-                  const name = p.profile?.name ?? "Usuario";
-                  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-                  return (
-                    <div
-                      key={p.id}
-                      className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-emerald-600 text-[8px] font-semibold text-white"
-                      title={name}
-                    >
-                      {p.profile?.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        initials
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <span className="text-[11px] text-zinc-400">
-                {participantCount} {participantCount === 1 ? "unido" : "unidos"}
-              </span>
-            </>
-          ) : (
-            <span className="text-[11px] text-zinc-400">Nadie se ha unido aún</span>
-          )}
-        </div>
-
-        {isJoined ? (
-          <form action={leaveActivity}>
-            <input type="hidden" name="activity_id" value={activity.id} />
-            <input type="hidden" name="trip_id" value={tripId} />
-            <button
-              type="submit"
-              className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-200 active:scale-95"
-            >
-              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Unido
-            </button>
-          </form>
-        ) : (
-          <form action={joinActivity}>
-            <input type="hidden" name="activity_id" value={activity.id} />
-            <input type="hidden" name="trip_id" value={tripId} />
-            <button
-              type="submit"
-              className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-300 bg-white px-3 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-50 active:scale-95"
-            >
-              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-              </svg>
-              Unirme
-            </button>
-          </form>
-        )}
       </div>
     </div>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg className="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
-    </svg>
   );
 }

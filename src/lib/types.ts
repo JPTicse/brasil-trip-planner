@@ -5,6 +5,9 @@ export type Profile = {
   name: string | null;
   avatar_url: string | null;
   created_at: string;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  location_updated_at?: string | null;
 };
 
 export type Trip = {
@@ -63,6 +66,8 @@ export type Activity = {
   title: string;
   type: ActivityType;
   location: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   cost: number | null;
   currency: string;
   notes: string | null;

@@ -188,6 +188,8 @@ export async function createActivity(formData: FormData) {
       title: formData.get("title") as string,
       type: (formData.get("type") as string) || "visit",
       location: (formData.get("location") as string) || null,
+      location_lat: formData.get("location_lat") ? Number(formData.get("location_lat")) : null,
+      location_lng: formData.get("location_lng") ? Number(formData.get("location_lng")) : null,
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       notes: (formData.get("notes") as string) || null,
@@ -503,4 +505,27 @@ export async function toggleSplitSettled(formData: FormData) {
 
   await supabase.from("expense_splits").update({ settled: !settled }).eq("id", splitId);
   revalidatePath(`/trips/${tripId}/expenses`);
+}
+
+// --- Ubicación del usuario ---
+
+export async function updateMyLocation(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error('No autenticado');
+
+  const lat = Number(formData.get('lat'));
+  const lng = Number(formData.get('lng'));
+
+  if (isNaN(lat) || isNaN(lng)) throw new Error('Coordenadas invalidas');
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      location_lat: lat,
+      location_lng: lng,
+      location_updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id);
+
+  if (error) throw new Error('Error al actualizar ubicacion');
 }

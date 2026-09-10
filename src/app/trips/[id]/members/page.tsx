@@ -2,6 +2,8 @@ import { getTripMembers, getPendingAccessRequests } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { AddMemberForm } from "@/components/add-member-form";
 import { DeleteButton } from "@/components/ui";
+import { LocationTracker } from "@/components/location-tracker";
+import { MembersMap } from "@/components/members-map";
 import { removeTripMember, deleteTrip, resolveAccessRequest } from "@/lib/actions";
 import type { TripMember, TripAccessRequest } from "@/lib/types";
 
@@ -20,6 +22,11 @@ export default async function MembersPage({
   // Obtener solicitudes pendientes (solo para owners)
   const pendingRequests = isOwner ? await getPendingAccessRequests(id) : [];
 
+  // Perfiles con ubicación para el mapa
+  const memberProfiles = members
+    .map((m) => m.profile)
+    .filter((p): p is NonNullable<typeof p> => p !== null && p !== undefined);
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -28,6 +35,21 @@ export default async function MembersPage({
           {members.length} {members.length === 1 ? "persona" : "personas"}
         </span>
       </div>
+
+      {/* Tracker de ubicación (invisible pero activo) */}
+      <LocationTracker />
+
+      {/* Mapa de ubicaciones */}
+      <section>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-zinc-700">
+          <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          Ubicación del grupo
+        </h3>
+        <MembersMap members={memberProfiles} />
+      </section>
 
       {/* Solicitudes de acceso pendientes */}
       {isOwner && pendingRequests.length > 0 && (

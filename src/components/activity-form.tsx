@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
+import { PlacesAutocomplete, type PlaceResult } from "@/components/places-autocomplete";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Profile } from "@/lib/types";
 
 export function ActivityForm({
@@ -76,6 +77,8 @@ function ActivityFormInner({
 }) {
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
+  const [place, setPlace] = useState<PlaceResult | null>(null);
+  const [locationName, setLocationName] = useState("");
 
   const [state, formAction] = useActionState(
     async (_prev: string | null, formData: FormData) => {
@@ -99,12 +102,22 @@ function ActivityFormInner({
   return (
     <form
       action={(formData) => {
+        // Inyectar coordenadas del lugar seleccionado
+        if (place) {
+          formData.set("location_lat", String(place.lat));
+          formData.set("location_lng", String(place.lng));
+          if (!formData.get("location")) {
+            formData.set("location", place.name);
+          }
+        }
         setSubmitted(true);
         formAction(formData);
       }}
       className="max-h-[70vh] space-y-3 overflow-y-auto px-5 pb-6 pt-1"
     >
       <input type="hidden" name="trip_id" value={tripId} />
+      <input type="hidden" name="location_lat" value={place?.lat ?? ""} />
+      <input type="hidden" name="location_lng" value={place?.lng ?? ""} />
 
       <Field label="Título *">
         <TextInput name="title" required placeholder="Ej: Visita al Cristo Redentor" />
@@ -135,7 +148,15 @@ function ActivityFormInner({
       </div>
 
       <Field label="Ubicación">
-        <TextInput name="location" placeholder="Ej: Parque Nacional da Tijuca" />
+        <PlacesAutocomplete
+          value={locationName}
+          onChange={(p, name) => {
+            setPlace(p);
+            setLocationName(name);
+          }}
+          placeholder="Busca un lugar en el mapa..."
+        />
+        <input type="hidden" name="location" value={locationName} />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
