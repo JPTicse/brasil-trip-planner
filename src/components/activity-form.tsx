@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
+import { suggestPlace } from "@/lib/suggest";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { ImageUpload } from "@/components/image-upload";
@@ -122,13 +123,11 @@ function Wizard({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/suggest-place?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
+      const data = await suggestPlace(query);
       if (data.error) {
         setError(data.error);
       } else if (data.suggestions?.length) {
         setSuggestions(data.suggestions);
-        // Auto-seleccionar la primera sugerencia
         selectSuggestion(data.suggestions[0]);
       } else {
         setError("No se encontraron lugares. Puedes continuar manualmente.");
@@ -180,23 +179,23 @@ function Wizard({
         {STEPS.map((label, i) => (
           <div key={label} className="flex flex-1 flex-col items-center">
             <div
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition ${
                 i < step
                   ? "bg-emerald-600 text-white"
                   : i === step
-                    ? "bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500"
+                    ? "bg-emerald-600 text-white ring-4 ring-emerald-100"
                     : "bg-zinc-100 text-zinc-400"
               }`}
             >
               {i < step ? (
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                   <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ) : (
                 i + 1
               )}
             </div>
-            <span className={`mt-1 text-[10px] ${i === step ? "font-semibold text-zinc-700" : "text-zinc-400"}`}>
+            <span className={`mt-1.5 text-[10px] ${i <= step ? "font-semibold text-zinc-700" : "text-zinc-400"}`}>
               {label}
             </span>
           </div>
