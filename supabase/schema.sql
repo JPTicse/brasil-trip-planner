@@ -134,9 +134,7 @@ create policy "Users can update their own profile"
 -- Viajes: visibles para los miembros del viaje
 create policy "Trips are viewable by members"
   on public.trips for select to authenticated
-  using (
-    id in (select trip_id from public.trip_members where user_id = auth.uid())
-  );
+  using (public.is_trip_member(id));
 
 create policy "Users can create trips"
   on public.trips for insert to authenticated
@@ -144,45 +142,29 @@ create policy "Users can create trips"
 
 create policy "Users can update trips they belong to"
   on public.trips for update to authenticated
-  using (
-    id in (select trip_id from public.trip_members where user_id = auth.uid())
-  );
+  using (public.is_trip_member(id));
 
 create policy "Users can delete trips they own"
   on public.trips for delete to authenticated
-  using (
-    id in (
-      select trip_id from public.trip_members
-      where user_id = auth.uid() and role = 'owner'
-    )
-  );
+  using (public.is_trip_owner(id));
 
 -- Miembros de viaje: visibles para miembros del mismo viaje
 create policy "Trip members are viewable by trip members"
   on public.trip_members for select to authenticated
-  using (
-    trip_id in (select trip_id from public.trip_members tm where tm.user_id = auth.uid())
-  );
+  using (public.is_trip_member(trip_id));
 
 create policy "Users can add members to their trips"
   on public.trip_members for insert to authenticated
   with check (
-    trip_id in (
-      select trip_id from public.trip_members
-      where user_id = auth.uid() and role = 'owner'
-    )
+    public.is_trip_owner(trip_id)
+    or (user_id = auth.uid() and public.is_trip_creator(trip_id))
   );
 
 create policy "Owners can remove members"
   on public.trip_members for delete to authenticated
-  using (
-    trip_id in (
-      select trip_id from public.trip_members
-      where user_id = auth.uid() and role = 'owner'
-    )
-  );
+  using (public.is_trip_owner(trip_id));
 
--- Función helper: ¿el usuario actual es miembro del viaje?
+-- Funciones helper (SECURITY DEFINER = bypass RLS, evita recursión infinita)
 create or replace function public.is_trip_member(trip uuid)
 returns boolean
 language sql security definer stable
@@ -190,6 +172,26 @@ as $$
   select exists (
     select 1 from public.trip_members
     where trip_id = trip and user_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_trip_owner(trip uuid)
+returns boolean
+language sql security definer stable
+as $$
+  select exists (
+    select 1 from public.trip_members
+    where trip_id = trip and user_id = auth.uid() and role = 'owner'
+  );
+$$;
+
+create or replace function public.is_trip_creator(trip uuid)
+returns boolean
+language sql security definer stable
+as $$
+  select exists (
+    select 1 from public.trips
+    where id = trip and created_by = auth.uid()
   );
 $$;
 
