@@ -1,54 +1,55 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useEffect, useRef } from "react";
 
 /**
- * Suscribe a cambios en las tablas del viaje y refresca la ruta
- * cuando hay inserciones/actualizaciones/eliminaciones.
+ * Refresca los datos del servidor periódicamente mientras la pestaña
+ * está activa. Deja de hacer polling cuando la pestaña está en segundo
+ * plano para ahorrar recursos.
+ *
+ * Más confiable que Supabase Realtime cuando se usa service_role
+ * (que bypassa RLS y por tanto no recibe eventos de realtime).
  */
-export function useTripRealtime(tripId: string) {
+export function useTripPolling(tripId: string, intervalMs = 5000) {
   const router = useRouter();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel(`trip-${tripId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expenses", filter: `trip_id=eq.${tripId}` },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "expense_splits" },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "activities", filter: `trip_id=eq.${tripId}` },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "accommodations", filter: `trip_id=eq.${tripId}` },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "transports", filter: `trip_id=eq.${tripId}` },
-        () => router.refresh(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "trip_members", filter: `trip_id=eq.${tripId}` },
-        () => router.refresh(),
-      )
-      .subscribe();
+    const startPolling = () => {
+      if (intervalRef.current) return;
+      intervalRef.current = setInterval(() => {
+        router.refresh();
+      }, intervalMs);
+    };
+
+    const stopPolling = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Refrescar inmediatamente al volver a la pestaña
+        router.refresh();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    // Iniciar polling si la pestaña está visible
+    if (document.visibilityState === "visible") {
+      startPolling();
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(channel);
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [tripId, router]);
+  }, [tripId, router, intervalMs]);
 }

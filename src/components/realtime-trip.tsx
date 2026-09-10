@@ -1,8 +1,8 @@
 "use client";
 
-import { useTripRealtime } from "@/components/use-trip-realtime";
+import { useTripPolling } from "@/components/use-trip-realtime";
 
 export function RealtimeTrip({ tripId }: { tripId: string }) {
-  useTripRealtime(tripId);
+  useTripPolling(tripId);
   return null;
 }

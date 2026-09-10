@@ -2,6 +2,7 @@ import { getExpenses, getTripBalances, getTripDebts, getTripMembers } from "@/li
 import { getCurrentUser } from "@/lib/auth";
 import { ExpenseForm } from "@/components/expense-form";
 import { DeleteButton, EmptyState } from "@/components/ui";
+import { LiveIndicator } from "@/components/live-indicator";
 import { deleteExpense, toggleSplitSettled } from "@/lib/actions";
 import { EXPENSE_CATEGORY_LABELS, type Expense, type Profile } from "@/lib/types";
 import { formatDate, formatCurrency } from "@/lib/format";
@@ -45,11 +46,14 @@ export default async function ExpensesPage({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-zinc-900">Gastos</h2>
-        {expenses.length > 0 && (
-          <span className="text-sm font-medium text-emerald-700">
-            Total: {formatCurrency(totalAmount, currency)}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          <LiveIndicator />
+          {expenses.length > 0 && (
+            <span className="text-sm font-medium text-emerald-700">
+              Total: {formatCurrency(totalAmount, currency)}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Resumen de saldos */}
