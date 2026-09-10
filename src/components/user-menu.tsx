@@ -1,0 +1,55 @@
+"use client";
+
+import { signOut } from "@/lib/auth-actions";
+import type { Profile } from "@/lib/types";
+import { useState, useRef, useEffect } from "react";
+
+export function UserMenu({ profile, email }: { profile: Profile | null; email: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const initials = (profile?.name ?? email)
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-sm font-semibold text-white ring-2 ring-white"
+      >
+        {profile?.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initials
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-zinc-200 bg-white p-2 shadow-lg">
+          <div className="border-b border-zinc-100 px-3 py-2">
+            <p className="truncate text-sm font-medium text-zinc-900">{profile?.name ?? "Usuario"}</p>
+            <p className="truncate text-xs text-zinc-500">{email}</p>
+          </div>
+          <button
+            onClick={() => signOut()}
+            className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
