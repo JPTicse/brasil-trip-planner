@@ -26,6 +26,7 @@ export function PlacesAutocomplete({
   const autocompleteRef = useRef<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,55 +79,65 @@ export function PlacesAutocomplete({
     };
   }, [onChange]);
 
-  // Autodetectar: usa AutocompleteService (no requiere mapa)
+  // Autodetectar: usa Geocoder directamente (no deprecado)
   const autoDetect = async () => {
     if (!titleHint || !loaded) return;
     const google = (window as any).google;
-    if (!google?.maps?.places) return;
+    if (!google?.maps?.Geocoder) return;
 
     setError(null);
+    setSearching(true);
 
     try {
-      const service = new google.maps.places.AutocompleteService();
+      const geocoder = new google.maps.Geocoder();
 
-      service.getPlacePredictions(
+      geocoder.geocode(
         {
-          input: titleHint,
-          types: ["geocode", "establishment", "tourist_attraction", "point_of_interest"],
+          address: titleHint,
+          componentRestrictions: { country: "BR" },
         },
-        async (predictions: any[], status: string) => {
-          if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
-            setError("No se encontró el lugar. Búscalo manualmente.");
-            return;
+        (results: any[], status: string) => {
+          setSearching(false);
+          if (status === google.maps.GeocoderStatus.OK && results?.length) {
+            const r = results[0];
+            const photos = r.photos;
+            const photoUrl = photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 });
+            onChange(
+              {
+                name: r.formatted_address || titleHint,
+                lat: r.geometry.location.lat(),
+                lng: r.geometry.location.lng(),
+                place_id: r.place_id,
+                photo_url: photoUrl,
+              },
+              r.formatted_address || titleHint,
+            );
+          } else {
+            // Intentar sin restricción de país
+            geocoder.geocode({ address: titleHint }, (results2: any[], status2: string) => {
+              if (status2 === google.maps.GeocoderStatus.OK && results2?.length) {
+                const r = results2[0];
+                const photos = r.photos;
+                const photoUrl = photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 });
+                onChange(
+                  {
+                    name: r.formatted_address || titleHint,
+                    lat: r.geometry.location.lat(),
+                    lng: r.geometry.location.lng(),
+                    place_id: r.place_id,
+                    photo_url: photoUrl,
+                  },
+                  r.formatted_address || titleHint,
+                );
+              } else {
+                setError("No se encontró el lugar. Búscalo manualmente.");
+              }
+            });
           }
-
-          // Usar el primer resultado y geocodificarlo
-          const top = predictions[0];
-          const geocoder = new google.maps.Geocoder();
-
-          geocoder.geocode({ placeId: top.place_id }, (results: any[], geoStatus: string) => {
-            if (geoStatus === google.maps.GeocoderStatus.OK && results?.length) {
-              const r = results[0];
-              // Intentar obtener foto del lugar
-              const photos = r.photos;
-              const photoUrl = photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 });
-              onChange(
-                {
-                  name: r.formatted_address || top.description,
-                  lat: r.geometry.location.lat(),
-                  lng: r.geometry.location.lng(),
-                  place_id: top.place_id,
-                  photo_url: photoUrl,
-                },
-                r.formatted_address || top.description,
-              );
-            } else {
-              setError("No se pudo obtener la ubicación");
-            }
-          });
         },
       );
     } catch (e) {
+      setSearching(false);
       setError("Error al buscar el lugar");
     }
   };
@@ -146,13 +157,20 @@ export function PlacesAutocomplete({
           <button
             type="button"
             onClick={autoDetect}
+            disabled={searching}
             title="Buscar ubicación desde el título"
-            className="flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-emerald-700 transition hover:bg-emerald-100 active:scale-95"
+            className="flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-emerald-700 transition hover:bg-emerald-100 active:scale-95 disabled:opacity-50"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
+            {searching ? (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+            )}
           </button>
         )}
       </div>
