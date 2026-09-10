@@ -71,6 +71,16 @@ export type Activity = {
   created_at: string;
   // Joins
   assignee?: Profile | null;
+  creator?: Profile | null;
+  participants?: ActivityParticipant[];
+};
+
+export type ActivityParticipant = {
+  id: string;
+  activity_id: string;
+  user_id: string;
+  joined_at: string;
+  profile?: Profile | null;
 };
 
 export type Accommodation = {

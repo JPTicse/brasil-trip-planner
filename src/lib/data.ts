@@ -136,7 +136,7 @@ export async function getActivities(tripId: string): Promise<Activity[]> {
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("activities")
-    .select("*, assignee:profiles!assigned_to(*)")
+    .select("*, assignee:profiles!assigned_to(*), creator:profiles!created_by(*), participants:activity_participants(*, profile:profiles(*))")
     .eq("trip_id", tripId)
     .order("date", { ascending: true })
     .order("start_time", { ascending: true, nullsFirst: false });

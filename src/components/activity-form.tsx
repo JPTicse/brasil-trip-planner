@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -17,19 +18,92 @@ export function ActivityForm({
 }) {
   const [open, setOpen] = useState(false);
 
+  const handleSuccess = useCallback(() => {
+    setOpen(false);
+  }, []);
+
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/50 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 active:scale-[0.98]"
       >
-        <PlusIcon /> Añadir actividad
+        <PlusIcon /> Proponer actividad
       </button>
     );
   }
 
   return (
-    <form action={createActivity} className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <>
+      <div
+        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+        onClick={() => setOpen(false)}
+      />
+      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-zinc-200" />
+        </div>
+        <div className="flex items-center justify-between px-5 pb-2">
+          <h3 className="text-base font-bold text-zinc-900">Proponer actividad</h3>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <ActivityFormInner
+          tripId={tripId}
+          defaultDate={defaultDate}
+          onSuccess={handleSuccess}
+        />
+      </div>
+    </>
+  );
+}
+
+function ActivityFormInner({
+  tripId,
+  defaultDate,
+  onSuccess,
+}: {
+  tripId: string;
+  defaultDate?: string;
+  onSuccess: () => void;
+}) {
+  const router = useRouter();
+  const [submitted, setSubmitted] = useState(false);
+
+  const [state, formAction] = useActionState(
+    async (_prev: string | null, formData: FormData) => {
+      try {
+        await createActivity(formData);
+        return null;
+      } catch (e) {
+        return e instanceof Error ? e.message : "Error al crear actividad";
+      }
+    },
+    null,
+  );
+
+  useEffect(() => {
+    if (submitted && state === null) {
+      router.refresh();
+      onSuccess();
+    }
+  }, [submitted, state, onSuccess, router]);
+
+  return (
+    <form
+      action={(formData) => {
+        setSubmitted(true);
+        formAction(formData);
+      }}
+      className="max-h-[70vh] space-y-3 overflow-y-auto px-5 pb-6 pt-1"
+    >
       <input type="hidden" name="trip_id" value={tripId} />
 
       <Field label="Título *">
@@ -65,7 +139,7 @@ export function ActivityForm({
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Coste">
+        <Field label="Coste aprox.">
           <TextInput name="cost" type="number" step="0.01" placeholder="0.00" />
         </Field>
         <Field label="Moneda">
@@ -79,31 +153,15 @@ export function ActivityForm({
         </Field>
       </div>
 
-      <Field label="Responsable">
-        <Select name="assigned_to" defaultValue="">
-          <option value="">Sin asignar</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name ?? "Usuario"}
-            </option>
-          ))}
-        </Select>
-      </Field>
-
       <Field label="Notas">
         <TextArea name="notes" rows={2} placeholder="Notas, reservas, recordatorios..." />
       </Field>
 
-      <div className="flex gap-2 pt-1">
-        <SubmitButton>Añadir</SubmitButton>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="rounded-lg border border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:bg-zinc-50"
-        >
-          Cancelar
-        </button>
-      </div>
+      {state && (
+        <p className="text-sm text-red-600">{state}</p>
+      )}
+
+      <SubmitButton className="w-full">Proponer actividad</SubmitButton>
     </form>
   );
 }

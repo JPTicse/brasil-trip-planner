@@ -216,6 +216,46 @@ export async function deleteActivity(formData: FormData) {
   revalidatePath(`/trips/${tripId}/itinerary`);
 }
 
+export async function joinActivity(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const activityId = formData.get("activity_id") as string;
+  const tripId = formData.get("trip_id") as string;
+
+  const member = await isTripMember(tripId);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  const { error } = await supabase
+    .from("activity_participants")
+    .insert({ activity_id: activityId, user_id: user.id });
+
+  if (error && error.code !== "23505") {
+    throw new Error(`Error al unirse: ${error.message}`);
+  }
+
+  revalidatePath(`/trips/${tripId}/itinerary`);
+}
+
+export async function leaveActivity(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const activityId = formData.get("activity_id") as string;
+  const tripId = formData.get("trip_id") as string;
+
+  const member = await isTripMember(tripId);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  await supabase
+    .from("activity_participants")
+    .delete()
+    .eq("activity_id", activityId)
+    .eq("user_id", user.id);
+
+  revalidatePath(`/trips/${tripId}/itinerary`);
+}
+
 // --- Alojamientos ---
 
 export async function createAccommodation(formData: FormData) {
