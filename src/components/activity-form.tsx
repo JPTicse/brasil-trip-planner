@@ -6,6 +6,7 @@ import { createActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PlacesAutocomplete, type PlaceResult } from "@/components/places-autocomplete";
+import { ImageUpload } from "@/components/image-upload";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Profile } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
 
@@ -79,6 +80,7 @@ function ActivityFormInner({
   const [place, setPlace] = useState<PlaceResult | null>(null);
   const [locationName, setLocationName] = useState("");
   const [title, setTitle] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [state, formAction] = useActionState(
     async (_prev: string | null, formData: FormData) => {
@@ -108,6 +110,10 @@ function ActivityFormInner({
           formData.set("location_lng", String(place.lng));
           if (!formData.get("location")) {
             formData.set("location", place.name);
+          }
+          // Si el place tiene foto y no hay imagen subida manualmente, usarla
+          if (place.photo_url && !imageUrl) {
+            formData.set("image_url", place.photo_url);
           }
         }
         setSubmitted(true);
@@ -191,6 +197,22 @@ function ActivityFormInner({
 
       <Field label="Notas">
         <TextArea name="notes" rows={2} placeholder="Notas, reservas, recordatorios..." />
+      </Field>
+
+      <Field label="Imagen">
+        <ImageUpload
+          imageUrl={place?.photo_url ?? imageUrl}
+          onUploaded={(url) => setImageUrl(url)}
+        />
+        <input type="hidden" name="image_url" value={imageUrl ?? place?.photo_url ?? ""} />
+        {place?.photo_url && !imageUrl && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600">
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Imagen automática del lugar
+          </p>
+        )}
       </Field>
 
       {state && (

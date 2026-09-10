@@ -6,6 +6,7 @@ import { updateActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PlacesAutocomplete, type PlaceResult } from "@/components/places-autocomplete";
+import { ImageUpload } from "@/components/image-upload";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Activity } from "@/lib/types";
 
 export function EditActivityModal({
@@ -87,6 +88,7 @@ function EditActivityFormInner({
   );
   const [locationName, setLocationName] = useState(activity.location ?? "");
   const [title, setTitle] = useState(activity.title);
+  const [imageUrl, setImageUrl] = useState<string | null>(activity.image_url ?? null);
 
   const [state, formAction] = useActionState(
     async (_prev: string | null, formData: FormData) => {
@@ -188,6 +190,14 @@ function EditActivityFormInner({
           </Select>
         </Field>
       </div>
+
+      <Field label="Imagen">
+        <ImageUpload
+          imageUrl={place?.photo_url ?? imageUrl}
+          onUploaded={(url) => setImageUrl(url)}
+        />
+        <input type="hidden" name="image_url" value={imageUrl ?? place?.photo_url ?? ""} />
+      </Field>
 
       <Field label="Notas">
         <TextArea name="notes" rows={2} defaultValue={activity.notes ?? ""} />

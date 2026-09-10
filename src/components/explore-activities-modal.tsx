@@ -80,6 +80,13 @@ export function ExploreActivitiesModal({
                 return (
                   <div key={a.id} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
                     <div className={`h-1 bg-gradient-to-r ${TYPE_GRADIENT[a.type] ?? TYPE_GRADIENT.visit}`} />
+                    {a.image_url && (
+                      <div className="relative h-20 w-full overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={a.image_url} alt={a.title} className="h-full w-full object-cover" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      </div>
+                    )}
                     <div className="p-3">
                       <div className="flex items-start gap-2.5">
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${TYPE_GRADIENT[a.type] ?? TYPE_GRADIENT.visit} text-white`}>

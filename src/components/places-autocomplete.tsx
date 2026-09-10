@@ -8,6 +8,7 @@ export type PlaceResult = {
   lat: number;
   lng: number;
   place_id?: string;
+  photo_url?: string;
 };
 
 export function PlacesAutocomplete({
@@ -52,12 +53,14 @@ export function PlacesAutocomplete({
         autocompleteRef.current.addListener("place_changed", () => {
           const place = autocompleteRef.current.getPlace();
           if (place && place.geometry) {
+            const photoUrl = place.photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 });
             onChange(
               {
                 name: place.name || place.formatted_address || "",
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng(),
                 place_id: place.place_id,
+                photo_url: photoUrl,
               },
               place.name || place.formatted_address || "",
             );
@@ -104,12 +107,16 @@ export function PlacesAutocomplete({
           geocoder.geocode({ placeId: top.place_id }, (results: any[], geoStatus: string) => {
             if (geoStatus === google.maps.GeocoderStatus.OK && results?.length) {
               const r = results[0];
+              // Intentar obtener foto del lugar
+              const photos = r.photos;
+              const photoUrl = photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 });
               onChange(
                 {
                   name: r.formatted_address || top.description,
                   lat: r.geometry.location.lat(),
                   lng: r.geometry.location.lng(),
                   place_id: top.place_id,
+                  photo_url: photoUrl,
                 },
                 r.formatted_address || top.description,
               );

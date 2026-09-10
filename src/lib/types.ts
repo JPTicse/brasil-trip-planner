@@ -71,6 +71,7 @@ export type Activity = {
   cost: number | null;
   currency: string;
   notes: string | null;
+  image_url: string | null;
   assigned_to: string | null;
   created_by: string | null;
   created_at: string;

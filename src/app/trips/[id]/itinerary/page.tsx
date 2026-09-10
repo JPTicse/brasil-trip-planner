@@ -191,6 +191,30 @@ function ActivityCard({
       {/* Banda de color por tipo */}
       <div className={`h-1 bg-gradient-to-r ${TYPE_GRADIENT[activity.type] ?? TYPE_GRADIENT.visit}`} />
 
+      {/* Imagen de la actividad */}
+      {activity.image_url && (
+        <div className="relative h-28 w-full overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={activity.image_url}
+            alt={activity.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute bottom-1.5 left-3 flex items-center gap-1.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/90 backdrop-blur-sm">
+              <svg className="h-3 w-3 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <path d={TYPE_ICON[activity.type] ?? TYPE_ICON.visit} />
+              </svg>
+            </div>
+            <span className="rounded bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+              {ACTIVITY_TYPE_LABELS[activity.type]}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="p-3">
         {/* Header */}
         <div className="flex items-start gap-2.5">
