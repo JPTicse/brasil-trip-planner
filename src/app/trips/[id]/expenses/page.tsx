@@ -136,7 +136,8 @@ export default async function ExpensesPage({
         </div>
       )}
 
-      <ExpenseForm tripId={id} members={memberProfiles} />
+      {/* Botón flotante para añadir gasto */}
+      <ExpenseForm tripId={id} members={memberProfiles} currentUserId={user?.id ?? ""} />
     </div>
   );
 }
