@@ -201,7 +201,7 @@ export async function getExpenseSplits(
   return (data ?? []) as ExpenseSplit[];
 }
 
-// --- Resumen de saldos entre miembros ---
+// --- Resumen de saldos entre miembros (por moneda) ---
 
 export type Balance = {
   profile: Profile;
@@ -209,48 +209,74 @@ export type Balance = {
   net: number;
 };
 
-export async function getTripBalances(tripId: string): Promise<Balance[]> {
+export type BalancesByCurrency = {
+  currency: string;
+  balances: Balance[];
+  total: number;
+};
+
+export async function getTripBalances(tripId: string): Promise<BalancesByCurrency[]> {
   const member = await isTripMember(tripId);
   if (!member) return [];
 
   const expenses = await getExpenses(tripId);
   const members = await getTripMembers(tripId);
 
-  const balances = new Map<string, number>();
-  for (const m of members) {
-    balances.set(m.user_id, 0);
-  }
-
-  for (const expense of expenses) {
-    // El que paga recibe crédito por el total
-    balances.set(
-      expense.paid_by,
-      (balances.get(expense.paid_by) ?? 0) + expense.amount,
-    );
-    // Cada split resta lo que debe
-    for (const split of expense.splits ?? []) {
-      balances.set(
-        split.user_id,
-        (balances.get(split.user_id) ?? 0) - split.amount,
-      );
-    }
-  }
-
   const profileMap = new Map<string, Profile>();
   for (const m of members) {
     if (m.profile) profileMap.set(m.user_id, m.profile);
   }
+  const getProfile = (id: string): Profile =>
+    profileMap.get(id) ?? { id, name: null, avatar_url: null, created_at: "" };
 
-  return members.map((m) => ({
-    profile: profileMap.get(m.user_id) ?? { id: m.user_id, name: null, avatar_url: null, created_at: "" },
-    net: balances.get(m.user_id) ?? 0,
-  }));
+  // Agrupar gastos por moneda
+  const expensesByCurrency = new Map<string, typeof expenses>();
+  for (const e of expenses) {
+    const arr = expensesByCurrency.get(e.currency) ?? [];
+    arr.push(e);
+    expensesByCurrency.set(e.currency, arr);
+  }
+
+  const result: BalancesByCurrency[] = [];
+
+  for (const [currency, currExpenses] of expensesByCurrency) {
+    const balances = new Map<string, number>();
+    for (const m of members) {
+      balances.set(m.user_id, 0);
+    }
+
+    for (const expense of currExpenses) {
+      balances.set(
+        expense.paid_by,
+        (balances.get(expense.paid_by) ?? 0) + expense.amount,
+      );
+      for (const split of expense.splits ?? []) {
+        balances.set(
+          split.user_id,
+          (balances.get(split.user_id) ?? 0) - split.amount,
+        );
+      }
+    }
+
+    const total = currExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    result.push({
+      currency,
+      total,
+      balances: members.map((m) => ({
+        profile: getProfile(m.user_id),
+        net: balances.get(m.user_id) ?? 0,
+      })),
+    });
+  }
+
+  return result;
 }
 
 // Exportar helpers de autorización para usar en Server Actions
 export { isTripMember, isTripOwner };
 
-// --- Quién debe a quién ---
+// --- Quién debe a quién (por moneda) ---
 
 export type Debt = {
   from: Profile; // quien debe
@@ -258,94 +284,94 @@ export type Debt = {
   amount: number;
 };
 
-export async function getTripDebts(tripId: string): Promise<Debt[]> {
+export type DebtsByCurrency = {
+  currency: string;
+  debts: Debt[];
+};
+
+export async function getTripDebts(tripId: string): Promise<DebtsByCurrency[]> {
   const member = await isTripMember(tripId);
   if (!member) return [];
 
   const expenses = await getExpenses(tripId);
   const members = await getTripMembers(tripId);
 
-  // Calcular saldo neto de cada miembro
-  const balances = new Map<string, number>();
-  for (const m of members) {
-    balances.set(m.user_id, 0);
-  }
-
-  for (const expense of expenses) {
-    balances.set(
-      expense.paid_by,
-      (balances.get(expense.paid_by) ?? 0) + expense.amount,
-    );
-    for (const split of expense.splits ?? []) {
-      balances.set(
-        split.user_id,
-        (balances.get(split.user_id) ?? 0) - split.amount,
-      );
-    }
-  }
-
-  // Solo considerar splits no saldados para las deudas activas
-  const unsettledBalances = new Map<string, number>();
-  for (const m of members) {
-    unsettledBalances.set(m.user_id, 0);
-  }
-
-  for (const expense of expenses) {
-    for (const split of expense.splits ?? []) {
-      if (!split.settled && split.user_id !== expense.paid_by) {
-        unsettledBalances.set(
-          split.user_id,
-          (unsettledBalances.get(split.user_id) ?? 0) - split.amount,
-        );
-        unsettledBalances.set(
-          expense.paid_by,
-          (unsettledBalances.get(expense.paid_by) ?? 0) + split.amount,
-        );
-      }
-    }
-  }
-
-  // Algoritmo de minimización de transacciones: separar deudores y acreedores
   const profileMap = new Map<string, Profile>();
   for (const m of members) {
     if (m.profile) profileMap.set(m.user_id, m.profile);
   }
-
   const getProfile = (id: string): Profile =>
     profileMap.get(id) ?? { id, name: null, avatar_url: null, created_at: "" };
 
-  const debtors: { id: string; amount: number }[] = [];
-  const creditors: { id: string; amount: number }[] = [];
-
-  for (const [id, balance] of unsettledBalances) {
-    if (balance < -0.01) debtors.push({ id, amount: -balance });
-    else if (balance > 0.01) creditors.push({ id, amount: balance });
+  // Agrupar gastos por moneda
+  const expensesByCurrency = new Map<string, typeof expenses>();
+  for (const e of expenses) {
+    const arr = expensesByCurrency.get(e.currency) ?? [];
+    arr.push(e);
+    expensesByCurrency.set(e.currency, arr);
   }
 
-  debtors.sort((a, b) => b.amount - a.amount);
-  creditors.sort((a, b) => b.amount - a.amount);
+  const result: DebtsByCurrency[] = [];
 
-  // Emparejar deudores con acreedores
-  const debts: Debt[] = [];
-  let i = 0;
-  let j = 0;
+  for (const [currency, currExpenses] of expensesByCurrency) {
+    // Solo considerar splits no saldados
+    const unsettledBalances = new Map<string, number>();
+    for (const m of members) {
+      unsettledBalances.set(m.user_id, 0);
+    }
 
-  while (i < debtors.length && j < creditors.length) {
-    const debt = Math.min(debtors[i].amount, creditors[j].amount);
-    debts.push({
-      from: getProfile(debtors[i].id),
-      to: getProfile(creditors[j].id),
-      amount: Math.round(debt * 100) / 100,
-    });
+    for (const expense of currExpenses) {
+      for (const split of expense.splits ?? []) {
+        if (!split.settled && split.user_id !== expense.paid_by) {
+          unsettledBalances.set(
+            split.user_id,
+            (unsettledBalances.get(split.user_id) ?? 0) - split.amount,
+          );
+          unsettledBalances.set(
+            expense.paid_by,
+            (unsettledBalances.get(expense.paid_by) ?? 0) + split.amount,
+          );
+        }
+      }
+    }
 
-    debtors[i].amount -= debt;
-    creditors[j].amount -= debt;
+    // Algoritmo de minimización de transacciones
+    const debtors: { id: string; amount: number }[] = [];
+    const creditors: { id: string; amount: number }[] = [];
 
-    if (debtors[i].amount < 0.01) i++;
-    if (creditors[j].amount < 0.01) j++;
+    for (const [id, balance] of unsettledBalances) {
+      if (balance < -0.01) debtors.push({ id, amount: -balance });
+      else if (balance > 0.01) creditors.push({ id, amount: balance });
+    }
+
+    debtors.sort((a, b) => b.amount - a.amount);
+    creditors.sort((a, b) => b.amount - a.amount);
+
+    const debts: Debt[] = [];
+    let i = 0;
+    let j = 0;
+
+    while (i < debtors.length && j < creditors.length) {
+      const debt = Math.min(debtors[i].amount, creditors[j].amount);
+      debts.push({
+        from: getProfile(debtors[i].id),
+        to: getProfile(creditors[j].id),
+        amount: Math.round(debt * 100) / 100,
+      });
+
+      debtors[i].amount -= debt;
+      creditors[j].amount -= debt;
+
+      if (debtors[i].amount < 0.01) i++;
+      if (creditors[j].amount < 0.01) j++;
+    }
+
+    if (debts.length > 0) {
+      result.push({ currency, debts });
+    }
   }
 
-  return debts;
+  return result;
 }
 
 // --- Solicitudes de acceso ---
