@@ -11,6 +11,40 @@ import type {
   TripMember,
 } from "@/lib/types";
 
+// --- Autorización ---
+
+// Verifica si el usuario actual es miembro del viaje.
+// Usa el cliente admin (bypass RLS) para evitar recursión.
+async function isTripMember(tripId: string): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("trip_members")
+    .select("id")
+    .eq("trip_id", tripId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  return !!data;
+}
+
+// Verifica si el usuario actual es owner del viaje.
+async function isTripOwner(tripId: string): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("trip_members")
+    .select("role")
+    .eq("trip_id", tripId)
+    .eq("user_id", user.id)
+    .eq("role", "owner")
+    .maybeSingle();
+  return !!data;
+}
+
 // --- Perfiles ---
 
 export async function getProfile(userId: string): Promise<Profile | null> {
@@ -30,6 +64,15 @@ export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
   if (!user) return [];
 
   const supabase = createSupabaseAdminClient();
+  // Solo los viajes donde el usuario es miembro
+  const { data: memberships } = await supabase
+    .from("trip_members")
+    .select("trip_id")
+    .eq("user_id", user.id);
+
+  const tripIds = (memberships ?? []).map((m) => m.trip_id);
+  if (tripIds.length === 0) return [];
+
   const { data } = await supabase
     .from("trips")
     .select(
@@ -38,6 +81,7 @@ export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
       trip_members(count)
     `,
     )
+    .in("id", tripIds)
     .order("created_at", { ascending: false });
 
   return (data ?? []).map((t) => ({
@@ -47,6 +91,9 @@ export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
 }
 
 export async function getTrip(tripId: string): Promise<Trip | null> {
+  const member = await isTripMember(tripId);
+  if (!member) return null;
+
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trips")
@@ -57,6 +104,9 @@ export async function getTrip(tripId: string): Promise<Trip | null> {
 }
 
 export async function getTripMembers(tripId: string): Promise<TripMember[]> {
+  const member = await isTripMember(tripId);
+  if (!member) return [];
+
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trip_members")
@@ -69,6 +119,9 @@ export async function getTripMembers(tripId: string): Promise<TripMember[]> {
 // --- Itinerario ---
 
 export async function getActivities(tripId: string): Promise<Activity[]> {
+  const member = await isTripMember(tripId);
+  if (!member) return [];
+
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("activities")
@@ -84,6 +137,9 @@ export async function getActivities(tripId: string): Promise<Activity[]> {
 export async function getAccommodations(
   tripId: string,
 ): Promise<Accommodation[]> {
+  const member = await isTripMember(tripId);
+  if (!member) return [];
+
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("accommodations")
@@ -96,6 +152,9 @@ export async function getAccommodations(
 // --- Transporte ---
 
 export async function getTransports(tripId: string): Promise<Transport[]> {
+  const member = await isTripMember(tripId);
+  if (!member) return [];
+
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("transports")
@@ -108,6 +167,9 @@ export async function getTransports(tripId: string): Promise<Transport[]> {
 // --- Gastos ---
 
 export async function getExpenses(tripId: string): Promise<Expense[]> {
+  const member = await isTripMember(tripId);
+  if (!member) return [];
+
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("expenses")
@@ -137,6 +199,9 @@ export type Balance = {
 };
 
 export async function getTripBalances(tripId: string): Promise<Balance[]> {
+  const member = await isTripMember(tripId);
+  if (!member) return [];
+
   const expenses = await getExpenses(tripId);
   const members = await getTripMembers(tripId);
 
@@ -170,3 +235,6 @@ export async function getTripBalances(tripId: string): Promise<Balance[]> {
     net: balances.get(m.user_id) ?? 0,
   }));
 }
+
+// Exportar helpers de autorización para usar en Server Actions
+export { isTripMember, isTripOwner };
