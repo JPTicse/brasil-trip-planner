@@ -218,6 +218,37 @@ export async function deleteActivity(formData: FormData) {
   revalidatePath(`/trips/${tripId}/itinerary`);
 }
 
+export async function updateActivity(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const activityId = formData.get("activity_id") as string;
+  const tripId = formData.get("trip_id") as string;
+
+  const member = await isTripMember(tripId);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  const { error } = await supabase
+    .from("activities")
+    .update({
+      title: formData.get("title") as string,
+      date: formData.get("date") as string,
+      start_time: (formData.get("start_time") as string) || null,
+      end_time: (formData.get("end_time") as string) || null,
+      type: (formData.get("type") as string) || "visit",
+      location: (formData.get("location") as string) || null,
+      location_lat: formData.get("location_lat") ? Number(formData.get("location_lat")) : null,
+      location_lng: formData.get("location_lng") ? Number(formData.get("location_lng")) : null,
+      cost: formData.get("cost") ? Number(formData.get("cost")) : null,
+      currency: (formData.get("currency") as string) || "BRL",
+      notes: (formData.get("notes") as string) || null,
+    })
+    .eq("id", activityId);
+
+  if (error) throw new Error("Error al actualizar actividad");
+  revalidatePath(`/trips/${tripId}/itinerary`);
+}
+
 export async function joinActivity(formData: FormData) {
   const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");

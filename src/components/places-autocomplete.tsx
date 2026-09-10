@@ -24,7 +24,7 @@ export function PlacesAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
   const [loaded, setLoaded] = useState(false);
-  const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,7 +33,13 @@ export function PlacesAutocomplete({
       .then(() => {
         if (cancelled || !inputRef.current) return;
         const google = (window as any).google;
-        if (!google?.maps?.places) return;
+        if (!google?.maps?.places) {
+          setError("Places API no disponible");
+          return;
+        }
+
+        // Evitar doble init
+        if (autocompleteRef.current) return;
 
         autocompleteRef.current = new google.maps.places.Autocomplete(
           inputRef.current,
@@ -60,81 +66,95 @@ export function PlacesAutocomplete({
 
         setLoaded(true);
       })
-      .catch(console.error);
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Error");
+      });
 
     return () => {
       cancelled = true;
     };
   }, [onChange]);
 
-  // Autodetectar ubicación basada en el título del plan
+  // Autodetectar: usa AutocompleteService (no requiere mapa)
   const autoDetect = async () => {
-    if (!titleHint || loaded === false) return;
+    if (!titleHint || !loaded) return;
     const google = (window as any).google;
     if (!google?.maps?.places) return;
 
-    setSearching(true);
-    try {
-      const service = new google.maps.places.PlacesService(
-        document.createElement("div"),
-      );
-      const request = {
-        query: titleHint,
-        fields: ["name", "geometry", "place_id", "formatted_address"],
-      };
+    setError(null);
 
-      service.textSearch(request, (results: any[], status: string) => {
-        setSearching(false);
-        if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
-          const place = results[0];
-          if (place.geometry?.location) {
-            onChange(
-              {
-                name: place.name || place.formatted_address || titleHint,
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng(),
-                place_id: place.place_id,
-              },
-              place.name || place.formatted_address || titleHint,
-            );
+    try {
+      const service = new google.maps.places.AutocompleteService();
+
+      service.getPlacePredictions(
+        {
+          input: titleHint,
+          types: ["geocode", "establishment", "tourist_attraction", "point_of_interest"],
+        },
+        async (predictions: any[], status: string) => {
+          if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
+            setError("No se encontró el lugar. Búscalo manualmente.");
+            return;
           }
-        }
-      });
+
+          // Usar el primer resultado y geocodificarlo
+          const top = predictions[0];
+          const geocoder = new google.maps.Geocoder();
+
+          geocoder.geocode({ placeId: top.place_id }, (results: any[], geoStatus: string) => {
+            if (geoStatus === google.maps.GeocoderStatus.OK && results?.length) {
+              const r = results[0];
+              onChange(
+                {
+                  name: r.formatted_address || top.description,
+                  lat: r.geometry.location.lat(),
+                  lng: r.geometry.location.lng(),
+                  place_id: top.place_id,
+                },
+                r.formatted_address || top.description,
+              );
+            } else {
+              setError("No se pudo obtener la ubicación");
+            }
+          });
+        },
+      );
     } catch (e) {
-      setSearching(false);
+      setError("Error al buscar el lugar");
     }
   };
 
   return (
-    <div className="flex gap-2">
-      <input
-        ref={inputRef}
-        type="text"
-        defaultValue={value}
-        placeholder={placeholder ?? "Busca un lugar..."}
-        onChange={(e) => onChange(null, e.target.value)}
-        className="flex-1 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-      />
-      {titleHint && (
-        <button
-          type="button"
-          onClick={autoDetect}
-          disabled={searching}
-          title="Autodetectar ubicación desde el título"
-          className="flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
-        >
-          {searching ? (
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M21 12a9 9 0 11-6.219-8.56" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          ) : (
+    <div className="space-y-1.5">
+      <div className="flex gap-2">
+        <input
+          ref={inputRef}
+          type="text"
+          defaultValue={value}
+          placeholder={placeholder ?? "Busca un lugar..."}
+          onChange={(e) => onChange(null, e.target.value)}
+          className="flex-1 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        />
+        {titleHint && titleHint.length > 2 && (
+          <button
+            type="button"
+            onClick={autoDetect}
+            title="Buscar ubicación desde el título"
+            className="flex shrink-0 items-center justify-center rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-emerald-700 transition hover:bg-emerald-100 active:scale-95"
+          >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-          )}
-        </button>
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="text-[11px] text-amber-600">{error}</p>
       )}
+      <p className="text-[10px] text-zinc-400">
+        Escribe el nombre del lugar y selecciónalo de las sugerencias, o pulsa el pin para autodetectar desde el título.
+      </p>
     </div>
   );
 }
