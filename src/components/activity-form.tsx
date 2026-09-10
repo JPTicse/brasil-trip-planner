@@ -3,31 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
-import { suggestPlace } from "@/lib/suggest";
+import { suggestPlace, type Suggestion } from "@/lib/suggest";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { ImageUpload } from "@/components/image-upload";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Profile, type ActivityType } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
-
-type Suggestion = {
-  place_id: string;
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  photo_url: string | null;
-  rating: number | null;
-  price_level: number | null;
-  suggested_type: string;
-  suggested_time: string | null;
-  suggested_cost: number | null;
-  suggested_currency: string;
-  opening_hours: string | null;
-  website: string | null;
-  phone: string | null;
-  types: string[];
-};
 
 export function ActivityForm({
   tripId,
