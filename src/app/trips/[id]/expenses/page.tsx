@@ -1,19 +1,13 @@
 import { getExpenses, getTripBalances, getTripDebts, getTripMembers } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { ExpenseForm } from "@/components/expense-form";
-import { DeleteButton, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { LiveIndicator } from "@/components/live-indicator";
-import { deleteExpense, toggleSplitSettled } from "@/lib/actions";
-import { EXPENSE_CATEGORY_LABELS, type Expense, type Profile } from "@/lib/types";
+import { BalancesModal, DebtsModal } from "@/components/expense-modals";
+import { ExpenseDetailModal } from "@/components/expense-detail-modal";
+import { deleteExpense } from "@/lib/actions";
+import { EXPENSE_CATEGORY_LABELS, type Expense } from "@/lib/types";
 import { formatDate, formatCurrency } from "@/lib/format";
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  food: "🍽️",
-  transport: "🚌",
-  accommodation: "🏨",
-  activity: "🎟️",
-  other: "📦",
-};
 
 const CATEGORY_ICON: Record<string, string> = {
   food: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7",
@@ -43,84 +37,34 @@ export default async function ExpensesPage({
   const currency = expenses[0]?.currency ?? "BRL";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Header compacto con botones de popup */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-zinc-900">Gastos</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-zinc-900">Gastos</h2>
           <LiveIndicator />
-          {expenses.length > 0 && (
-            <span className="text-sm font-medium text-emerald-700">
-              Total: {formatCurrency(totalAmount, currency)}
-            </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {balances.length > 0 && (
+            <BalancesModal balances={balances} currency={currency} />
+          )}
+          {debts.length > 0 && (
+            <DebtsModal debts={debts} currency={currency} />
           )}
         </div>
       </div>
 
-      {/* Resumen de saldos */}
-      {balances.length > 0 && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h3 className="mb-3 text-sm font-semibold text-zinc-700">Saldos</h3>
-          <div className="space-y-2">
-            {balances
-              .sort((a, b) => b.net - a.net)
-              .map((b) => (
-                <div key={b.profile.id} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-700">{b.profile.name ?? "Usuario"}</span>
-                  <span
-                    className={`font-medium ${
-                      b.net > 0.01
-                        ? "text-emerald-600"
-                        : b.net < -0.01
-                          ? "text-red-500"
-                          : "text-zinc-400"
-                    }`}
-                  >
-                    {b.net > 0.01 ? "+" : ""}
-                    {formatCurrency(b.net, currency)}
-                  </span>
-                </div>
-              ))}
-          </div>
-          <p className="mt-3 text-xs text-zinc-400">
-            💚 Le deben dinero · 🔴 Debe dinero
-          </p>
-        </div>
+      {/* Total */}
+      {expenses.length > 0 && (
+        <p className="text-sm text-zinc-500">
+          {expenses.length} gasto{expenses.length !== 1 ? "s" : ""} ·{" "}
+          <span className="font-semibold text-emerald-700">
+            {formatCurrency(totalAmount, currency)}
+          </span>
+        </p>
       )}
 
-      {/* Quién debe a quién */}
-      {debts.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm">
-          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-amber-800">
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Quién debe a quién
-          </h3>
-          <div className="space-y-2">
-            {debts.map((d, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="flex-1 truncate font-medium text-zinc-700">
-                  {d.from.name ?? "Usuario"}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-amber-600">
-                  debe
-                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span className="flex-1 truncate text-right font-medium text-zinc-700">
-                  {d.to.name ?? "Usuario"}
-                </span>
-                <span className="ml-2 shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                  {formatCurrency(d.amount, currency)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Lista de gastos */}
+      {/* Lista de gastos compacta */}
       {expenses.length === 0 ? (
         <EmptyState
           icon={<WalletIcon />}
@@ -128,9 +72,9 @@ export default async function ExpensesPage({
           description="Registra los gastos del viaje y repártelos entre todos."
         />
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {expenses.map((e) => (
-            <ExpenseCard
+            <CompactExpenseCard
               key={e.id}
               expense={e}
               tripId={id}
@@ -140,13 +84,12 @@ export default async function ExpensesPage({
         </div>
       )}
 
-      {/* Botón flotante para añadir gasto */}
       <ExpenseForm tripId={id} members={memberProfiles} currentUserId={user?.id ?? ""} />
     </div>
   );
 }
 
-function ExpenseCard({
+function CompactExpenseCard({
   expense,
   tripId,
   currentUserId,
@@ -159,57 +102,60 @@ function ExpenseCard({
   const isPayer = expense.paid_by === currentUserId;
   const settledCount = allSplits.filter((s) => s.settled).length;
   const allSettled = allSplits.length > 0 && settledCount === allSplits.length;
+  const pendingCount = allSplits.length - settledCount;
 
-  // Ordenar: el que pagó primero, luego los demás (pendientes antes de saldados)
-  const splits = [...allSplits].sort((a, b) => {
+  // Avatares: pagador primero, luego pendientes, luego saldados (máx 5 visibles)
+  const sortedSplits = [...allSplits].sort((a, b) => {
     if (a.user_id === expense.paid_by) return -1;
     if (b.user_id === expense.paid_by) return 1;
     if (a.settled !== b.settled) return a.settled ? 1 : -1;
     return 0;
   });
+  const visibleSplits = sortedSplits.slice(0, 5);
+  const extraCount = sortedSplits.length - visibleSplits.length;
 
   return (
-    <div className={`rounded-xl border bg-white p-3 shadow-sm transition ${
+    <div className={`rounded-xl border bg-white shadow-sm transition ${
       allSettled ? "border-emerald-200" : "border-zinc-200"
     }`}>
-      {/* Header compacto */}
-      <div className="flex items-center gap-2.5">
+      {/* Fila principal: icono + info + monto + eliminar */}
+      <div className="flex items-center gap-2.5 p-3">
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
           allSettled ? "bg-emerald-100" : "bg-zinc-100"
         }`}>
-          <svg className={`h-4.5 w-4.5 ${allSettled ? "text-emerald-600" : "text-zinc-500"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+          <svg className={`h-4 w-4 ${allSettled ? "text-emerald-600" : "text-zinc-500"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
             <path d={CATEGORY_ICON[expense.category] ?? CATEGORY_ICON.other} />
           </svg>
         </div>
+
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <h4 className="truncate text-sm font-semibold text-zinc-900">{expense.description}</h4>
             {allSettled && (
-              <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700">
-                ✓
-              </span>
+              <svg className="h-3.5 w-3.5 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             )}
           </div>
           <p className="truncate text-[11px] text-zinc-400">
-            {EXPENSE_CATEGORY_LABELS[expense.category]} · {formatDate(expense.date)}
-            {expense.payer && ` · ${expense.payer.name ?? "miembro"}`}
+            {EXPENSE_CATEGORY_LABELS[expense.category]} · {expense.payer?.name ?? "miembro"}
           </p>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-sm font-bold text-emerald-700">
-            {formatCurrency(expense.amount, expense.currency)}
-          </p>
-        </div>
+
+        <p className="shrink-0 text-sm font-bold text-emerald-700">
+          {formatCurrency(expense.amount, expense.currency)}
+        </p>
+
         {isPayer && (
           <form action={deleteExpense}>
             <input type="hidden" name="expense_id" value={expense.id} />
             <input type="hidden" name="trip_id" value={tripId} />
             <button
               type="submit"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-500"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500"
               title="Eliminar gasto"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
@@ -217,107 +163,73 @@ function ExpenseCard({
         )}
       </div>
 
-      {/* Reparto */}
-      {splits.length > 0 && (
-        <div className="mt-2.5 border-t border-zinc-100 pt-2">
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-              {settledCount}/{splits.length} pagado{settledCount !== 1 ? "s" : ""}
-            </p>
-            {isPayer && !allSettled && (
-              <span className="text-[10px] text-zinc-400">Marca quién te ha pagado</span>
-            )}
-          </div>
-          <div className="space-y-1">
-            {splits.map((split) => {
-              const name = split.profile?.name ?? "Usuario";
-              const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-              const isOwnSplit = split.user_id === expense.paid_by;
+      {/* Fila de avatares compacta */}
+      {allSplits.length > 0 && (
+        <ExpenseDetailModal
+          expense={expense}
+          tripId={tripId}
+          currentUserId={currentUserId}
+          trigger={
+            <div className="flex cursor-pointer items-center gap-2 border-t border-zinc-100 px-3 py-2 transition hover:bg-zinc-50">
+              {/* Avatares de estado */}
+              <div className="flex -space-x-1.5">
+                {visibleSplits.map((split) => {
+                  const name = split.profile?.name ?? "Usuario";
+                  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+                  const isPayerSplit = split.user_id === expense.paid_by;
+                  const isSettled = split.settled || isPayerSplit;
 
-              return (
-                <div
-                  key={split.id}
-                  className={`flex items-center justify-between rounded-lg px-2 py-1.5 transition ${
-                    isOwnSplit
-                      ? "bg-emerald-50"
-                      : split.settled
-                        ? "bg-emerald-50/50"
-                        : "bg-zinc-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-semibold text-white">
+                  return (
+                    <div
+                      key={split.id}
+                      className={`relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border-2 text-[8px] font-semibold text-white ${
+                        isSettled
+                          ? "border-emerald-400 bg-emerald-500"
+                          : "border-zinc-300 bg-zinc-400"
+                      }`}
+                      title={`${name}: ${isSettled ? "pagado" : "pendiente"}`}
+                    >
                       {split.profile?.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={split.profile.avatar_url} alt="" className="h-full w-full object-cover" />
                       ) : (
                         initials
                       )}
+                      {isSettled && (
+                        <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-emerald-500 ring-1 ring-white">
+                          <svg className="h-2 w-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4}>
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <p className={`text-xs font-medium ${
-                        split.settled || isOwnSplit ? "text-zinc-600" : "text-zinc-800"
-                      }`}>
-                        {name}
-                      </p>
-                      <p className="text-[10px] text-zinc-400">
-                        {isOwnSplit ? "Pagó el gasto" : formatCurrency(split.amount, expense.currency)}
-                      </p>
-                    </div>
+                  );
+                })}
+                {extraCount > 0 && (
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-zinc-200 bg-zinc-100 text-[8px] font-semibold text-zinc-500">
+                    +{extraCount}
                   </div>
+                )}
+              </div>
 
-                  {isOwnSplit ? (
-                    <span className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                      <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      Pagó
-                    </span>
-                  ) : isPayer ? (
-                    <form action={toggleSplitSettled}>
-                      <input type="hidden" name="split_id" value={split.id} />
-                      <input type="hidden" name="trip_id" value={tripId} />
-                      <input type="hidden" name="settled" value={String(split.settled)} />
-                      <button
-                        type="submit"
-                        className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
-                          split.settled
-                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                            : "bg-zinc-200 text-zinc-600 hover:bg-emerald-100 hover:text-emerald-700"
-                        }`}
-                      >
-                        {split.settled ? (
-                          <>
-                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Pagado
-                          </>
-                        ) : (
-                          <>
-                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                              <circle cx="12" cy="12" r="9" />
-                            </svg>
-                            Marcar
-                          </>
-                        )}
-                      </button>
-                    </form>
-                  ) : split.settled ? (
-                    <span className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-600">
-                      <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      Pagado
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-medium text-zinc-400">Pendiente</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+              {/* Estado resumido */}
+              <span className="text-[11px] text-zinc-400">
+                {pendingCount > 0 ? (
+                  <>
+                    <span className="font-medium text-amber-600">{pendingCount}</span> pendiente{pendingCount !== 1 ? "s" : ""}
+                  </>
+                ) : (
+                  <span className="font-medium text-emerald-600">Todos pagaron</span>
+                )}
+              </span>
+
+              {/* Icono de detalle */}
+              <svg className="ml-auto h-4 w-4 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          }
+        />
       )}
     </div>
   );
