@@ -134,6 +134,21 @@ export function ActivityDetailModal({
                 </div>
               )}
 
+              {/* Botón Cómo llegar */}
+              {hasCoords && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${activity.location_lat},${activity.location_lng}&destination_place_id=${markers?.[0]?.title ?? ""}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mx-5 mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Cómo llegar
+                </a>
+              )}
+
               {/* Participantes */}
               <div className="mx-5 mt-3">
                 <p className="mb-2 text-xs font-medium text-zinc-600">

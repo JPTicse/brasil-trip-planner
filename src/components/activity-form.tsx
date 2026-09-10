@@ -78,6 +78,7 @@ function ActivityFormInner({
   const [submitted, setSubmitted] = useState(false);
   const [place, setPlace] = useState<PlaceResult | null>(null);
   const [locationName, setLocationName] = useState("");
+  const [title, setTitle] = useState("");
 
   const [state, formAction] = useActionState(
     async (_prev: string | null, formData: FormData) => {
@@ -119,7 +120,13 @@ function ActivityFormInner({
       <input type="hidden" name="location_lng" value={place?.lng ?? ""} />
 
       <Field label="Título *">
-        <TextInput name="title" required placeholder="Ej: Visita al Cristo Redentor" />
+        <TextInput
+          name="title"
+          required
+          placeholder="Ej: Visita al Cristo Redentor"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
@@ -154,8 +161,17 @@ function ActivityFormInner({
             setLocationName(name);
           }}
           placeholder="Busca un lugar en el mapa..."
+          titleHint={title}
         />
         <input type="hidden" name="location" value={locationName} />
+        {place && (
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600">
+            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Ubicación detectada: {place.name}
+          </p>
+        )}
       </Field>
 
       <div className="grid grid-cols-2 gap-3">

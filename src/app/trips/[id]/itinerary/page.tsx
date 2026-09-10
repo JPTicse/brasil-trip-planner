@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ActivityForm } from "@/components/activity-form";
 import { EmptyState } from "@/components/ui";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
+import { ExploreActivitiesModal } from "@/components/explore-activities-modal";
 import { deleteActivity, joinActivity, leaveActivity } from "@/lib/actions";
 import {
   ACTIVITY_TYPE_LABELS,
@@ -71,9 +72,16 @@ export default async function ItineraryPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-zinc-900">Itinerario</h2>
-        <span className="text-sm text-zinc-400">
-          {myActivities.length} míos · {exploreActivities.length} por explorar
-        </span>
+        <div className="flex items-center gap-2">
+          <ExploreActivitiesModal
+            activities={activities}
+            tripId={id}
+            currentUserId={currentUserId}
+          />
+          <span className="text-sm text-zinc-400">
+            {myActivities.length} míos
+          </span>
+        </div>
       </div>
 
       {/* Mis planes */}

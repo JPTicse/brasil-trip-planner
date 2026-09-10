@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps } from "@/lib/google-maps";
 
 export type MapMarker = {
@@ -26,6 +26,7 @@ export function GoogleMap({
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,9 +34,13 @@ export function GoogleMap({
     loadGoogleMaps()
       .then(() => {
         if (cancelled || !mapRef.current) return;
-
         const google = (window as any).google;
-        const defaultCenter = center ?? markers?.[0] ?? { lat: -22.9068, lng: -43.1729 }; // Rio default
+        if (!google?.maps) {
+          setError("Google Maps no disponible");
+          return;
+        }
+
+        const defaultCenter = center ?? markers?.[0] ?? { lat: -22.9068, lng: -43.1729 };
 
         mapInstance.current = new google.maps.Map(mapRef.current, {
           center: defaultCenter,
@@ -48,7 +53,6 @@ export function GoogleMap({
           ],
         });
 
-        // Añadir marcadores
         if (markers) {
           markers.forEach((m) => {
             const marker = new google.maps.Marker({
@@ -65,19 +69,31 @@ export function GoogleMap({
           });
         }
 
-        // Auto-ajustar si hay múltiples marcadores
         if (markers && markers.length > 1) {
           const bounds = new google.maps.LatLngBounds();
           markers.forEach((m) => bounds.extend({ lat: m.lat, lng: m.lng }));
           mapInstance.current.fitBounds(bounds, 50);
         }
       })
-      .catch(console.error);
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Error al cargar el mapa");
+      });
 
     return () => {
       cancelled = true;
     };
   }, [center, markers, zoom]);
+
+  if (error) {
+    return (
+      <div
+        className="flex items-center justify-center rounded-xl bg-zinc-100 text-xs text-zinc-400"
+        style={{ height }}
+      >
+        <span className="px-3 text-center">No se pudo cargar el mapa: {error}</span>
+      </div>
+    );
+  }
 
   return (
     <div
