@@ -14,10 +14,10 @@ export default async function TripsPage() {
   const otherTrips = trips.filter((t) => !t.is_member);
 
   return (
-    <div className="min-h-dvh bg-zinc-50">
+    <div className="flex min-h-dvh flex-col bg-zinc-50">
       <RealtimeTrips />
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-zinc-200 bg-zinc-50/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Logo size="sm" href="/" />
@@ -29,7 +29,7 @@ export default async function TripsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 py-6 pb-24">
+      <main className="mx-auto w-full max-w-md flex-1 px-4 py-6 pb-24">
         {/* Mis viajes */}
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">

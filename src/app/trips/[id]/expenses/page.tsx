@@ -35,12 +35,6 @@ export default async function ExpensesPage({
 
   const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  // Totales por moneda
-  const totalsByCurrency = new Map<string, number>();
-  for (const e of expenses) {
-    totalsByCurrency.set(e.currency, (totalsByCurrency.get(e.currency) ?? 0) + e.amount);
-  }
-
   return (
     <div className="space-y-4">
       {/* Header compacto con botones de popup */}
@@ -58,17 +52,6 @@ export default async function ExpensesPage({
           )}
         </div>
       </div>
-
-      {/* Totales por moneda */}
-      {expenses.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {[...totalsByCurrency.entries()].map(([currency, total]) => (
-            <span key={currency} className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
-              {currency}: <span className="font-bold text-emerald-700">{formatCurrency(total, currency)}</span>
-            </span>
-          ))}
-        </div>
-      )}
 
       {/* Lista de gastos compacta */}
       {expenses.length === 0 ? (
