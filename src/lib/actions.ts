@@ -353,6 +353,33 @@ export async function createExpense(formData: FormData) {
       .from("expense_splits")
       .insert(splits);
     if (splitError) throw new Error(`Error al repartir gasto: ${splitError.message}`);
+  } else if (splitMode === "custom" && memberIds.length > 0) {
+    // Reparto personalizado: cada miembro tiene su propio monto
+    const splits = memberIds.map((userId) => {
+      const raw = formData.get(`split_${userId}`) as string;
+      const splitAmount = raw ? Math.round(Number(raw) * 100) / 100 : 0;
+      return {
+        expense_id: expense.id,
+        user_id: userId,
+        amount: splitAmount,
+        settled: userId === paidBy,
+      };
+    });
+
+    // Validar que la suma de los splits coincida con el monto total
+    const sumSplits = splits.reduce((s, sp) => s + sp.amount, 0);
+    if (Math.abs(sumSplits - amount) > 0.01) {
+      // Eliminar el gasto si los splits no cuadran
+      await supabase.from("expenses").delete().eq("id", expense.id);
+      throw new Error(
+        `La suma de las partes (${sumSplits.toFixed(2)}) no coincide con el total (${amount.toFixed(2)})`,
+      );
+    }
+
+    const { error: splitError } = await supabase
+      .from("expense_splits")
+      .insert(splits);
+    if (splitError) throw new Error(`Error al repartir gasto: ${splitError.message}`);
   }
 
   revalidatePath(`/trips/${tripId}/expenses`);
