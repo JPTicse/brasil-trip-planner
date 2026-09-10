@@ -60,6 +60,7 @@ export function ExpenseForm({
           tripId={tripId}
           allMembers={members}
           otherMembers={otherMembers}
+          currentUserId={currentUserId}
           onSuccess={handleSuccess}
         />
       </div>
@@ -71,11 +72,13 @@ function ExpenseFormInner({
   tripId,
   allMembers,
   otherMembers,
+  currentUserId,
   onSuccess,
 }: {
   tripId: string;
   allMembers: Profile[];
   otherMembers: Profile[];
+  currentUserId: string;
   onSuccess: () => void;
 }) {
   const router = useRouter();
@@ -83,6 +86,10 @@ function ExpenseFormInner({
   const [amount, setAmount] = useState("");
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  // Participantes: por defecto todos
+  const [participants, setParticipants] = useState<Set<string>>(
+    new Set(allMembers.map((m) => m.id)),
+  );
 
   const [state, formAction] = useActionState(
     async (_prev: string | null, formData: FormData) => {
@@ -104,22 +111,32 @@ function ExpenseFormInner({
   }, [submitted, state, onSuccess, router]);
 
   const totalAmount = parseFloat(amount) || 0;
-  const customSum = allMembers.reduce(
+  const participantList = allMembers.filter((m) => participants.has(m.id));
+
+  const customSum = participantList.reduce(
     (sum, m) => sum + (parseFloat(customAmounts[m.id] || "0") || 0),
     0,
   );
   const remaining = Math.round((totalAmount - customSum) * 100) / 100;
   const customValid = Math.abs(remaining) < 0.01 && totalAmount > 0;
+  const canSubmit = participants.size > 0 && (splitMode === "equal" || customValid);
 
-  // Distribuir equitativamente cuando se cambia a custom
+  const toggleParticipant = (id: string) => {
+    setParticipants((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const fillEqual = () => {
-    if (totalAmount <= 0 || allMembers.length === 0) return;
-    const per = Math.round((totalAmount / allMembers.length) * 100) / 100;
+    if (totalAmount <= 0 || participantList.length === 0) return;
+    const per = Math.round((totalAmount / participantList.length) * 100) / 100;
     const amounts: Record<string, string> = {};
-    allMembers.forEach((m, i) => {
-      // El último absorbe el redondeo
-      if (i === allMembers.length - 1) {
-        amounts[m.id] = (Math.round((totalAmount - per * (allMembers.length - 1)) * 100) / 100).toString();
+    participantList.forEach((m, i) => {
+      if (i === participantList.length - 1) {
+        amounts[m.id] = (Math.round((totalAmount - per * (participantList.length - 1)) * 100) / 100).toString();
       } else {
         amounts[m.id] = per.toString();
       }
@@ -130,7 +147,9 @@ function ExpenseFormInner({
   return (
     <form
       action={(formData) => {
-        if (splitMode === "custom" && !customValid) return;
+        if (!canSubmit) return;
+        // Inyectar participantes en el formData
+        formData.set("participants", [...participants].join(","));
         setSubmitted(true);
         formAction(formData);
       }}
@@ -186,6 +205,73 @@ function ExpenseFormInner({
         <TextInput name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
       </Field>
 
+      {/* Selección de participantes */}
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <p className="text-xs font-medium text-zinc-600">
+            Participantes ({participants.size})
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setParticipants(new Set(allMembers.map((m) => m.id)))}
+              className="text-[10px] font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              Todos
+            </button>
+            <span className="text-zinc-300">·</span>
+            <button
+              type="button"
+              onClick={() => setParticipants(new Set())}
+              className="text-[10px] font-medium text-zinc-400 hover:text-zinc-600"
+            >
+              Ninguno
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {allMembers.map((m) => {
+            const name = m.name ?? "Usuario";
+            const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+            const selected = participants.has(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => toggleParticipant(m.id)}
+                className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                  selected
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-zinc-200 bg-white text-zinc-400"
+                }`}
+              >
+                <div className={`flex h-5 w-5 items-center justify-center overflow-hidden rounded-full text-[8px] font-semibold ${
+                  selected ? "bg-emerald-600 text-white" : "bg-zinc-300 text-white"
+                }`}>
+                  {m.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <span className="max-w-[80px] truncate">{name}</span>
+                {selected && (
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {participants.size === 0 && (
+          <p className="mt-1.5 text-[11px] text-amber-600">
+            Selecciona al menos un participante
+          </p>
+        )}
+      </div>
+
       {/* Selector de modo de reparto */}
       <div>
         <p className="mb-1.5 text-xs font-medium text-zinc-600">Reparto</p>
@@ -238,60 +324,68 @@ function ExpenseFormInner({
             </button>
           </div>
 
-          {allMembers.map((m) => {
-            const name = m.name ?? "Usuario";
-            const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-            return (
-              <div key={m.id} className="flex items-center gap-2">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-semibold text-white">
-                  {m.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    initials
-                  )}
+          {participantList.length === 0 ? (
+            <p className="py-2 text-center text-xs text-zinc-400">
+              Selecciona participantes arriba
+            </p>
+          ) : (
+            participantList.map((m) => {
+              const name = m.name ?? "Usuario";
+              const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+              return (
+                <div key={m.id} className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-semibold text-white">
+                    {m.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                  <span className="flex-1 truncate text-xs text-zinc-700">{name}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={customAmounts[m.id] || ""}
+                    onChange={(e) => setCustomAmounts({ ...customAmounts, [m.id]: e.target.value })}
+                    name={`split_${m.id}`}
+                    className="w-20 rounded-lg border border-zinc-200 px-2 py-1 text-right text-xs text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
                 </div>
-                <span className="flex-1 truncate text-xs text-zinc-700">{name}</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={customAmounts[m.id] || ""}
-                  onChange={(e) => setCustomAmounts({ ...customAmounts, [m.id]: e.target.value })}
-                  name={`split_${m.id}`}
-                  className="w-20 rounded-lg border border-zinc-200 px-2 py-1 text-right text-xs text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-            );
-          })}
+              );
+            })
+          )}
 
-          {/* Barra de progreso / validación */}
-          <div className={`mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium ${
-            customValid
-              ? "bg-emerald-100 text-emerald-700"
-              : remaining > 0
-                ? "bg-amber-100 text-amber-700"
-                : "bg-red-100 text-red-700"
-          }`}>
-            <span>
-              {customValid
-                ? "✓ Cuadra con el total"
+          {participantList.length > 0 && (
+            <div className={`mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium ${
+              customValid
+                ? "bg-emerald-100 text-emerald-700"
                 : remaining > 0
-                  ? `Falta: ${remaining.toFixed(2)}`
-                  : `Sobra: ${Math.abs(remaining).toFixed(2)}`}
-            </span>
-            <span>
-              {customSum.toFixed(2)} / {totalAmount.toFixed(2)}
-            </span>
-          </div>
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-red-100 text-red-700"
+            }`}>
+              <span>
+                {customValid
+                  ? "✓ Cuadra con el total"
+                  : remaining > 0
+                    ? `Falta: ${remaining.toFixed(2)}`
+                    : `Sobra: ${Math.abs(remaining).toFixed(2)}`}
+              </span>
+              <span>
+                {customSum.toFixed(2)} / {totalAmount.toFixed(2)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
       {/* Info para modo equal */}
-      {splitMode === "equal" && (
+      {splitMode === "equal" && participantList.length > 0 && (
         <div className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-500">
-          💡 El gasto se repartirá a partes iguales entre todos los miembros ({allMembers.length}).
+          💡 {formatCurrency(totalAmount, "")} ÷ {participantList.length} ={" "}
+          {formatCurrency(Math.round((totalAmount / participantList.length) * 100) / 100, "")} por persona
         </div>
       )}
 
@@ -300,14 +394,20 @@ function ExpenseFormInner({
       )}
 
       <SubmitButton
-        className={`w-full ${splitMode === "custom" && !customValid ? "opacity-50" : ""}`}
+        className={`w-full ${!canSubmit ? "opacity-50" : ""}`}
       >
-        {splitMode === "custom" && !customValid
-          ? "Los montos no cuadran"
+        {!canSubmit
+          ? participants.size === 0
+            ? "Selecciona participantes"
+            : "Los montos no cuadran"
           : "Añadir gasto"}
       </SubmitButton>
     </form>
   );
+}
+
+function formatCurrency(n: number, _c: string): string {
+  return n.toFixed(2);
 }
 
 function PlusIcon() {

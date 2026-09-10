@@ -337,25 +337,48 @@ export async function createExpense(formData: FormData) {
 
   if (error) throw new Error(`Error al crear gasto: ${error.message}`);
 
-  // Obtener miembros del viaje para repartir
+  // Obtener miembros del viaje
   const members = await getTripMembers(tripId);
-  const memberIds = members.map((m) => m.user_id);
+  const allMemberIds = members.map((m) => m.user_id);
 
-  if (splitMode === "equal" && memberIds.length > 0) {
-    const splitAmount = Math.round((amount / memberIds.length) * 100) / 100;
-    const splits = memberIds.map((userId) => ({
+  // Determinar qué miembros participan en el gasto
+  const participantsRaw = formData.get("participants") as string;
+  let participantIds: string[];
+  if (participantsRaw) {
+    participantIds = participantsRaw.split(",").filter((id) => allMemberIds.includes(id));
+  } else {
+    // Por defecto, todos
+    participantIds = allMemberIds;
+  }
+
+  // El que paga siempre debe estar incluido como participante
+  if (!participantIds.includes(paidBy)) {
+    participantIds.push(paidBy);
+  }
+
+  if (participantIds.length === 0) {
+    await supabase.from("expenses").delete().eq("id", expense.id);
+    throw new Error("Selecciona al menos un participante");
+  }
+
+  if (splitMode === "equal") {
+    const splitAmount = Math.round((amount / participantIds.length) * 100) / 100;
+    const splits = participantIds.map((userId, i) => ({
       expense_id: expense.id,
       user_id: userId,
-      amount: splitAmount,
-      settled: userId === paidBy, // El que paga ya está saldado
+      // El último absorbe el redondeo
+      amount: i === participantIds.length - 1
+        ? Math.round((amount - splitAmount * (participantIds.length - 1)) * 100) / 100
+        : splitAmount,
+      settled: userId === paidBy,
     }));
     const { error: splitError } = await supabase
       .from("expense_splits")
       .insert(splits);
     if (splitError) throw new Error(`Error al repartir gasto: ${splitError.message}`);
-  } else if (splitMode === "custom" && memberIds.length > 0) {
-    // Reparto personalizado: cada miembro tiene su propio monto
-    const splits = memberIds.map((userId) => {
+  } else if (splitMode === "custom") {
+    // Reparto personalizado: solo para los participantes seleccionados
+    const splits = participantIds.map((userId) => {
       const raw = formData.get(`split_${userId}`) as string;
       const splitAmount = raw ? Math.round(Number(raw) * 100) / 100 : 0;
       return {
