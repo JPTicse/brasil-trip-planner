@@ -383,6 +383,24 @@ export async function toggleSplitSettled(formData: FormData) {
   const member = await isTripMember(tripId);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
+  // Solo quien pagó el gasto puede marcar splits como saldados
+  const { data: split } = await supabase
+    .from("expense_splits")
+    .select("expense_id")
+    .eq("id", splitId)
+    .single();
+
+  if (!split) throw new Error("Reparto no encontrado");
+
+  const { data: expense } = await supabase
+    .from("expenses")
+    .select("paid_by")
+    .eq("id", split.expense_id)
+    .single();
+
+  if (expense?.paid_by !== user.id)
+    throw new Error("Solo quien pagó el gasto puede marcar pagos");
+
   await supabase.from("expense_splits").update({ settled: !settled }).eq("id", splitId);
   revalidatePath(`/trips/${tripId}/expenses`);
 }
