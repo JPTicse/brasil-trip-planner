@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import type {
   Activity,
@@ -14,7 +14,7 @@ import type {
 // --- Perfiles ---
 
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("profiles")
     .select("*")
@@ -29,7 +29,7 @@ export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trips")
     .select(
@@ -47,7 +47,7 @@ export async function getTrips(): Promise<(Trip & { member_count: number })[]> {
 }
 
 export async function getTrip(tripId: string): Promise<Trip | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trips")
     .select("*")
@@ -57,7 +57,7 @@ export async function getTrip(tripId: string): Promise<Trip | null> {
 }
 
 export async function getTripMembers(tripId: string): Promise<TripMember[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trip_members")
     .select("*, profile:profiles(*)")
@@ -69,7 +69,7 @@ export async function getTripMembers(tripId: string): Promise<TripMember[]> {
 // --- Itinerario ---
 
 export async function getActivities(tripId: string): Promise<Activity[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("activities")
     .select("*, assignee:profiles!assigned_to(*)")
@@ -84,7 +84,7 @@ export async function getActivities(tripId: string): Promise<Activity[]> {
 export async function getAccommodations(
   tripId: string,
 ): Promise<Accommodation[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("accommodations")
     .select("*, booker:profiles!booked_by(*)")
@@ -96,7 +96,7 @@ export async function getAccommodations(
 // --- Transporte ---
 
 export async function getTransports(tripId: string): Promise<Transport[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("transports")
     .select("*, booker:profiles!booked_by(*)")
@@ -108,7 +108,7 @@ export async function getTransports(tripId: string): Promise<Transport[]> {
 // --- Gastos ---
 
 export async function getExpenses(tripId: string): Promise<Expense[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("expenses")
     .select("*, payer:profiles!paid_by(*), splits:expense_splits(*, profile:profiles!user_id(*))")
@@ -120,7 +120,7 @@ export async function getExpenses(tripId: string): Promise<Expense[]> {
 export async function getExpenseSplits(
   expenseId: string,
 ): Promise<ExpenseSplit[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("expense_splits")
     .select("*, profile:profiles!user_id(*)")

@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -13,9 +13,12 @@ export async function getCurrentUser(): Promise<{
   return user;
 }
 
-// Devuelve un cliente Supabase autenticado y los datos del usuario.
-// Usa un único cliente para evitar perder el contexto de auth entre
-// getCurrentUser() y las operaciones de BD en las Server Actions.
+// Devuelve un cliente Supabase admin (service_role, bypasses RLS) y los datos
+// del usuario autenticado. El cliente admin se usa para operaciones de BD en
+// Server Actions porque el cliente anónimo con cookies no envía el JWT en
+// las peticiones PostgREST desde Server Actions en Next.js 16.
+// La autorización se verifica manualmente en cada acción (getCurrentUser +
+// comprobación de rol/membresía).
 export async function getAuthClient(): Promise<{
   supabase: SupabaseClient;
   user: {
@@ -24,34 +27,19 @@ export async function getAuthClient(): Promise<{
     profile: Profile | null;
   } | null;
 }> {
-  const supabase = await createSupabaseServerClient();
-
-  // getSession() loads the session from cookies into the client's in-memory
-  // state so that PostgREST requests include the JWT in the Authorization header.
-  // getUser() alone validates the token but may not initialize the in-memory session.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    // No session in cookies — try getUser() as a fallback (may refresh)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { supabase, user: null };
-    // After getUser() refresh, try getSession() again
-    const {
-      data: { session: refreshedSession },
-    } = await supabase.auth.getSession();
-    if (!refreshedSession) return { supabase, user: null };
-  }
-
+  // 1. Validar la sesión del usuario con el cliente de cookies (RLS)
+  const authClient = await createSupabaseServerClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authClient.auth.getUser();
 
-  if (!user) return { supabase, user: null };
+  if (!user) {
+    const admin = createSupabaseAdminClient();
+    return { supabase: admin, user: null };
+  }
 
+  // 2. Obtener el perfil usando el cliente admin
+  const supabase = createSupabaseAdminClient();
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
