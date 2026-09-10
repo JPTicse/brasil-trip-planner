@@ -356,9 +356,9 @@ export async function createExpense(formData: FormData) {
     participantIds.push(paidBy);
   }
 
-  if (participantIds.length === 0) {
+  if (participantIds.length < 2) {
     await supabase.from("expenses").delete().eq("id", expense.id);
-    throw new Error("Selecciona al menos un participante");
+    throw new Error("Un gasto compartido necesita al menos 2 participantes");
   }
 
   if (splitMode === "equal") {

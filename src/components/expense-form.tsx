@@ -119,7 +119,7 @@ function ExpenseFormInner({
   );
   const remaining = Math.round((totalAmount - customSum) * 100) / 100;
   const customValid = Math.abs(remaining) < 0.01 && totalAmount > 0;
-  const canSubmit = participants.size > 0 && (splitMode === "equal" || customValid);
+  const canSubmit = participants.size >= 2 && (splitMode === "equal" || customValid);
 
   const toggleParticipant = (id: string) => {
     setParticipants((prev) => {
@@ -265,9 +265,9 @@ function ExpenseFormInner({
             );
           })}
         </div>
-        {participants.size === 0 && (
+        {participants.size < 2 && (
           <p className="mt-1.5 text-[11px] text-amber-600">
-            Selecciona al menos un participante
+            Necesitas al menos 2 participantes para un gasto compartido
           </p>
         )}
       </div>
@@ -397,8 +397,8 @@ function ExpenseFormInner({
         className={`w-full ${!canSubmit ? "opacity-50" : ""}`}
       >
         {!canSubmit
-          ? participants.size === 0
-            ? "Selecciona participantes"
+          ? participants.size < 2
+            ? "Mínimo 2 participantes"
             : "Los montos no cuadran"
           : "Añadir gasto"}
       </SubmitButton>
