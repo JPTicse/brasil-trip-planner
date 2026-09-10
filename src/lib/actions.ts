@@ -3,16 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getAuthClient } from "@/lib/auth";
 import { getTripMembers } from "@/lib/data";
 
 // --- Viajes ---
 
 export async function createTrip(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
-
-  const supabase = await createSupabaseServerClient();
 
   const name = formData.get("name") as string;
   const destination = (formData.get("destination") as string) || null;
@@ -45,10 +43,9 @@ export async function createTrip(formData: FormData) {
 }
 
 export async function deleteTrip(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
 
   // Verificar que es owner
@@ -67,10 +64,9 @@ export async function deleteTrip(formData: FormData) {
 }
 
 export async function addTripMember(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
   const email = (formData.get("email") as string).trim().toLowerCase();
 
@@ -121,10 +117,9 @@ export async function addTripMember(formData: FormData) {
 }
 
 export async function removeTripMember(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
   const memberId = formData.get("member_id") as string;
 
@@ -146,10 +141,9 @@ export async function removeTripMember(formData: FormData) {
 // --- Actividades ---
 
 export async function createActivity(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
 
   const { error } = await supabase
@@ -177,10 +171,9 @@ export async function createActivity(formData: FormData) {
 }
 
 export async function deleteActivity(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const activityId = formData.get("activity_id") as string;
   const tripId = formData.get("trip_id") as string;
 
@@ -191,10 +184,9 @@ export async function deleteActivity(formData: FormData) {
 // --- Alojamientos ---
 
 export async function createAccommodation(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
 
   const { error } = await supabase
@@ -217,10 +209,9 @@ export async function createAccommodation(formData: FormData) {
 }
 
 export async function deleteAccommodation(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const accId = formData.get("accommodation_id") as string;
   const tripId = formData.get("trip_id") as string;
 
@@ -231,10 +222,9 @@ export async function deleteAccommodation(formData: FormData) {
 // --- Transporte ---
 
 export async function createTransport(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
 
   const departure = formData.get("departure_at") as string;
@@ -259,10 +249,9 @@ export async function createTransport(formData: FormData) {
 }
 
 export async function deleteTransport(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const transportId = formData.get("transport_id") as string;
   const tripId = formData.get("trip_id") as string;
 
@@ -273,10 +262,9 @@ export async function deleteTransport(formData: FormData) {
 // --- Gastos ---
 
 export async function createExpense(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const tripId = formData.get("trip_id") as string;
   const amount = Number(formData.get("amount"));
   const paidBy = (formData.get("paid_by") as string) || user.id;
@@ -321,10 +309,9 @@ export async function createExpense(formData: FormData) {
 }
 
 export async function deleteExpense(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const expenseId = formData.get("expense_id") as string;
   const tripId = formData.get("trip_id") as string;
 
@@ -333,10 +320,9 @@ export async function deleteExpense(formData: FormData) {
 }
 
 export async function toggleSplitSettled(formData: FormData) {
-  const user = await getCurrentUser();
+  const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
-  const supabase = await createSupabaseServerClient();
   const splitId = formData.get("split_id") as string;
   const tripId = formData.get("trip_id") as string;
   const settled = formData.get("settled") === "true";
