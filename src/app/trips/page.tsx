@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTrips } from "@/lib/data";
 import { UserMenu } from "@/components/user-menu";
 import { Logo } from "@/components/logo";
+import { RealtimeTrips } from "@/components/realtime-trips";
 import { formatDateRange } from "@/lib/format";
 
 export default async function TripsPage() {
@@ -14,6 +15,7 @@ export default async function TripsPage() {
 
   return (
     <div className="min-h-dvh bg-zinc-50">
+      <RealtimeTrips />
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">

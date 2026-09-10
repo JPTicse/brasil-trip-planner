@@ -368,6 +368,16 @@ export async function deleteExpense(formData: FormData) {
   const member = await isTripMember(tripId);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
+  // Solo quien pagó el gasto puede eliminarlo
+  const { data: expense } = await supabase
+    .from("expenses")
+    .select("paid_by")
+    .eq("id", expenseId)
+    .single();
+
+  if (expense?.paid_by !== user.id)
+    throw new Error("Solo quien pagó el gasto puede eliminarlo");
+
   await supabase.from("expenses").delete().eq("id", expenseId);
   revalidatePath(`/trips/${tripId}/expenses`);
 }
