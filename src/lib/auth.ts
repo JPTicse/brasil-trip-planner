@@ -25,6 +25,27 @@ export async function getAuthClient(): Promise<{
   } | null;
 }> {
   const supabase = await createSupabaseServerClient();
+
+  // getSession() loads the session from cookies into the client's in-memory
+  // state so that PostgREST requests include the JWT in the Authorization header.
+  // getUser() alone validates the token but may not initialize the in-memory session.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    // No session in cookies — try getUser() as a fallback (may refresh)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { supabase, user: null };
+    // After getUser() refresh, try getSession() again
+    const {
+      data: { session: refreshedSession },
+    } = await supabase.auth.getSession();
+    if (!refreshedSession) return { supabase, user: null };
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
