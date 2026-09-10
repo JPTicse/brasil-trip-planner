@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getTrips } from "@/lib/data";
 import { UserMenu } from "@/components/user-menu";
+import { Logo } from "@/components/logo";
 import { formatDateRange } from "@/lib/format";
 
 export default async function TripsPage() {
@@ -16,7 +17,12 @@ export default async function TripsPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-bold text-zinc-900">Viajes</h1>
+          <div className="flex items-center gap-2">
+            <Logo size="sm" href="/" />
+            <Link href="/" className="text-lg font-bold text-zinc-900 hover:text-emerald-600 transition">
+              Viajes
+            </Link>
+          </div>
           <UserMenu profile={user?.profile ?? null} email={user?.email ?? ""} />
         </div>
       </header>

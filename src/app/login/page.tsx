@@ -1,17 +1,14 @@
 "use client";
 
 import { signInWithGoogle } from "@/lib/auth-actions";
+import { Logo } from "@/components/logo";
 
 export default function LoginPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-emerald-50 to-yellow-50 px-6 py-12">
       <div className="w-full max-w-sm space-y-8 text-center">
-        {/* Bandera de Brasil estilizada */}
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-green-600 shadow-lg">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400">
-            <div className="h-8 w-8 rounded-full bg-blue-700" />
-          </div>
-        </div>
+        {/* Logo con avión */}
+        <Logo size="lg" href={null} />
 
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">

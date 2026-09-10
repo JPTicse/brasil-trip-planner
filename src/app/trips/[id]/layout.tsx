@@ -4,6 +4,7 @@ import { getTrip, getTripMembers, isTripMember, getMyAccessRequest } from "@/lib
 import { getCurrentUser } from "@/lib/auth";
 import { BottomNav } from "@/components/bottom-nav";
 import { UserMenu } from "@/components/user-menu";
+import { Logo } from "@/components/logo";
 import { formatDateRange } from "@/lib/format";
 import { RequestAccessForm } from "@/components/request-access-form";
 
@@ -34,6 +35,7 @@ export default async function TripLayout({
               >
                 <BackIcon />
               </Link>
+              <Logo size="sm" href="/" />
               <div className="min-w-0">
                 <h1 className="truncate text-base font-bold text-zinc-900">
                   {trip.name}
@@ -98,6 +100,7 @@ export default async function TripLayout({
             >
               <BackIcon />
             </Link>
+            <Logo size="sm" href="/" />
             <div className="min-w-0">
               <h1 className="truncate text-base font-bold text-zinc-900">
                 {trip.name}
