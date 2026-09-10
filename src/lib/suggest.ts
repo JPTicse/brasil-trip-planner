@@ -23,7 +23,7 @@ export type Suggestion = {
 
 // Función cliente que usa Google Maps JS API (ya cargada en el navegador)
 // Usa PlacesService + findPlaceFromQuery (no requiere API key server-side)
-export async function suggestPlace(query: string): Promise<{ error?: string; suggestions?: Suggestion[] }> {
+export async function suggestPlace(query: string, regionBias = "Brasil"): Promise<{ error?: string; suggestions?: Suggestion[] }> {
   if (!query || query.trim().length < 3) {
     return { error: "Query muy corta" };
   }
@@ -41,11 +41,12 @@ export async function suggestPlace(query: string): Promise<{ error?: string; sug
     document.body.appendChild(container);
     const service = new google.maps.places.PlacesService(container);
 
-    // Buscar lugares con textSearch
+    // Buscar lugares con textSearch, sesgado a la región del viaje
+    const searchQuery = regionBias ? `${query} en ${regionBias}` : query;
     const results = await new Promise<any[]>((resolve, reject) => {
       service.textSearch(
         {
-          query: query,
+          query: searchQuery,
           language: "es",
         },
         (results: any[], status: string) => {

@@ -167,7 +167,7 @@ export default async function ItineraryPage({
         )}
       </section>
 
-      <ActivityForm tripId={id} members={memberProfiles} />
+      <ActivityForm tripId={id} members={memberProfiles} tripDestination={trip?.destination ?? "Brasil"} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { suggestPlace, type Suggestion } from "@/lib/suggest";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { ImageUpload } from "@/components/image-upload";
+import { LocationAutocomplete } from "@/components/location-autocomplete";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Profile, type ActivityType } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
 
@@ -14,10 +15,12 @@ export function ActivityForm({
   tripId,
   members,
   defaultDate,
+  tripDestination = "Brasil",
 }: {
   tripId: string;
   members: Profile[];
   defaultDate?: string;
+  tripDestination?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -57,6 +60,7 @@ export function ActivityForm({
             <Wizard
               tripId={tripId}
               defaultDate={defaultDate}
+              tripDestination={tripDestination}
               onSuccess={handleSuccess}
             />
           </div>
@@ -71,10 +75,12 @@ const STEPS = ["Título", "Lugar", "Detalles", "Revisar"] as const;
 function Wizard({
   tripId,
   defaultDate,
+  tripDestination,
   onSuccess,
 }: {
   tripId: string;
   defaultDate?: string;
+  tripDestination: string;
   onSuccess: () => void;
 }) {
   const router = useRouter();
@@ -104,7 +110,7 @@ function Wizard({
     setLoading(true);
     setError(null);
     try {
-      const data = await suggestPlace(query);
+      const data = await suggestPlace(query, tripDestination);
       if (data.error) {
         setError(data.error);
       } else if (data.suggestions?.length) {
@@ -298,13 +304,13 @@ function Wizard({
               <label className="mb-1 block text-xs font-medium text-zinc-600">
                 O escribe la ubicación manualmente:
               </label>
-              <TextInput
+              <LocationAutocomplete
                 value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value);
+                onChange={(name, newLat, newLng) => {
+                  setLocation(name);
                   setSelectedSuggestion(null);
-                  setLat(null);
-                  setLng(null);
+                  setLat(newLat);
+                  setLng(newLng);
                 }}
                 placeholder="Ej: Copacabana, Río de Janeiro"
               />
@@ -361,9 +367,13 @@ function Wizard({
           </div>
 
           <Field label="Ubicación">
-            <TextInput
+            <LocationAutocomplete
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(name, newLat, newLng) => {
+                setLocation(name);
+                setLat(newLat);
+                setLng(newLng);
+              }}
               placeholder="Dirección o lugar"
             />
           </Field>
