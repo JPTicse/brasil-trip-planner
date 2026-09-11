@@ -24,6 +24,51 @@ const TYPE_EMOJI: Record<ActivityType, string> = {
   transport: "✈️",
 };
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function ParticipantAvatars({ participants, max = 3 }: { participants: Activity["participants"]; max?: number }) {
+  const list = (participants ?? []).filter((p) => p.profile);
+  const visible = list.slice(0, max);
+  const remaining = Math.max(0, list.length - max);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="flex -space-x-1.5">
+      {visible.map((p) => {
+        const name = p.profile?.name ?? "Usuario";
+        return (
+          <div
+            key={p.id}
+            className="relative z-0 flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-emerald-600 text-[8px] font-semibold text-white"
+            title={name}
+          >
+            {p.profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+            ) : (
+              getInitials(name)
+            )}
+          </div>
+        );
+      })}
+      {remaining > 0 && (
+        <div className="z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/40 bg-black/30 text-[8px] font-semibold text-white">
+          +{remaining}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ============================================================
    ESTILO 1 — Split horizontal con barra inferior verde
    Datos a la izquierda (70%), imagen a la derecha (30%)
@@ -74,6 +119,9 @@ export function ExploreCardA({
                 {formatCurrency(activity.cost, activity.currency)}
               </span>
             )}
+            <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+              <ParticipantAvatars participants={activity.participants} />
+            </div>
           </div>
         </div>
         {/* Imagen derecha 30% */}
@@ -171,6 +219,9 @@ export function ExploreCardB({
               {formatCurrency(activity.cost, activity.currency)}
             </span>
           )}
+          <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+            <ParticipantAvatars participants={activity.participants} />
+          </div>
         </div>
       </div>
       {/* Botón verde largo abajo */}
@@ -255,6 +306,9 @@ export function ExploreCardC({
                 {formatCurrency(activity.cost, activity.currency)}
               </span>
             )}
+            <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+              <ParticipantAvatars participants={activity.participants} />
+            </div>
           </div>
         </div>
       </div>

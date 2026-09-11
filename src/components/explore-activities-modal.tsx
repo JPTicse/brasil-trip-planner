@@ -7,6 +7,51 @@ import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { AnimatedActionButton } from "@/components/animated-action-button";
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function ParticipantAvatars({ participants, max = 3 }: { participants: Activity["participants"]; max?: number }) {
+  const list = (participants ?? []).filter((p) => p.profile);
+  const visible = list.slice(0, max);
+  const remaining = Math.max(0, list.length - max);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="flex -space-x-1.5">
+      {visible.map((p) => {
+        const name = p.profile?.name ?? "Usuario";
+        return (
+          <div
+            key={p.id}
+            className="relative z-0 flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-emerald-600 text-[7px] font-semibold text-white"
+            title={name}
+          >
+            {p.profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+            ) : (
+              getInitials(name)
+            )}
+          </div>
+        );
+      })}
+      {remaining > 0 && (
+        <div className="z-0 flex h-5 w-5 items-center justify-center rounded-full border border-white/40 bg-black/30 text-[7px] font-semibold text-white">
+          +{remaining}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Colores sólidos con buen contraste
 const TYPE_BG: Record<string, string> = {
   visit: "bg-blue-600",
@@ -149,6 +194,10 @@ function ExploreCard({
             {activity.location && (
               <span className="line-clamp-1">{activity.location}</span>
             )}
+          </div>
+
+          <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+            <ParticipantAvatars participants={activity.participants} />
           </div>
 
           <div className="mt-2" onClick={(e) => e.stopPropagation()}>
