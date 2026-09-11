@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createActivity } from "@/lib/actions";
 import { suggestPlace, type Suggestion } from "@/lib/suggest";
 import { TextInput, TextArea } from "@/components/ui";
@@ -25,12 +24,12 @@ const STEPS = ["Plan", "Lugar", "Día", "Tipo", "Hora", "Costo", "Extras", "List
 const TYPE_ORDER: ActivityType[] = ["visit", "tour", "meal", "event", "free", "transport"];
 
 const TYPE_CARD: Record<ActivityType, { emoji: string; title: string; desc: string; gradient: string }> = {
-  visit: { emoji: "👀", title: "Visita", desc: "Lugar para ver o explorar", gradient: "from-sky-400 to-blue-600" },
+  visit: { emoji: "👀", title: "Visita", desc: "Lugar para ver", gradient: "from-sky-400 to-blue-600" },
   tour: { emoji: "🚌", title: "Tour", desc: "Recorrido guiado", gradient: "from-violet-400 to-purple-600" },
   meal: { emoji: "🍽️", title: "Comida", desc: "Restaurante o bar", gradient: "from-amber-300 to-orange-500" },
-  event: { emoji: "🎉", title: "Evento", desc: "Fiesta, show o encuentro", gradient: "from-rose-300 to-red-500" },
-  free: { emoji: "🌿", title: "Gratis", desc: "Playa, parque o similar", gradient: "from-emerald-300 to-green-600" },
-  transport: { emoji: "✈️", title: "Transporte", desc: "Vuelo, bus o traslado", gradient: "from-slate-300 to-zinc-600" },
+  event: { emoji: "🎉", title: "Evento", desc: "Fiesta o show", gradient: "from-rose-300 to-red-500" },
+  free: { emoji: "🌿", title: "Gratis", desc: "Parque o playa", gradient: "from-emerald-300 to-green-600" },
+  transport: { emoji: "✈️", title: "Transporte", desc: "Vuelo, bus o taxi", gradient: "from-slate-300 to-zinc-600" },
 };
 
 export function NewActivityWizard({
@@ -39,17 +38,18 @@ export function NewActivityWizard({
   tripStartDate,
   tripEndDate,
   defaultDate,
+  onClose,
 }: {
   tripId: string;
   tripDestination: string;
   tripStartDate?: string;
   tripEndDate?: string;
   defaultDate?: string;
+  onClose: () => void;
 }) {
   const router = useRouter();
   const { country: tripCountryName, code: tripCountryCode } = parseTripDestination(tripDestination);
   const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState(1);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
@@ -69,14 +69,8 @@ export function NewActivityWizard({
   const [notes, setNotes] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  const next = () => {
-    setDirection(1);
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
-  };
-  const prev = () => {
-    setDirection(-1);
-    setStep((s) => Math.max(s - 1, 0));
-  };
+  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const prev = () => setStep((s) => Math.max(s - 1, 0));
 
   const handleSubmit = async (formData: FormData) => {
     if (!formData.has("image_url")) {
@@ -84,7 +78,8 @@ export function NewActivityWizard({
     }
     try {
       await createActivity(formData);
-      router.push(`/trips/${tripId}/itinerary`);
+      router.refresh();
+      onClose();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Error al crear");
     }
@@ -149,367 +144,372 @@ export function NewActivityWizard({
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
-  const StepWrap = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-    <div
-      className={`flex h-full flex-col px-5 pb-28 pt-3 transition-all duration-300 ease-out ${className}`}
-      style={{ animation: direction > 0 ? "slideInRight 0.25s ease" : "slideInLeft 0.25s ease" }}
-    >
+  const Step = ({
+    title: stepTitle,
+    subtitle,
+    children,
+    hideNext,
+    nextLabel,
+  }: {
+    title: string;
+    subtitle: string;
+    children: React.ReactNode;
+    hideNext?: boolean;
+    nextLabel?: string;
+  }) => (
+    <div className="space-y-4 pb-24 pt-2">
+      <div className="text-center">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+          Paso {step + 1} de {STEPS.length}
+        </p>
+        <h2 className="mt-1 text-xl font-extrabold text-zinc-900">{stepTitle}</h2>
+        <p className="text-sm text-zinc-400">{subtitle}</p>
+      </div>
+
       {children}
-    </div>
-  );
 
-  const StepHeader = ({ title: stepTitle, subtitle }: { title: string; subtitle: string }) => (
-    <div className="mb-5 text-center">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-        Paso {step + 1} de {STEPS.length}
-      </p>
-      <h2 className="mt-1 text-2xl font-extrabold leading-tight text-zinc-900">{stepTitle}</h2>
-      <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>
-    </div>
-  );
-
-  const BottomCta = ({ onClick, label = "Continuar" }: { onClick?: () => void; label?: string }) => (
-    <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-zinc-100 bg-white/95 p-4 backdrop-blur-md">
-      <button
-        type="button"
-        onClick={onClick ?? next}
-        disabled={!isStepValid()}
-        className="w-full rounded-2xl bg-emerald-500 py-4 text-base font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 active:scale-[0.98] disabled:opacity-40"
-      >
-        {label}
-      </button>
+      {!hideNext && (
+        <div className="flex gap-2 pt-2">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={prev}
+              className="rounded-2xl border border-zinc-200 px-5 py-3.5 text-sm font-bold text-zinc-600 hover:bg-zinc-50"
+            >
+              Atrás
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={next}
+            disabled={!isStepValid()}
+            className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 disabled:opacity-40"
+          >
+            {nextLabel ?? "Continuar"}
+          </button>
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden bg-white">
-      {/* Top bar */}
-      <div className="shrink-0 pt-4 pb-2">
-        <div className="mx-auto flex max-w-md items-center justify-between px-5">
-          <Link
-            href={`/trips/${tripId}/itinerary`}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:bg-zinc-200"
+    <div className="relative px-5">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white pb-2 pt-1">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold text-zinc-900">Nuevo plan</p>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
           >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </Link>
-          <span className="text-sm font-bold text-zinc-900">Nuevo plan</span>
-          <div className="h-10 w-10" />
+          </button>
         </div>
-        <div className="mx-5 mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* Step content */}
-      <div className="flex-1 overflow-y-auto">
-        {step === 0 && (
-          <StepWrap className="items-center justify-center">
-            <StepHeader title="¿Qué plan propones?" subtitle="Un nombre que todos entiendan" />
-            <div className="text-7xl">📝</div>
+      {/* Step 0: Nombre */}
+      {step === 0 && (
+        <Step title="¿Qué propones?" subtitle="Un nombre claro para el plan">
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="text-5xl">📝</div>
             <input
               autoFocus
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Visita al Cristo Redentor"
-              className="mt-6 w-full max-w-xs rounded-3xl border-2 border-zinc-100 bg-zinc-50 px-5 py-4 text-center text-xl font-semibold text-zinc-900 placeholder:text-zinc-300 focus:border-emerald-400 focus:bg-white focus:outline-none"
+              className="w-full rounded-3xl border-2 border-zinc-100 bg-zinc-50 px-4 py-3.5 text-center text-lg font-semibold text-zinc-900 placeholder:text-zinc-300 focus:border-emerald-400 focus:bg-white focus:outline-none"
             />
-            <BottomCta />
-          </StepWrap>
-        )}
+          </div>
+        </Step>
+      )}
 
-        {step === 1 && (
-          <StepWrap>
-            <StepHeader title="¿Dónde queda?" subtitle="Busca o escribe la ubicación" />
-            <div className="space-y-3">
-              <div className="rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-3">
-                <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Sugerencias</p>
-                <div className="flex gap-2">
-                  <TextInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Buscar con el nombre" className="flex-1 rounded-xl border-zinc-200" />
-                  <button
-                    type="button"
-                    onClick={() => searchSuggestions(title)}
-                    disabled={title.trim().length < 3 || loading}
-                    className="shrink-0 rounded-xl bg-emerald-500 px-4 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:opacity-40"
-                  >
-                    {loading ? "..." : "Buscar"}
-                  </button>
-                </div>
-                {searchError && <p className="mt-2 text-xs text-amber-600">{searchError}</p>}
-                {suggestions.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {suggestions.map((s) => (
-                      <button
-                        key={s.place_id}
-                        type="button"
-                        onClick={() => selectSuggestion(s)}
-                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                          selectedSuggestion?.place_id === s.place_id
-                            ? "border-emerald-400 bg-emerald-50"
-                            : "border-zinc-100 bg-white"
-                        }`}
-                      >
-                        {s.photo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={s.photo_url} alt="" className="h-14 w-14 rounded-xl object-cover" />
-                        ) : (
-                          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-100 text-2xl">📍</div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-zinc-900">{s.name}</p>
-                          <p className="truncate text-xs text-zinc-400">{s.address}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-3">
-                <p className="mb-2 text-xs font-bold uppercase text-zinc-400">O escribe manual</p>
-                <LocationAutocomplete
-                  value={location}
-                  onChange={(name, newLat, newLng, photoUrl) => {
-                    setLocation(name);
-                    setSelectedSuggestion(null);
-                    setLat(newLat);
-                    setLng(newLng);
-                    if (photoUrl != null) setImageUrl(photoUrl);
-                  }}
-                  placeholder="Ej: Copacabana, Río de Janeiro"
-                  country={tripCountryCode}
+      {/* Step 1: Ubicación */}
+      {step === 1 && (
+        <Step title="¿Dónde queda?" subtitle="Busca o escribe la ubicación">
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Sugerencias</p>
+              <div className="flex gap-2">
+                <TextInput
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Buscar con el nombre"
+                  className="flex-1 rounded-xl"
                 />
+                <button
+                  type="button"
+                  onClick={() => searchSuggestions(title)}
+                  disabled={title.trim().length < 3 || loading}
+                  className="shrink-0 rounded-xl bg-emerald-500 px-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:opacity-40"
+                >
+                  {loading ? "..." : "Buscar"}
+                </button>
               </div>
-            </div>
-            <BottomCta />
-          </StepWrap>
-        )}
-
-        {step === 2 && (
-          <StepWrap>
-            <StepHeader title="¿Qué día?" subtitle="Dentro de las fechas del viaje" />
-            {tripStartDate && tripEndDate ? (
-              <div className="grid grid-cols-3 gap-3">
-                {dateOptions().map((d) => {
-                  const isSelected = date === d;
-                  const day = new Date(d);
-                  return (
+              {searchError && <p className="mt-2 text-xs text-amber-600">{searchError}</p>}
+              {suggestions.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {suggestions.map((s) => (
                     <button
-                      key={d}
+                      key={s.place_id}
                       type="button"
-                      onClick={() => setDate(d)}
-                      className={`flex flex-col items-center justify-center rounded-2xl border-2 p-4 text-center transition active:scale-95 ${
-                        isSelected
-                          ? "border-emerald-400 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                          : "border-zinc-100 bg-white text-zinc-700 hover:border-zinc-200"
+                      onClick={() => selectSuggestion(s)}
+                      className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                        selectedSuggestion?.place_id === s.place_id
+                          ? "border-emerald-400 bg-emerald-50"
+                          : "border-zinc-100 bg-white"
                       }`}
                     >
-                      <span className="text-[10px] font-bold uppercase opacity-80">
-                        {day.toLocaleDateString("es", { weekday: "short" })}
-                      </span>
-                      <span className="mt-1 text-2xl font-extrabold">{day.getDate()}</span>
-                      <span className="text-[10px] opacity-80">
-                        {day.toLocaleDateString("es", { month: "short" })}
-                      </span>
+                      {s.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 text-xl">📍</div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-zinc-900">{s.name}</p>
+                        <p className="truncate text-xs text-zinc-400">{s.address}</p>
+                      </div>
                     </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            )}
-            <BottomCta />
-          </StepWrap>
-        )}
+                  ))}
+                </div>
+              )}
+            </div>
 
-        {step === 3 && (
-          <StepWrap>
-            <StepHeader title="¿Qué tipo de plan?" subtitle="Elige una categoría" />
-            <div className="grid grid-cols-2 gap-3">
-              {TYPE_ORDER.map((t) => {
-                const card = TYPE_CARD[t];
-                const isSelected = type === t;
+            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">O escribe manual</p>
+              <LocationAutocomplete
+                value={location}
+                onChange={(name, newLat, newLng, photoUrl) => {
+                  setLocation(name);
+                  setSelectedSuggestion(null);
+                  setLat(newLat);
+                  setLng(newLng);
+                  if (photoUrl != null) setImageUrl(photoUrl);
+                }}
+                placeholder="Ej: Copacabana, Río de Janeiro"
+                country={tripCountryCode}
+              />
+            </div>
+          </div>
+        </Step>
+      )}
+
+      {/* Step 2: Fecha */}
+      {step === 2 && (
+        <Step title="¿Qué día?" subtitle="Dentro del viaje">
+          {tripStartDate && tripEndDate ? (
+            <div className="grid grid-cols-3 gap-2">
+              {dateOptions().map((d) => {
+                const isSelected = date === d;
+                const day = new Date(d);
                 return (
                   <button
-                    key={t}
+                    key={d}
                     type="button"
-                    onClick={() => setType(t)}
-                    className={`relative overflow-hidden rounded-3xl border-2 p-4 text-left transition active:scale-95 ${
+                    onClick={() => setDate(d)}
+                    className={`flex flex-col items-center rounded-2xl border-2 p-3 transition active:scale-95 ${
                       isSelected
-                        ? `border-transparent bg-gradient-to-br ${card.gradient} text-white shadow-lg`
+                        ? "border-emerald-400 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
                         : "border-zinc-100 bg-white text-zinc-700 hover:border-zinc-200"
                     }`}
                   >
-                    <div className="text-4xl">{card.emoji}</div>
-                    <p className="mt-2 text-lg font-extrabold">{card.title}</p>
-                    <p className={`text-xs ${isSelected ? "text-white/80" : "text-zinc-400"}`}>{card.desc}</p>
+                    <span className="text-[10px] font-bold uppercase opacity-80">
+                      {day.toLocaleDateString("es", { weekday: "short" })}
+                    </span>
+                    <span className="text-xl font-extrabold">{day.getDate()}</span>
+                    <span className="text-[10px] opacity-80">
+                      {day.toLocaleDateString("es", { month: "short" })}
+                    </span>
                   </button>
                 );
               })}
             </div>
-            <BottomCta />
-          </StepWrap>
-        )}
+          ) : (
+            <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          )}
+        </Step>
+      )}
 
-        {step === 4 && (
-          <StepWrap className="items-center justify-center">
-            <StepHeader title="¿A qué hora?" subtitle="Opcional, para organizar el día" />
-            <div className="text-6xl">⏰</div>
-            <div className="mt-6 grid w-full max-w-xs grid-cols-2 gap-4">
-              <div className="rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-4">
-                <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Inicio</p>
-                <TextInput type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="border-0 bg-transparent text-center text-2xl font-bold" />
-              </div>
-              <div className="rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-4">
-                <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Fin</p>
-                <TextInput type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="border-0 bg-transparent text-center text-2xl font-bold" />
-              </div>
-            </div>
-            <BottomCta />
-          </StepWrap>
-        )}
-
-        {step === 5 && (
-          <StepWrap className="items-center justify-center">
-            <StepHeader title="¿Costo aproximado?" subtitle="Déjalo en 0 si es gratis" />
-            <div className="text-6xl">💰</div>
-            <div className="mt-6 grid w-full max-w-xs grid-cols-3 gap-3">
-              {CURRENCIES.map((c) => (
+      {/* Step 3: Tipo */}
+      {step === 3 && (
+        <Step title="¿Qué tipo?" subtitle="Elige una categoría">
+          <div className="grid grid-cols-2 gap-3">
+            {TYPE_ORDER.map((t) => {
+              const card = TYPE_CARD[t];
+              const isSelected = type === t;
+              return (
                 <button
-                  key={c}
+                  key={t}
                   type="button"
-                  onClick={() => setCurrency(c)}
-                  className={`rounded-2xl border-2 py-3 text-sm font-extrabold transition active:scale-95 ${
-                    currency === c
-                      ? "border-emerald-400 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                      : "border-zinc-100 bg-white text-zinc-600 hover:border-zinc-200"
+                  onClick={() => setType(t)}
+                  className={`rounded-3xl border-2 p-4 text-left transition active:scale-95 ${
+                    isSelected
+                      ? `border-transparent bg-gradient-to-br ${card.gradient} text-white shadow-lg`
+                      : "border-zinc-100 bg-white text-zinc-700 hover:border-zinc-200"
                   }`}
                 >
-                  {c}
+                  <div className="text-3xl">{card.emoji}</div>
+                  <p className="mt-2 text-base font-extrabold">{card.title}</p>
+                  <p className={`text-[10px] ${isSelected ? "text-white/80" : "text-zinc-400"}`}>{card.desc}</p>
                 </button>
-              ))}
-            </div>
-            <div className="mt-4 w-full max-w-xs rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-4">
-              <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Monto</p>
-              <TextInput
-                type="number"
-                step="0.01"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                placeholder="0.00"
-                className="border-0 bg-transparent text-center text-3xl font-extrabold"
-              />
-            </div>
-            <BottomCta />
-          </StepWrap>
-        )}
+              );
+            })}
+          </div>
+        </Step>
+      )}
 
-        {step === 6 && (
-          <StepWrap>
-            <StepHeader title="¿Algo más?" subtitle="Notas e imagen del plan" />
+      {/* Step 4: Horario */}
+      {step === 4 && (
+        <Step title="¿A qué hora?" subtitle="Opcional">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+              <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Inicio</p>
+              <TextInput type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="border-0 bg-transparent text-center text-xl font-bold" />
+            </div>
+            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+              <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Fin</p>
+              <TextInput type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="border-0 bg-transparent text-center text-xl font-bold" />
+            </div>
+          </div>
+        </Step>
+      )}
+
+      {/* Step 5: Costo */}
+      {step === 5 && (
+        <Step title="¿Costo aprox?" subtitle="Déjalo en 0 si es gratis">
+          <div className="grid grid-cols-3 gap-2">
+            {CURRENCIES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCurrency(c)}
+                className={`rounded-2xl border-2 py-3 text-sm font-extrabold transition active:scale-95 ${
+                  currency === c
+                    ? "border-emerald-400 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                    : "border-zinc-100 bg-white text-zinc-600 hover:border-zinc-200"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+            <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Monto</p>
+            <TextInput
+              type="number"
+              step="0.01"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              placeholder="0.00"
+              className="border-0 bg-transparent text-center text-2xl font-extrabold"
+            />
+          </div>
+        </Step>
+      )}
+
+      {/* Step 6: Detalles */}
+      {step === 6 && (
+        <Step title="¿Algo más?" subtitle="Notas e imagen" nextLabel="Revisar">
+          {imageUrl && (
+            <div className="overflow-hidden rounded-2xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="" className="h-40 w-full object-cover" />
+            </div>
+          )}
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+            <ImageUpload imageUrl={imageUrl} onUploaded={(url) => setImageUrl(url)} />
+          </div>
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
+            <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Notas</p>
+            <TextArea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Reservas, recomendaciones..."
+              className="border-0 bg-transparent"
+            />
+          </div>
+        </Step>
+      )}
+
+      {/* Step 7: Revisar */}
+      {step === 7 && (
+        <Step title="¿Todo listo?" subtitle="Revisa antes de guardar" hideNext>
+          <div className="overflow-hidden rounded-3xl border border-zinc-100 bg-white shadow-sm">
             {imageUrl && (
-              <div className="overflow-hidden rounded-2xl">
+              <div className="h-40 w-full overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt="" className="h-48 w-full object-cover" />
+                <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
               </div>
             )}
-            <div className="mt-3 rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-4">
-              <ImageUpload imageUrl={imageUrl} onUploaded={(url) => setImageUrl(url)} />
-            </div>
-            <div className="mt-3 rounded-2xl border-2 border-zinc-100 bg-zinc-50 p-4">
-              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Notas</p>
-              <TextArea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Reservas, recomendaciones..."
-                className="border-0 bg-transparent"
-              />
-            </div>
-            <BottomCta label="Revisar" />
-          </StepWrap>
-        )}
-
-        {step === 7 && (
-          <StepWrap>
-            <StepHeader title="¿Todo listo?" subtitle="Revisa antes de guardar" />
-            <div className="overflow-hidden rounded-3xl border-2 border-zinc-100 bg-white shadow-sm">
-              {imageUrl && (
-                <div className="h-48 w-full overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
-                </div>
-              )}
-              <div className="p-5">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{TYPE_CARD[type].emoji}</span>
-                  <h3 className="text-xl font-extrabold text-zinc-900">{title}</h3>
-                </div>
-                <p className="mt-1 text-sm text-zinc-500">{location}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {date && (
-                    <span className="rounded-xl bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
-                      {new Date(date).toLocaleDateString("es", { weekday: "short", day: "numeric", month: "short" })}
-                    </span>
-                  )}
-                  {startTime && (
-                    <span className="rounded-xl bg-zinc-100 px-3 py-1 text-xs font-bold text-zinc-600">
-                      {startTime}{endTime && ` - ${endTime}`}
-                    </span>
-                  )}
-                  {cost && Number(cost) > 0 && (
-                    <span className="rounded-xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                      {cost} {currency}
-                    </span>
-                  )}
-                </div>
-                {notes && <p className="mt-3 text-sm text-zinc-500">{notes}</p>}
+            <div className="p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{TYPE_CARD[type].emoji}</span>
+                <h3 className="text-lg font-extrabold text-zinc-900">{title}</h3>
               </div>
-            </div>
-
-            {formError && <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{formError}</p>}
-
-            <form action={handleSubmit}>
-              <input type="hidden" name="trip_id" value={tripId} />
-              <input type="hidden" name="title" value={title} />
-              <input type="hidden" name="date" value={date} />
-              <input type="hidden" name="type" value={type} />
-              <input type="hidden" name="start_time" value={startTime} />
-              <input type="hidden" name="end_time" value={endTime} />
-              <input type="hidden" name="location" value={location} />
-              <input type="hidden" name="location_lat" value={lat ?? ""} />
-              <input type="hidden" name="location_lng" value={lng ?? ""} />
-              <input type="hidden" name="cost" value={cost} />
-              <input type="hidden" name="currency" value={currency} />
-              <input type="hidden" name="notes" value={notes} />
-              <input type="hidden" name="image_url" value={imageUrl ?? ""} />
-
-              <div className="mt-4 space-y-3">
-                <button
-                  type="button"
-                  onClick={prev}
-                  className="w-full rounded-2xl border-2 border-zinc-100 py-3.5 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50"
-                >
-                  Atrás
-                </button>
-                <SubmitButton className="w-full rounded-2xl py-4 text-base shadow-lg shadow-emerald-500/20">
-                  Crear plan 🚀
-                </SubmitButton>
+              <p className="mt-1 text-sm text-zinc-500">{location}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {date && (
+                  <span className="rounded-lg bg-zinc-100 px-2.5 py-1 text-[11px] font-bold text-zinc-600">
+                    {new Date(date).toLocaleDateString("es", { weekday: "short", day: "numeric", month: "short" })}
+                  </span>
+                )}
+                {startTime && (
+                  <span className="rounded-lg bg-zinc-100 px-2.5 py-1 text-[11px] font-bold text-zinc-600">
+                    {startTime}{endTime && ` - ${endTime}`}
+                  </span>
+                )}
+                {cost && Number(cost) > 0 && (
+                  <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                    {cost} {currency}
+                  </span>
+                )}
               </div>
-            </form>
-          </StepWrap>
-        )}
-      </div>
+              {notes && <p className="mt-2 text-sm text-zinc-500">{notes}</p>}
+            </div>
+          </div>
 
-      <style>{`
-        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
-      `}</style>
+          {formError && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{formError}</p>}
+
+          <form action={handleSubmit}>
+            <input type="hidden" name="trip_id" value={tripId} />
+            <input type="hidden" name="title" value={title} />
+            <input type="hidden" name="date" value={date} />
+            <input type="hidden" name="type" value={type} />
+            <input type="hidden" name="start_time" value={startTime} />
+            <input type="hidden" name="end_time" value={endTime} />
+            <input type="hidden" name="location" value={location} />
+            <input type="hidden" name="location_lat" value={lat ?? ""} />
+            <input type="hidden" name="location_lng" value={lng ?? ""} />
+            <input type="hidden" name="cost" value={cost} />
+            <input type="hidden" name="currency" value={currency} />
+            <input type="hidden" name="notes" value={notes} />
+            <input type="hidden" name="image_url" value={imageUrl ?? ""} />
+
+            <div className="space-y-3">
+              <SubmitButton className="w-full rounded-2xl py-3.5 text-base shadow-lg shadow-emerald-500/20">
+                Crear plan
+              </SubmitButton>
+              <button
+                type="button"
+                onClick={prev}
+                className="w-full rounded-2xl border border-zinc-200 py-3.5 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50"
+              >
+                Atrás
+              </button>
+            </div>
+          </form>
+        </Step>
+      )}
     </div>
   );
 }
