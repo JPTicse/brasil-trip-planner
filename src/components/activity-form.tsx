@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { NewActivityWizard } from "@/components/new-activity-wizard";
 
 export function ActivityForm({
@@ -18,12 +18,27 @@ export function ActivityForm({
 
   const handleOpen = useCallback(() => {
     document.body.setAttribute("data-pause-polling", "true");
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.inset = "0";
     setOpen(true);
   }, []);
 
   const handleClose = useCallback(() => {
     document.body.setAttribute("data-pause-polling", "false");
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.inset = "";
     setOpen(false);
+  }, []);
+
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.inset = "";
+    };
   }, []);
 
   return (
@@ -45,17 +60,19 @@ export function ActivityForm({
             className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
             onClick={handleClose}
           />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md max-h-[88dvh] rounded-t-3xl bg-white shadow-2xl">
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[88dvh] max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-zinc-200" />
+              <div className="h-1 w-10 rounded-full bg-zinc-200 dark:bg-zinc-700" />
             </div>
-            <NewActivityWizard
-              tripId={tripId}
-              tripDestination={tripDestination ?? "Brasil"}
-              tripStartDate={tripStartDate}
-              tripEndDate={tripEndDate}
-              onClose={handleClose}
-            />
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              <NewActivityWizard
+                tripId={tripId}
+                tripDestination={tripDestination ?? "Brasil"}
+                tripStartDate={tripStartDate}
+                tripEndDate={tripEndDate}
+                onClose={handleClose}
+              />
+            </div>
           </div>
         </>
       )}
