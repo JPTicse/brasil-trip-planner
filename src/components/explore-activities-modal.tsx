@@ -5,14 +5,15 @@ import { joinActivity, leaveActivity } from "@/lib/actions";
 import { formatDate, formatTime } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
+import { AnimatedActionButton } from "@/components/animated-action-button";
 
 const TYPE_GRADIENT: Record<string, string> = {
-  visit: "from-blue-500 to-cyan-400",
-  tour: "from-violet-500 to-pink-400",
-  meal: "from-orange-500 to-amber-400",
-  event: "from-red-500 to-rose-400",
-  free: "from-green-500 to-emerald-400",
-  transport: "from-zinc-600 to-slate-400",
+  visit: "from-blue-600 to-cyan-500",
+  tour: "from-violet-600 to-pink-500",
+  meal: "from-orange-600 to-amber-500",
+  event: "from-red-600 to-rose-500",
+  free: "from-green-600 to-emerald-500",
+  transport: "from-zinc-700 to-slate-500",
 };
 
 const TYPE_EMOJI: Record<string, string> = {
@@ -100,11 +101,12 @@ function ExploreCard({
   currentUserId: string;
 }) {
   const participants = activity.participants ?? [];
+  const isJoined = participants.some((p) => p.user_id === currentUserId);
   const gradient = TYPE_GRADIENT[activity.type] ?? TYPE_GRADIENT.visit;
   const emoji = TYPE_EMOJI[activity.type] ?? "👀";
 
   const card = (
-    <div className="group relative aspect-square w-full overflow-hidden rounded-2xl bg-zinc-100 shadow-sm transition active:scale-95">
+    <div className="group relative aspect-square w-full overflow-hidden rounded-2xl bg-zinc-900 shadow-sm transition active:scale-95">
       {/* Fondo: imagen o gradiente */}
       {activity.image_url ? (
         <>
@@ -115,11 +117,12 @@ function ExploreCard({
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {/* Degradado fuerte para legibilidad */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
         </>
       ) : (
-        <div className={`h-full w-full bg-gradient-to-br ${gradient} p-4`}>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className={`h-full w-full bg-gradient-to-br ${gradient}`}>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
         </div>
       )}
 
@@ -127,18 +130,18 @@ function ExploreCard({
       <div className="absolute inset-0 flex flex-col justify-between p-3 text-white">
         {/* Arriba: emoji y tipo */}
         <div className="flex items-start justify-between">
-          <span className="text-3xl drop-shadow">{emoji}</span>
-          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-bold backdrop-blur-sm">
+          <span className="text-3xl drop-shadow-lg">{emoji}</span>
+          <span className="rounded-full bg-black/40 px-2 py-0.5 text-[9px] font-bold backdrop-blur-sm ring-1 ring-white/30">
             {ACTIVITY_TYPE_LABELS[activity.type]}
           </span>
         </div>
 
         {/* Abajo: info */}
         <div>
-          <h4 className="line-clamp-2 text-sm font-extrabold leading-tight drop-shadow">
+          <h4 className="line-clamp-2 text-sm font-extrabold leading-tight drop-shadow-lg">
             {activity.title}
           </h4>
-          <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-white/80">
+          <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-white/90 drop-shadow">
             <span>
               {formatDate(activity.date)}
               {activity.start_time && ` · ${formatTime(activity.start_time)}`}
@@ -150,7 +153,16 @@ function ExploreCard({
           </div>
 
           <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-            <JoinButton activity={activity} tripId={tripId} currentUserId={currentUserId} />
+            <AnimatedActionButton
+              action={isJoined ? leaveActivity : joinActivity}
+              variant={isJoined ? "leave" : "join"}
+              label={isJoined ? "Unido" : "+ Unirme"}
+              fields={[
+                { name: "activity_id", value: activity.id },
+                { name: "trip_id", value: tripId },
+              ]}
+              className="w-full py-1.5"
+            />
           </div>
         </div>
       </div>
@@ -164,42 +176,5 @@ function ExploreCard({
       currentUserId={currentUserId}
       trigger={card}
     />
-  );
-}
-
-function JoinButton({
-  activity,
-  tripId,
-  currentUserId,
-}: {
-  activity: Activity;
-  tripId: string;
-  currentUserId: string;
-}) {
-  const participants = activity.participants ?? [];
-  const isJoined = participants.some((p) => p.user_id === currentUserId);
-
-  return isJoined ? (
-    <form action={leaveActivity}>
-      <input type="hidden" name="activity_id" value={activity.id} />
-      <input type="hidden" name="trip_id" value={tripId} />
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-1 rounded-xl bg-white/90 py-1.5 text-[10px] font-bold text-emerald-700 transition hover:bg-white"
-      >
-        Unido
-      </button>
-    </form>
-  ) : (
-    <form action={joinActivity}>
-      <input type="hidden" name="activity_id" value={activity.id} />
-      <input type="hidden" name="trip_id" value={tripId} />
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-500 py-1.5 text-[10px] font-bold text-white transition hover:bg-emerald-600"
-      >
-        + Unirme
-      </button>
-    </form>
   );
 }
