@@ -57,7 +57,7 @@ export function EditTripForm({
   };
 
   return (
-    <form action={handleSubmit} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <form action={handleSubmit} className="space-y-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm">
       <input type="hidden" name="trip_id" value={tripId} />
       <input type="hidden" name="name" value={name} />
       <input type="hidden" name="country" value={selectedCountry?.code ?? defaultCountry} />
@@ -76,7 +76,7 @@ export function EditTripForm({
       </Field>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700">País</label>
+        <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-200">País</label>
         <CountrySelect
           selected={selectedCountry?.code ?? null}
           onSelect={(c) => {
@@ -122,7 +122,7 @@ export function EditTripForm({
       </Field>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+        <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
       <SubmitButton pending={pending} className="w-full">

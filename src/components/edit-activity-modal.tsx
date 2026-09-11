@@ -10,12 +10,12 @@ import { ImageUpload } from "@/components/image-upload";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Activity, type ActivityType } from "@/lib/types";
 
 const TYPE_GRADIENT: Record<string, string> = {
-  visit: "from-sky-400 to-blue-600",
-  tour: "from-violet-400 to-purple-600",
-  meal: "from-amber-300 to-orange-500",
-  event: "from-rose-300 to-red-500",
-  free: "from-emerald-300 to-green-600",
-  transport: "from-slate-300 to-zinc-600",
+  visit: "bg-sky-600",
+  tour: "bg-violet-600",
+  meal: "bg-amber-600",
+  event: "bg-rose-600",
+  free: "bg-emerald-600",
+  transport: "bg-slate-600",
 };
 
 const TYPE_EMOJI: Record<string, string> = {
@@ -55,8 +55,8 @@ export function EditActivityModal({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md max-h-[92dvh] rounded-t-3xl bg-white shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm dark:bg-black/70" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md max-h-[92dvh] rounded-t-3xl bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-zinc-200" />
             </div>
@@ -162,7 +162,7 @@ function EditActivityFormInner({
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           </>
         ) : (
-          <div className={`h-full w-full bg-gradient-to-br ${gradient}`} />
+          <div className={`h-full w-full ${gradient}`} />
         )}
         <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
           <div className="flex items-center gap-2">

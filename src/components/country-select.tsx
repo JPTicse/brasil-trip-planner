@@ -42,13 +42,13 @@ export function CountrySelect({
           className={`flex items-center gap-2.5 rounded-xl border p-3 text-left transition ${
             selected === country.code
               ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500"
-              : "border-zinc-200 bg-white hover:border-emerald-300"
+              : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-emerald-300"
           }`}
         >
           <span className="text-2xl">{country.flag}</span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-zinc-900">{country.name}</p>
-            <p className="text-[10px] text-zinc-400 uppercase">{country.code}</p>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{country.name}</p>
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase">{country.code}</p>
           </div>
           {selected === country.code && (
             <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>

@@ -14,11 +14,11 @@ export function MembersMap({ members }: { members: Profile[] }) {
 
   if (markers.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-200 bg-white/50 px-4 py-8 text-center">
-        <p className="text-sm text-zinc-400">
+      <div className="rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/50 px-4 py-8 text-center">
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">
           Nadie está compartiendo su ubicación todavía.
         </p>
-        <p className="mt-1 text-xs text-zinc-400">
+        <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
           La app pedirá permiso de ubicación automáticamente.
         </p>
       </div>
@@ -26,7 +26,7 @@ export function MembersMap({ members }: { members: Profile[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200">
+    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
       <GoogleMap markers={markers} height="250px" zoom={12} />
     </div>
   );

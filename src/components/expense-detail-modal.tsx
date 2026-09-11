@@ -45,16 +45,16 @@ export function ExpenseDetailModal({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm dark:bg-black/70" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-zinc-200" />
             </div>
             <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900">Detalle del gasto</h3>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Detalle del gasto</h3>
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -64,17 +64,17 @@ export function ExpenseDetailModal({
 
             <div className="max-h-[65vh] overflow-y-auto px-5 pb-6">
               {/* Header del gasto */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl bg-zinc-50 p-3">
+              <div className="mb-4 flex items-center gap-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800">
                 <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-                  allSettled ? "bg-emerald-100" : "bg-white"
+                  allSettled ? "bg-emerald-100" : "bg-white dark:bg-zinc-900"
                 }`}>
-                  <svg className={`h-5 w-5 ${allSettled ? "text-emerald-600" : "text-zinc-500"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <svg className={`h-5 w-5 ${allSettled ? "text-emerald-600" : "text-zinc-500 dark:text-zinc-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                     <path d={CATEGORY_ICON[expense.category] ?? CATEGORY_ICON.other} />
                   </svg>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="truncate font-semibold text-zinc-900">{expense.description}</h4>
-                  <p className="text-xs text-zinc-400">
+                  <h4 className="truncate font-semibold text-zinc-900 dark:text-zinc-100">{expense.description}</h4>
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
                     {expense.payer?.name ?? "Usuario"} · {settledCount}/{splits.length} pagados
                   </p>
                 </div>
@@ -98,7 +98,7 @@ export function ExpenseDetailModal({
                           ? "bg-emerald-50"
                           : split.settled
                             ? "bg-emerald-50/50"
-                            : "bg-zinc-50"
+                            : "bg-zinc-50 dark:bg-zinc-800"
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -112,11 +112,11 @@ export function ExpenseDetailModal({
                         </div>
                         <div>
                           <p className={`text-sm font-medium ${
-                            split.settled || isOwnSplit ? "text-zinc-600" : "text-zinc-900"
+                            split.settled || isOwnSplit ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-900 dark:text-zinc-100"
                           }`}>
                             {name}
                           </p>
-                          <p className="text-[11px] text-zinc-400">
+                          <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
                             {isOwnSplit ? "Pagó el gasto" : formatCurrency(split.amount, expense.currency)}
                           </p>
                         </div>
@@ -139,7 +139,7 @@ export function ExpenseDetailModal({
                             className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
                               split.settled
                                 ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                : "bg-zinc-200 text-zinc-600 hover:bg-emerald-100 hover:text-emerald-700"
+                                : "bg-zinc-200 text-zinc-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-zinc-700 dark:text-zinc-300"
                             }`}
                           >
                             {split.settled ? (
@@ -167,7 +167,7 @@ export function ExpenseDetailModal({
                           Pagado
                         </span>
                       ) : (
-                        <span className="text-[10px] font-medium text-zinc-400">Pendiente</span>
+                        <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">Pendiente</span>
                       )}
                     </div>
                   );
@@ -175,7 +175,7 @@ export function ExpenseDetailModal({
               </div>
 
               {isPayer && !allSettled && (
-                <p className="mt-3 text-center text-xs text-zinc-400">
+                <p className="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
                   👆 Marca quién te ha pagado su parte
                 </p>
               )}

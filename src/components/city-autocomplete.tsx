@@ -63,7 +63,7 @@ export function CityAutocomplete({
       onChange={(e) => onChange(e.target.value)}
       disabled={!countryCode}
       placeholder={countryCode ? (placeholder ?? "Busca una ciudad...") : "Primero selecciona un país"}
-      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:bg-zinc-100 disabled:text-zinc-400"
+      className="w-full rounded-lg border border-zinc-300 bg-white dark:bg-zinc-900 px-3 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:text-zinc-400 dark:disabled:text-zinc-500"
     />
   );
 }

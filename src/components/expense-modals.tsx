@@ -17,7 +17,7 @@ export function BalancesModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-emerald-300 hover:bg-emerald-50 active:scale-95"
+        className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:border-emerald-300 hover:bg-emerald-50 active:scale-95 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
       >
         <svg className="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
           <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
@@ -27,16 +27,16 @@ export function BalancesModal({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm dark:bg-black/70" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-zinc-200" />
             </div>
             <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900">Saldos del viaje</h3>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Saldos del viaje</h3>
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -47,10 +47,10 @@ export function BalancesModal({
               {balancesByCurrency.map(({ currency, balances, total }) => (
                 <div key={currency}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600">
+                    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                       {currency}
                     </span>
-                    <span className="text-xs text-zinc-400">
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
                       Total: <span className="font-semibold text-emerald-700">{formatCurrency(total, currency)}</span>
                     </span>
                   </div>
@@ -61,7 +61,7 @@ export function BalancesModal({
                         const name = b.profile.name ?? "Usuario";
                         const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
                         return (
-                          <div key={b.profile.id} className="flex items-center gap-3 rounded-lg bg-zinc-50 px-3 py-2">
+                          <div key={b.profile.id} className="flex items-center gap-3 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800">
                             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
                               {b.profile.avatar_url ? (
                                 // eslint-disable-next-line @next/next/no-img-element
@@ -72,7 +72,7 @@ export function BalancesModal({
                             </div>
                             <span className="flex-1 text-sm font-medium text-zinc-800">{name}</span>
                             <span className={`text-sm font-bold ${
-                              b.net > 0.01 ? "text-emerald-600" : b.net < -0.01 ? "text-red-500" : "text-zinc-400"
+                              b.net > 0.01 ? "text-emerald-600" : b.net < -0.01 ? "text-red-500" : "text-zinc-400 dark:text-zinc-500"
                             }`}>
                               {b.net > 0.01 ? "+" : ""}{formatCurrency(b.net, currency)}
                             </span>
@@ -82,7 +82,7 @@ export function BalancesModal({
                   </div>
                 </div>
               ))}
-              <p className="pt-1 text-center text-xs text-zinc-400">
+              <p className="pt-1 text-center text-xs text-zinc-400 dark:text-zinc-500">
                 💚 Le deben dinero · 🔴 Debe dinero
               </p>
             </div>
@@ -116,16 +116,16 @@ export function DebtsModal({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm dark:bg-black/70" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-zinc-200" />
             </div>
             <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900">Quién debe a quién</h3>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Quién debe a quién</h3>
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -156,14 +156,14 @@ export function DebtsModal({
                             )}
                           </div>
                           <div className="min-w-0 flex-1 text-center">
-                            <p className="truncate text-xs font-medium text-zinc-700">{fromName}</p>
+                            <p className="truncate text-xs font-medium text-zinc-700 dark:text-zinc-200">{fromName}</p>
                             <div className="flex items-center justify-center gap-1 text-[10px] text-amber-600">
                               <span>debe</span>
                               <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             </div>
-                            <p className="truncate text-xs font-medium text-zinc-700">{toName}</p>
+                            <p className="truncate text-xs font-medium text-zinc-700 dark:text-zinc-200">{toName}</p>
                           </div>
                           <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-500 text-[9px] font-semibold text-white">
                             {d.to.avatar_url ? (
@@ -182,7 +182,7 @@ export function DebtsModal({
                   </div>
                 </div>
               ))}
-              <p className="pt-1 text-center text-xs text-zinc-400">
+              <p className="pt-1 text-center text-xs text-zinc-400 dark:text-zinc-500">
                 Transacciones minimizadas para saldar todas las deudas
               </p>
             </div>

@@ -5,13 +5,13 @@ import { joinActivity, leaveActivity } from "@/lib/actions";
 import { formatCurrency, formatTime } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 
-const TYPE_GRADIENT: Record<string, string> = {
-  visit: "from-blue-500 to-cyan-400",
-  tour: "from-purple-500 to-pink-400",
-  meal: "from-orange-500 to-amber-400",
-  event: "from-red-500 to-rose-400",
-  free: "from-green-500 to-emerald-400",
-  transport: "from-zinc-600 to-slate-400",
+const TYPE_BG: Record<string, string> = {
+  visit: "bg-blue-600",
+  tour: "bg-violet-600",
+  meal: "bg-orange-600",
+  event: "bg-rose-600",
+  free: "bg-emerald-600",
+  transport: "bg-zinc-700",
 };
 
 const TYPE_ICON: Record<string, string> = {
@@ -38,8 +38,8 @@ export function ActivityDetailModal({
 
   const participants = activity.participants ?? [];
   const isJoined = participants.some((p) => p.user_id === currentUserId);
-  const isCreator = activity.created_by === currentUserId;
   const hasCoords = activity.location_lat != null && activity.location_lng != null;
+  const bgColor = TYPE_BG[activity.type] ?? TYPE_BG.visit;
 
   return (
     <>
@@ -47,16 +47,16 @@ export function ActivityDetailModal({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm dark:bg-black/70" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-zinc-200" />
+              <div className="h-1 w-10 rounded-full bg-zinc-200 dark:bg-zinc-700" />
             </div>
             <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900">Detalle de actividad</h3>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Detalle de actividad</h3>
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -64,9 +64,9 @@ export function ActivityDetailModal({
               </button>
             </div>
 
-            <div className="max-h-[75vh] overflow-y-auto pb-6">
-              {/* Header con gradiente por tipo */}
-              <div className={`mx-5 rounded-xl bg-gradient-to-br ${TYPE_GRADIENT[activity.type] ?? TYPE_GRADIENT.visit} p-4 text-white`}>
+            <div className="max-h-[75vh] overflow-y-auto overscroll-contain pb-6">
+              {/* Header con color sólido por tipo */}
+              <div className={`mx-5 rounded-xl ${bgColor} p-4 text-white`}>
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/20">
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -119,9 +119,9 @@ export function ActivityDetailModal({
                   />
                 )}
                 {activity.notes && (
-                  <div className="rounded-lg bg-zinc-50 px-3 py-2">
-                    <p className="text-xs font-medium text-zinc-500">Notas</p>
-                    <p className="mt-0.5 text-sm text-zinc-700">{activity.notes}</p>
+                  <div className="rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Notas</p>
+                    <p className="mt-0.5 text-sm text-zinc-700 dark:text-zinc-200">{activity.notes}</p>
                   </div>
                 )}
               </div>
@@ -132,7 +132,7 @@ export function ActivityDetailModal({
                   href={`https://www.google.com/maps/dir/?api=1&destination=${activity.location_lat},${activity.location_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mx-5 mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                  className="mx-5 mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
@@ -143,11 +143,11 @@ export function ActivityDetailModal({
 
               {/* Participantes */}
               <div className="mx-5 mt-3">
-                <p className="mb-2 text-xs font-medium text-zinc-600">
+                <p className="mb-2 text-xs font-medium text-zinc-600 dark:text-zinc-300">
                   Participantes ({participants.length})
                 </p>
                 {participants.length === 0 ? (
-                  <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-400">
+                  <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
                     Nadie se ha unido aún. ¡Sé el primero!
                   </p>
                 ) : (
@@ -156,7 +156,7 @@ export function ActivityDetailModal({
                       const name = p.profile?.name ?? "Usuario";
                       const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
                       return (
-                        <div key={p.id} className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1">
+                        <div key={p.id} className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 dark:bg-zinc-800">
                           <div className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[8px] font-semibold text-white">
                             {p.profile?.avatar_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -165,7 +165,7 @@ export function ActivityDetailModal({
                               initials
                             )}
                           </div>
-                          <span className="text-xs text-zinc-700">{name}</span>
+                          <span className="text-xs text-zinc-700 dark:text-zinc-200">{name}</span>
                         </div>
                       );
                     })}
@@ -181,7 +181,7 @@ export function ActivityDetailModal({
                     <input type="hidden" name="trip_id" value={tripId} />
                     <button
                       type="submit"
-                      className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-100 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200"
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-100 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
                     >
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
                         <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
@@ -215,11 +215,11 @@ export function ActivityDetailModal({
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-lg bg-zinc-50 px-3 py-2">
-      <span className="text-zinc-400">{icon}</span>
+    <div className="flex items-center gap-2.5 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800">
+      <span className="text-zinc-400 dark:text-zinc-500">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-400">{label}</p>
-        <p className="truncate text-sm text-zinc-700">{value}</p>
+        <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{label}</p>
+        <p className="truncate text-sm text-zinc-700 dark:text-zinc-200">{value}</p>
       </div>
     </div>
   );
