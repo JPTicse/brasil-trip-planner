@@ -14,7 +14,11 @@ export function LocationTracker() {
 
     setStatus("requesting");
 
+    let lastSentAt = 0;
     const sendLocation = (lat: number, lng: number) => {
+      const now = Date.now();
+      if (now - lastSentAt < 60000) return;
+      lastSentAt = now;
       const formData = new FormData();
       formData.set("lat", String(lat));
       formData.set("lng", String(lng));

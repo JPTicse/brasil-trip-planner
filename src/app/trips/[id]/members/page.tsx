@@ -190,13 +190,29 @@ function MemberCard({
           </div>
         </div>
       </div>
-      {canRemove && !isOwner && (
-        <form action={removeTripMember}>
-          <input type="hidden" name="trip_id" value={member.trip_id} />
-          <input type="hidden" name="member_id" value={member.id} />
-          <DeleteButton>Expulsar</DeleteButton>
-        </form>
-      )}
+      <div className="flex items-center gap-1">
+        {member.profile?.location_lat != null && member.profile.location_lng != null && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${member.profile.location_lat},${member.profile.location_lng}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Ver ubicación de ${name} en Google Maps`}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-50 active:scale-95 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </a>
+        )}
+        {canRemove && !isOwner && (
+          <form action={removeTripMember}>
+            <input type="hidden" name="trip_id" value={member.trip_id} />
+            <input type="hidden" name="member_id" value={member.id} />
+            <DeleteButton>Expulsar</DeleteButton>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
