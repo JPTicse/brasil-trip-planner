@@ -20,7 +20,7 @@ export function FloatingActionButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-600/40 active:scale-90"
+      className="fixed bottom-20 right-4 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-600/40 active:scale-90"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       {icon ?? (
