@@ -149,7 +149,6 @@ function ExploreCard({
             {activity.location && (
               <span className="line-clamp-1">{activity.location}</span>
             )}
-            <span>{participants.length} {participants.length === 1 ? "unido" : "unidos"}</span>
           </div>
 
           <div className="mt-2" onClick={(e) => e.stopPropagation()}>

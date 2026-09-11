@@ -106,39 +106,7 @@ export function ActivityCard({
           </div>
 
           {/* Footer */}
-          <div className="relative mt-2 flex items-center justify-between border-t border-white/25 pt-2">
-            <div className="flex min-w-0 items-center gap-1.5">
-              {participantCount > 0 ? (
-                <>
-                  <div className="flex -space-x-1">
-                    {participants.slice(0, 4).map((p) => {
-                      const name = p.profile?.name ?? "Usuario";
-                      const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-                      return (
-                        <div
-                          key={p.id}
-                          className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-white/60 bg-white/30 text-[7px] font-semibold text-white ring-1 ring-black/10"
-                          title={name}
-                        >
-                          {p.profile?.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            initials
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <span className="text-[10px] text-white/90 drop-shadow">
-                    {participantCount} {participantCount === 1 ? "unido" : "unidos"}
-                  </span>
-                </>
-              ) : (
-                <span className="text-[10px] text-white/80 drop-shadow">Nadie se ha unido aún</span>
-              )}
-            </div>
-
+          <div className="relative mt-2 flex items-center justify-end border-t border-white/25 pt-2">
             <div className="flex shrink-0 items-center gap-1.5">
               <ActivityDetailModal
                 activity={activity}
