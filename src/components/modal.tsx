@@ -102,7 +102,9 @@ export function Modal({
         <div className="flex shrink-0 justify-center pt-3 pb-1">
           <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {children}
+        </div>
       </div>
     </div>,
     document.body,
