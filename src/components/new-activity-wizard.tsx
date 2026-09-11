@@ -385,13 +385,8 @@ export function NewActivityWizard({
       {/* Step 6: Detalles */}
       {step === 6 && (
         <Step {...stepProps} title="¿Algo más?" subtitle="Notas e imagen" nextLabel="Revisar">
-          {imageUrl && (
-            <div className="overflow-hidden rounded-2xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="" className="h-40 w-full object-cover" />
-            </div>
-          )}
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+            <p className="mb-2 text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500">Imagen</p>
             <ImageUpload imageUrl={imageUrl} onUploaded={(url) => setImageUrl(url)} />
           </div>
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
