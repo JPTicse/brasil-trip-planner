@@ -7,13 +7,14 @@ import { formatTime, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { AnimatedActionButton } from "@/components/animated-action-button";
 
-const TYPE_GRADIENT: Record<ActivityType, string> = {
-  visit: "from-blue-600 to-cyan-500",
-  tour: "from-violet-600 to-pink-500",
-  meal: "from-orange-600 to-amber-500",
-  event: "from-red-600 to-rose-500",
-  free: "from-green-600 to-emerald-500",
-  transport: "from-zinc-700 to-slate-500",
+// Colores sólidos con buen contraste para texto blanco
+const TYPE_BG: Record<ActivityType, string> = {
+  visit: "bg-blue-600",
+  tour: "bg-violet-600",
+  meal: "bg-orange-600",
+  event: "bg-rose-600",
+  free: "bg-emerald-600",
+  transport: "bg-zinc-700",
 };
 
 const TYPE_ICON: Record<ActivityType, string> = {
@@ -37,22 +38,18 @@ export function ActivityCard({
   const participants = activity.participants ?? [];
   const isJoined = participants.some((p) => p.user_id === currentUserId);
   const isCreator = activity.created_by === currentUserId;
-  const participantCount = participants.length;
-  const gradient = TYPE_GRADIENT[activity.type] ?? TYPE_GRADIENT.visit;
+  const bgColor = TYPE_BG[activity.type] ?? TYPE_BG.visit;
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-md dark:bg-zinc-900">
       <div className="flex w-full overflow-hidden">
-        {/* Lado izquierdo: datos con gradiente */}
+        {/* Lado izquierdo: datos con color sólido */}
         <div
-          className={`relative flex w-[70%] flex-col justify-between self-stretch bg-gradient-to-br ${gradient} p-3 text-white`}
+          className={`relative flex w-[70%] flex-col justify-between self-stretch ${bgColor} p-3 text-white`}
         >
-          {/* Overlay sutil para reforzar contraste */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
-
           {/* Badge tipo */}
           <div className="relative flex items-start justify-between">
-            <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm ring-1 ring-white/30">
+            <span className="rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm ring-1 ring-white/20">
               {ACTIVITY_TYPE_LABELS[activity.type]}
             </span>
             {isCreator && (
@@ -63,7 +60,7 @@ export function ActivityCard({
                   <input type="hidden" name="trip_id" value={tripId} />
                   <button
                     type="submit"
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/30 text-white/90 transition hover:bg-red-500/80 hover:text-white active:scale-90"
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/25 text-white/90 transition hover:bg-red-500 active:scale-90"
                   >
                     <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
@@ -76,8 +73,8 @@ export function ActivityCard({
 
           {/* Título y datos principales */}
           <div className="relative">
-            <h4 className="line-clamp-1 text-base font-extrabold leading-tight drop-shadow-lg">{activity.title}</h4>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-white/95 drop-shadow">
+            <h4 className="line-clamp-1 text-base font-extrabold leading-tight">{activity.title}</h4>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-white/90">
               {(activity.start_time || activity.end_time) && (
                 <span className="flex items-center gap-0.5">
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -98,7 +95,7 @@ export function ActivityCard({
                 </span>
               )}
               {activity.cost !== null && activity.cost > 0 && (
-                <span className="rounded bg-black/30 px-1.5 py-0.5 font-semibold text-emerald-100 ring-1 ring-white/20">
+                <span className="rounded bg-black/25 px-1.5 py-0.5 font-semibold ring-1 ring-white/20">
                   {formatCurrency(activity.cost, activity.currency)}
                 </span>
               )}
@@ -106,7 +103,7 @@ export function ActivityCard({
           </div>
 
           {/* Footer */}
-          <div className="relative mt-2 flex items-center justify-end border-t border-white/25 pt-2">
+          <div className="relative mt-2 flex items-center justify-end border-t border-white/20 pt-2">
             <div className="flex shrink-0 items-center gap-1.5">
               <ActivityDetailModal
                 activity={activity}
@@ -115,7 +112,7 @@ export function ActivityCard({
                 trigger={
                   <button
                     type="button"
-                    className="flex items-center gap-0.5 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm transition hover:bg-black/50 active:scale-90"
+                    className="flex items-center gap-0.5 rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm transition hover:bg-black/40 active:scale-90"
                   >
                     Ver
                   </button>
@@ -137,7 +134,7 @@ export function ActivityCard({
         </div>
 
         {/* Lado derecho: imagen en 3:4 */}
-        <div className="relative aspect-[3/4] w-[30%] shrink-0 overflow-hidden bg-zinc-900">
+        <div className="relative aspect-[3/4] w-[30%] shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
           {activity.image_url ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -147,10 +144,10 @@ export function ActivityCard({
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/10" />
             </>
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-white/40">
+            <div className="flex h-full w-full items-center justify-center text-white/30">
               <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2}>
                 <path d={TYPE_ICON[activity.type] ?? TYPE_ICON.visit} />
               </svg>
