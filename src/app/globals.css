@@ -59,6 +59,12 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+.pac-container {
+  z-index: 100 !important;
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+
 /* Scrollbar styling for dark mode */
 .dark ::-webkit-scrollbar {
   width: 6px;

@@ -16,6 +16,11 @@ export function LocationAutocomplete({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,12 +77,12 @@ export function LocationAutocomplete({
                     photoUrl = null;
                   }
                 }
-                onChange(name, lat, lng, photoUrl);
+                onChangeRef.current(name, lat, lng, photoUrl);
                 document.body.removeChild(container);
               },
             );
           } else {
-            onChange(name, lat, lng, null);
+            onChangeRef.current(name, lat, lng, null);
           }
         });
       })
@@ -85,8 +90,9 @@ export function LocationAutocomplete({
 
     return () => {
       cancelled = true;
+      autocompleteRef.current = null;
     };
-  }, [onChange, country]);
+  }, [country]);
 
   return (
     <input
