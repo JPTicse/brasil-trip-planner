@@ -4,7 +4,8 @@ import { AddMemberForm } from "@/components/add-member-form";
 import { DeleteButton } from "@/components/ui";
 import { LocationTracker } from "@/components/location-tracker";
 import { MembersMap } from "@/components/members-map";
-import { removeTripMember, deleteTrip, resolveAccessRequest } from "@/lib/actions";
+import { DeleteTripButton } from "@/components/delete-trip-button";
+import { removeTripMember, resolveAccessRequest } from "@/lib/actions";
 import type { TripMember, TripAccessRequest } from "@/lib/types";
 
 export default async function MembersPage({
@@ -84,15 +85,7 @@ export default async function MembersPage({
             Eliminar el viaje borrará permanentemente todo el itinerario,
             hoteles, transporte y gastos.
           </p>
-          <form action={deleteTrip} className="mt-3">
-            <input type="hidden" name="trip_id" value={id} />
-            <button
-              type="submit"
-              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50"
-            >
-              Eliminar viaje
-            </button>
-          </form>
+          <DeleteTripButton tripId={id} />
         </div>
       )}
     </div>

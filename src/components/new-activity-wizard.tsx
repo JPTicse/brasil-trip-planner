@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
 import { suggestPlace, type Suggestion } from "@/lib/suggest";
+import { getDaysBetween, formatDate } from "@/lib/format";
 import { TextInput, TextArea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { ImageUpload } from "@/components/image-upload";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
+import { TimePicker } from "@/components/time-picker";
 import { POPULAR_COUNTRIES } from "@/components/country-select";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type ActivityType } from "@/lib/types";
 
@@ -147,6 +149,9 @@ export function NewActivityWizard({
         return location.trim().length > 0;
       case 2:
         return date.length > 0;
+      case 4:
+        if (!startTime || !endTime) return true;
+        return startTime <= endTime;
       default:
         return true;
     }
@@ -154,13 +159,7 @@ export function NewActivityWizard({
 
   const dateOptions = () => {
     if (!tripStartDate || !tripEndDate) return [];
-    const start = new Date(tripStartDate);
-    const end = new Date(tripEndDate);
-    const options: string[] = [];
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      options.push(new Date(d).toISOString().split("T")[0]);
-    }
-    return options;
+    return getDaysBetween(tripStartDate, tripEndDate);
   };
 
   const progress = ((step + 1) / STEPS.length) * 100;
@@ -175,14 +174,14 @@ export function NewActivityWizard({
           <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Nuevo plan</p>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-800"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800 dark:bg-zinc-800">
           <div
             className="h-full rounded-full bg-emerald-500 transition-all duration-500"
             style={{ width: `${progress}%` }}
@@ -201,7 +200,7 @@ export function NewActivityWizard({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Visita al Cristo Redentor"
-              className="w-full rounded-3xl border-2 border-zinc-200 bg-zinc-50 px-4 py-3.5 text-center text-lg font-semibold text-zinc-900 placeholder:text-zinc-300 focus:border-emerald-400 focus:bg-white focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:bg-zinc-800"
+              className="w-full rounded-3xl border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-3.5 text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-300 focus:border-emerald-400 focus:bg-white focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:text-zinc-400 dark:focus:bg-zinc-800"
             />
           </div>
         </Step>
@@ -211,15 +210,15 @@ export function NewActivityWizard({
       {step === 1 && (
         <Step {...stepProps} title="¿Dónde queda?" subtitle="Busca o escribe la ubicación">
           <div className="space-y-3">
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Sugerencias automáticas</p>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+              <p className="mb-2 text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500">Sugerencias automáticas</p>
               <TextInput
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Escribe el nombre para buscar"
                 className="w-full rounded-xl"
               />
-              {loading && <p className="mt-2 text-xs text-zinc-400">Buscando...</p>}
+              {loading && <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">Buscando...</p>}
               {searchError && <p className="mt-2 text-xs text-amber-600">{searchError}</p>}
               {suggestions.length > 0 && (
                 <div className="mt-3 space-y-2">
@@ -231,18 +230,18 @@ export function NewActivityWizard({
                       className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition ${
                         selectedSuggestion?.place_id === s.place_id
                           ? "border-emerald-400 bg-emerald-50"
-                          : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+                          : "border-zinc-200 dark:border-zinc-700 bg-white dark:border-zinc-700 dark:bg-zinc-800"
                       }`}
                     >
                       {s.photo_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={s.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
                       ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 text-xl">📍</div>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xl">📍</div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-zinc-900">{s.name}</p>
-                        <p className="truncate text-xs text-zinc-400">{s.address}</p>
+                        <p className="font-bold text-zinc-900 dark:text-zinc-100">{s.name}</p>
+                        <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">{s.address}</p>
                       </div>
                     </button>
                   ))}
@@ -250,8 +249,8 @@ export function NewActivityWizard({
               )}
             </div>
 
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">O escribe manual</p>
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+              <p className="mb-2 text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500">O escribe manual</p>
               <LocationAutocomplete
                 value={location}
                 onChange={(name, newLat, newLng, photoUrl) => {
@@ -276,16 +275,17 @@ export function NewActivityWizard({
             <div className="grid grid-cols-3 gap-2">
               {dateOptions().map((d) => {
                 const isSelected = date === d;
-                const day = new Date(d);
+                const [y, mo, da] = d.split("-").map(Number);
+                const day = new Date(y, (mo ?? 1) - 1, da ?? 1);
                 return (
                   <button
                     key={d}
                     type="button"
                     onClick={() => setDate(d)}
-                    className={`flex flex-col items-center rounded-2xl border-2 p-3 transition active:scale-95 ${
+                    className={`flex shrink-0 flex-col items-center rounded-2xl border-2 p-3 transition active:scale-95 ${
                       isSelected
                         ? "border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                        : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                        : "border-zinc-200 dark:border-zinc-700 bg-white text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                     }`}
                   >
                     <span className="text-[10px] font-bold uppercase opacity-80">
@@ -320,12 +320,12 @@ export function NewActivityWizard({
                   className={`rounded-3xl border-2 p-4 text-left transition active:scale-95 ${
                     isSelected
                       ? `${card.bg} border-transparent text-white shadow-lg`
-                      : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                      : "border-zinc-200 dark:border-zinc-700 bg-white text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                   }`}
                 >
                   <div className="text-3xl">{card.emoji}</div>
                   <p className="mt-2 text-base font-extrabold">{card.title}</p>
-                  <p className={`text-[10px] ${isSelected ? "text-white/80" : "text-zinc-400"}`}>{card.desc}</p>
+                  <p className={`text-[10px] ${isSelected ? "text-white/80" : "text-zinc-400 dark:text-zinc-500"}`}>{card.desc}</p>
                 </button>
               );
             })}
@@ -336,15 +336,14 @@ export function NewActivityWizard({
       {/* Step 4: Horario */}
       {step === 4 && (
         <Step {...stepProps} title="¿A qué hora?" subtitle="Opcional">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Inicio</p>
-              <TextInput type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="border-0 bg-transparent text-center text-xl font-bold" />
-            </div>
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Fin</p>
-              <TextInput type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="border-0 bg-transparent text-center text-xl font-bold" />
-            </div>
+          <div className="space-y-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+            <TimePicker value={startTime} onChange={setStartTime} label="Inicio" />
+            <TimePicker value={endTime} onChange={setEndTime} label="Fin" />
+            {startTime && endTime && startTime > endTime && (
+              <p className="text-center text-xs font-semibold text-red-500">
+                La hora de fin no puede ser antes que la de inicio
+              </p>
+            )}
           </div>
         </Step>
       )}
@@ -361,15 +360,15 @@ export function NewActivityWizard({
                 className={`rounded-2xl border-2 py-3 text-sm font-extrabold transition active:scale-95 ${
                   currency === c
                     ? "border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
-                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                    : "border-zinc-200 dark:border-zinc-700 bg-white text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:text-zinc-500"
                 }`}
               >
                 {c}
               </button>
             ))}
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-            <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Monto</p>
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+            <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500">Monto</p>
             <TextInput
               type="number"
               step="0.01"
@@ -385,12 +384,12 @@ export function NewActivityWizard({
       {/* Step 6: Detalles */}
       {step === 6 && (
         <Step {...stepProps} title="¿Algo más?" subtitle="Notas e imagen" nextLabel="Revisar">
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-            <p className="mb-2 text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500">Imagen</p>
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+            <p className="mb-2 text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500 dark:text-zinc-400">Imagen</p>
             <ImageUpload imageUrl={imageUrl} onUploaded={(url) => setImageUrl(url)} />
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
-            <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Notas</p>
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
+            <p className="mb-2 text-xs font-bold uppercase text-zinc-400 dark:text-zinc-500">Notas</p>
             <TextArea
               rows={3}
               value={notes}
@@ -405,7 +404,7 @@ export function NewActivityWizard({
       {/* Step 7: Revisar */}
       {step === 7 && (
         <Step {...stepProps} title="¿Todo listo?" subtitle="Revisa antes de guardar" hideNext>
-          <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-700 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-sm">
             {imageUrl && (
               <div className="h-40 w-full overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -415,17 +414,17 @@ export function NewActivityWizard({
             <div className="p-4">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{TYPE_CARD[type].emoji}</span>
-                <h3 className="text-lg font-extrabold text-zinc-900">{title}</h3>
+                <h3 className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{title}</h3>
               </div>
-              <p className="mt-1 text-sm text-zinc-500">{location}</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{location}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {date && (
-                  <span className="rounded-lg bg-zinc-100 px-2.5 py-1 text-[11px] font-bold text-zinc-600">
-                    {new Date(date).toLocaleDateString("es", { weekday: "short", day: "numeric", month: "short" })}
+                  <span className="rounded-lg bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400">
+                    {formatDate(date)}
                   </span>
                 )}
                 {startTime && (
-                  <span className="rounded-lg bg-zinc-100 px-2.5 py-1 text-[11px] font-bold text-zinc-600">
+                  <span className="rounded-lg bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400">
                     {startTime}{endTime && ` - ${endTime}`}
                   </span>
                 )}
@@ -435,7 +434,7 @@ export function NewActivityWizard({
                   </span>
                 )}
               </div>
-              {notes && <p className="mt-2 text-sm text-zinc-500">{notes}</p>}
+              {notes && <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{notes}</p>}
             </div>
           </div>
 
@@ -456,14 +455,14 @@ export function NewActivityWizard({
             <input type="hidden" name="notes" value={notes} />
             <input type="hidden" name="image_url" value={imageUrl ?? ""} />
 
-            <div className="space-y-3">
+            <div className="sticky bottom-0 -mx-5 space-y-3 border-t border-zinc-100 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900">
               <SubmitButton className="w-full rounded-2xl py-3.5 text-base shadow-lg shadow-emerald-500/20">
                 Crear plan
               </SubmitButton>
               <button
                 type="button"
                 onClick={prev}
-                className="w-full rounded-2xl border border-zinc-200 py-3.5 text-sm font-bold text-zinc-600 transition hover:bg-zinc-50"
+                className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 py-3.5 text-sm font-bold text-zinc-600 dark:text-zinc-400 transition hover:bg-zinc-50 dark:bg-zinc-900/50"
               >
                 Atrás
               </button>
@@ -499,24 +498,24 @@ function Step({
   nextLabel?: string;
 }) {
   return (
-    <div className="space-y-4 pb-24 pt-2">
+    <div className="space-y-4 pb-4 pt-2">
       <div className="text-center">
         <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
           Paso {step + 1} de {total}
         </p>
         <h2 className="mt-1 text-xl font-extrabold text-zinc-900 dark:text-zinc-100">{stepTitle}</h2>
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">{subtitle}</p>
+        <p className="text-sm text-zinc-400 dark:text-zinc-500 dark:text-zinc-400">{subtitle}</p>
       </div>
 
       {children}
 
       {!hideNext && (
-        <div className="flex gap-2 pt-2">
+        <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-zinc-100 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900">
           {step > 0 && (
             <button
               type="button"
               onClick={prev}
-              className="rounded-2xl border border-zinc-200 px-5 py-3.5 text-sm font-bold text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-2xl border border-zinc-200 dark:border-zinc-700 px-5 py-3.5 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-900/50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               Atrás
             </button>

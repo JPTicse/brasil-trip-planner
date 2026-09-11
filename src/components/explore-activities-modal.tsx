@@ -6,6 +6,7 @@ import { formatDate, formatTime } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { AnimatedActionButton } from "@/components/animated-action-button";
+import { Modal } from "@/components/modal";
 
 function getInitials(name: string) {
   return name
@@ -25,13 +26,14 @@ function ParticipantAvatars({ participants, max = 3 }: { participants: Activity[
   if (visible.length === 0) return null;
 
   return (
-    <div className="flex -space-x-1.5">
-      {visible.map((p) => {
+    <div className="flex -space-x-2">
+      {visible.map((p, i) => {
         const name = p.profile?.name ?? "Usuario";
         return (
           <div
             key={p.id}
-            className="relative z-0 flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-emerald-600 text-[7px] font-semibold text-white"
+            className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-emerald-600 text-[9px] font-bold text-white shadow-md"
+            style={{ zIndex: max - i }}
             title={name}
           >
             {p.profile?.avatar_url ? (
@@ -44,7 +46,7 @@ function ParticipantAvatars({ participants, max = 3 }: { participants: Activity[
         );
       })}
       {remaining > 0 && (
-        <div className="z-0 flex h-5 w-5 items-center justify-center rounded-full border border-white/40 bg-black/30 text-[7px] font-semibold text-white">
+        <div className="z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-black/60 text-[9px] font-bold text-white shadow-md">
           +{remaining}
         </div>
       )}
@@ -82,6 +84,9 @@ export function ExploreActivitiesModal({
 }) {
   const [open, setOpen] = useState(false);
 
+  const myActivities = activities.filter(
+    (a) => (a.participants ?? []).some((p) => p.user_id === currentUserId),
+  );
   const exploreActivities = activities.filter(
     (a) => !(a.participants ?? []).some((p) => p.user_id === currentUserId),
   );
@@ -101,38 +106,31 @@ export function ExploreActivitiesModal({
         Explorar ({exploreActivities.length})
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-2xl dark:bg-zinc-900">
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-zinc-200 dark:bg-zinc-700" />
-            </div>
-            <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Explorar actividades</h3>
-              <button
-                onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
+      <Modal open={open} onClose={() => setOpen(false)} zIndex={50}>
+        <div className="flex shrink-0 items-center justify-between px-5 pb-2">
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Explorar actividades</h3>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
 
-            <div className="grid max-h-[65vh] grid-cols-2 gap-3 overflow-y-auto px-5 pb-6">
-              {exploreActivities.map((a) => (
-                <ExploreCard
-                  key={a.id}
-                  activity={a}
-                  tripId={tripId}
-                  currentUserId={currentUserId}
-                />
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto overscroll-contain px-5 pb-6">
+          {exploreActivities.map((a) => (
+            <ExploreCard
+              key={a.id}
+              activity={a}
+              tripId={tripId}
+              currentUserId={currentUserId}
+              myActivities={myActivities}
+            />
+          ))}
+        </div>
+      </Modal>
     </>
   );
 }
@@ -141,10 +139,12 @@ function ExploreCard({
   activity,
   tripId,
   currentUserId,
+  myActivities,
 }: {
   activity: Activity;
   tripId: string;
   currentUserId: string;
+  myActivities?: Activity[];
 }) {
   const participants = activity.participants ?? [];
   const isJoined = participants.some((p) => p.user_id === currentUserId);
@@ -223,6 +223,7 @@ function ExploreCard({
       tripId={tripId}
       currentUserId={currentUserId}
       trigger={card}
+      myActivities={myActivities}
     />
   );
 }

@@ -16,17 +16,35 @@ const timeFmt = new Intl.DateTimeFormat("es-ES", {
   minute: "2-digit",
 });
 
+// Convierte "YYYY-MM-DD" a Date LOCAL sin desplazarse a UTC
+export function parseLocalDate(date: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return null;
+  const [, y, m, d] = match;
+  const dt = new Date(Number(y), Number(m) - 1, Number(d));
+  if (isNaN(dt.getTime())) return null;
+  return dt;
+}
+
+// Formatea un Date LOCAL como "YYYY-MM-DD"
+function toISODateLocal(dt: Date): string {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "—";
+  const d = parseLocalDate(date);
+  if (!d) return "—";
   return dateFmt.format(d);
 }
 
 export function formatDateShort(date: string | null | undefined): string {
   if (!date) return "—";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "—";
+  const d = parseLocalDate(date);
+  if (!d) return "—";
   return dateShortFmt.format(d);
 }
 
@@ -81,21 +99,24 @@ export function formatDaysBetween(
   end: string | null | undefined,
 ): string {
   if (!start || !end) return "";
-  const s = new Date(start);
-  const e = new Date(end);
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end);
+  if (!s || !e) return "";
   const days = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return "";
   return `${days} ${days === 1 ? "día" : "días"}`;
 }
 
-// Genera un array de fechas entre start y end (inclusive)
+// Genera un array de fechas entre start y end (inclusive) en tiempo local
 export function getDaysBetween(start: string, end: string): string[] {
-  const s = new Date(start);
-  const e = new Date(end);
+  const s = parseLocalDate(start);
+  const e = parseLocalDate(end);
+  if (!s || !e) return [];
   const days: string[] = [];
-  const current = new Date(s);
-  while (current <= e) {
-    days.push(current.toISOString().slice(0, 10));
+  const current = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+  const endDate = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+  while (current <= endDate) {
+    days.push(toISODateLocal(current));
     current.setDate(current.getDate() + 1);
   }
   return days;

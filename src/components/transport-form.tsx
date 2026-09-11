@@ -6,6 +6,7 @@ import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { CURRENCIES, TRANSPORT_TYPE_LABELS, type Profile } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
+import { Modal } from "@/components/modal";
 
 export function TransportForm({
   tripId,
@@ -16,18 +17,11 @@ export function TransportForm({
 }) {
   const [open, setOpen] = useState(false);
 
-  if (!open) {
-    return <FloatingActionButton onClick={() => setOpen(true)} label="Añadir transporte" />;
-  }
-
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
-      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white dark:bg-zinc-900 shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-zinc-200" />
-        </div>
-        <div className="flex items-center justify-between px-5 pb-2">
+      <FloatingActionButton onClick={() => setOpen(true)} label="Añadir transporte" />
+      <Modal open={open} onClose={() => setOpen(false)} zIndex={50}>
+        <div className="flex shrink-0 items-center justify-between px-5 pb-2">
           <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Añadir transporte</h3>
           <button
             onClick={() => setOpen(false)}
@@ -38,7 +32,7 @@ export function TransportForm({
             </svg>
           </button>
         </div>
-        <form action={createTransport} className="max-h-[70vh] space-y-3 overflow-y-auto px-5 pb-6 pt-1">
+        <form action={createTransport} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-6 pt-1">
           <input type="hidden" name="trip_id" value={tripId} />
 
           <Field label="Tipo *">
@@ -97,7 +91,7 @@ export function TransportForm({
             <TextArea name="notes" rows={2} placeholder="Número de vuelo, terminal, equipaje..." />
           </Field>
 
-          <div className="flex gap-2 pt-1">
+          <div className="sticky bottom-0 -mx-5 mt-2 flex gap-2 border-t border-zinc-100 bg-white px-5 py-3 pt-1 dark:border-zinc-800 dark:bg-zinc-900">
             <SubmitButton className="flex-1">Añadir</SubmitButton>
             <button
               type="button"
@@ -108,7 +102,7 @@ export function TransportForm({
             </button>
           </div>
         </form>
-      </div>
+      </Modal>
     </>
   );
 }

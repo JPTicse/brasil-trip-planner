@@ -17,31 +17,41 @@ import type {
 
 // Verifica si el usuario actual es miembro del viaje.
 // Usa el cliente admin (bypass RLS) para evitar recursión.
-async function isTripMember(tripId: string): Promise<boolean> {
-  const user = await getCurrentUser();
-  if (!user) return false;
+// Si se pasa `userId`, se evita una llamada duplicada a getCurrentUser.
+async function isTripMember(tripId: string, userId?: string): Promise<boolean> {
+  let uid = userId;
+  if (!uid) {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    uid = user.id;
+  }
 
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trip_members")
     .select("id")
     .eq("trip_id", tripId)
-    .eq("user_id", user.id)
+    .eq("user_id", uid)
     .maybeSingle();
   return !!data;
 }
 
 // Verifica si el usuario actual es owner del viaje.
-async function isTripOwner(tripId: string): Promise<boolean> {
-  const user = await getCurrentUser();
-  if (!user) return false;
+// Si se pasa `userId`, se evita una llamada duplicada a getCurrentUser.
+async function isTripOwner(tripId: string, userId?: string): Promise<boolean> {
+  let uid = userId;
+  if (!uid) {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    uid = user.id;
+  }
 
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("trip_members")
     .select("role")
     .eq("trip_id", tripId)
-    .eq("user_id", user.id)
+    .eq("user_id", uid)
     .eq("role", "owner")
     .maybeSingle();
   return !!data;

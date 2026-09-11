@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toggleSplitSettled } from "@/lib/actions";
 import { formatCurrency } from "@/lib/format";
 import type { Expense, Profile } from "@/lib/types";
+import { Modal } from "@/components/modal";
 
 const CATEGORY_ICON: Record<string, string> = {
   food: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7",
@@ -41,148 +42,148 @@ export function ExpenseDetailModal({
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>{trigger}</div>
+      <div
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("button, a, [role='button'], input, select, textarea, form")) return;
+          setOpen(true);
+        }}
+      >
+        {trigger}
+      </div>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm dark:bg-black/70" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900">
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-zinc-200" />
+      <Modal open={open} onClose={() => setOpen(false)} zIndex={50}>
+        <div className="flex shrink-0 items-center justify-between px-5 pb-2">
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Detalle del gasto</h3>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
+          {/* Header del gasto */}
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800">
+            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+              allSettled ? "bg-emerald-100" : "bg-white dark:bg-zinc-900"
+            }`}>
+              <svg className={`h-5 w-5 ${allSettled ? "text-emerald-600" : "text-zinc-500 dark:text-zinc-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <path d={CATEGORY_ICON[expense.category] ?? CATEGORY_ICON.other} />
+              </svg>
             </div>
-            <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Detalle del gasto</h3>
-              <button
-                onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+            <div className="min-w-0 flex-1">
+              <h4 className="truncate font-semibold text-zinc-900 dark:text-zinc-100">{expense.description}</h4>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                {expense.payer?.name ?? "Usuario"} · {settledCount}/{splits.length} pagados
+              </p>
             </div>
+            <p className="text-lg font-bold text-emerald-700">
+              {formatCurrency(expense.amount, expense.currency)}
+            </p>
+          </div>
 
-            <div className="max-h-[65vh] overflow-y-auto px-5 pb-6">
-              {/* Header del gasto */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800">
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-                  allSettled ? "bg-emerald-100" : "bg-white dark:bg-zinc-900"
-                }`}>
-                  <svg className={`h-5 w-5 ${allSettled ? "text-emerald-600" : "text-zinc-500 dark:text-zinc-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                    <path d={CATEGORY_ICON[expense.category] ?? CATEGORY_ICON.other} />
-                  </svg>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="truncate font-semibold text-zinc-900 dark:text-zinc-100">{expense.description}</h4>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                    {expense.payer?.name ?? "Usuario"} · {settledCount}/{splits.length} pagados
-                  </p>
-                </div>
-                <p className="text-lg font-bold text-emerald-700">
-                  {formatCurrency(expense.amount, expense.currency)}
-                </p>
-              </div>
+          {/* Lista de splits detallada */}
+          <div className="space-y-1.5">
+            {splits.map((split) => {
+              const name = split.profile?.name ?? "Usuario";
+              const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+              const isOwnSplit = split.user_id === expense.paid_by;
 
-              {/* Lista de splits detallada */}
-              <div className="space-y-1.5">
-                {splits.map((split) => {
-                  const name = split.profile?.name ?? "Usuario";
-                  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
-                  const isOwnSplit = split.user_id === expense.paid_by;
-
-                  return (
-                    <div
-                      key={split.id}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition ${
-                        isOwnSplit
-                          ? "bg-emerald-50"
-                          : split.settled
-                            ? "bg-emerald-50/50"
-                            : "bg-zinc-50 dark:bg-zinc-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
-                          {split.profile?.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={split.profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            initials
-                          )}
-                        </div>
-                        <div>
-                          <p className={`text-sm font-medium ${
-                            split.settled || isOwnSplit ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-900 dark:text-zinc-100"
-                          }`}>
-                            {name}
-                          </p>
-                          <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                            {isOwnSplit ? "Pagó el gasto" : formatCurrency(split.amount, expense.currency)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {isOwnSplit ? (
-                        <span className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-medium text-emerald-700">
-                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          Pagó
-                        </span>
-                      ) : isPayer ? (
-                        <form action={toggleSplitSettled}>
-                          <input type="hidden" name="split_id" value={split.id} />
-                          <input type="hidden" name="trip_id" value={tripId} />
-                          <input type="hidden" name="settled" value={String(split.settled)} />
-                          <button
-                            type="submit"
-                            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
-                              split.settled
-                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                : "bg-zinc-200 text-zinc-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-zinc-700 dark:text-zinc-300"
-                            }`}
-                          >
-                            {split.settled ? (
-                              <>
-                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                                  <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                Pagado
-                              </>
-                            ) : (
-                              <>
-                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                                  <circle cx="12" cy="12" r="9" />
-                                </svg>
-                                Marcar pagado
-                              </>
-                            )}
-                          </button>
-                        </form>
-                      ) : split.settled ? (
-                        <span className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-600">
-                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          Pagado
-                        </span>
+              return (
+                <div
+                  key={split.id}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition ${
+                    isOwnSplit
+                      ? "bg-emerald-50"
+                      : split.settled
+                        ? "bg-emerald-50/50"
+                        : "bg-zinc-50 dark:bg-zinc-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
+                      {split.profile?.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={split.profile.avatar_url} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">Pendiente</span>
+                        initials
                       )}
                     </div>
-                  );
-                })}
-              </div>
+                    <div>
+                      <p className={`text-sm font-medium ${
+                        split.settled || isOwnSplit ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-900 dark:text-zinc-100"
+                      }`}>
+                        {name}
+                      </p>
+                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                        {isOwnSplit ? "Pagó el gasto" : formatCurrency(split.amount, expense.currency)}
+                      </p>
+                    </div>
+                  </div>
 
-              {isPayer && !allSettled && (
-                <p className="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
-                  👆 Marca quién te ha pagado su parte
-                </p>
-              )}
-            </div>
+                  {isOwnSplit ? (
+                    <span className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-medium text-emerald-700">
+                      <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Pagó
+                    </span>
+                  ) : isPayer ? (
+                    <form action={toggleSplitSettled}>
+                      <input type="hidden" name="split_id" value={split.id} />
+                      <input type="hidden" name="trip_id" value={tripId} />
+                      <input type="hidden" name="settled" value={String(split.settled)} />
+                      <button
+                        type="submit"
+                        className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
+                          split.settled
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            : "bg-zinc-200 text-zinc-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-zinc-700 dark:text-zinc-300"
+                        }`}
+                      >
+                        {split.settled ? (
+                          <>
+                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            Pagado
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                              <circle cx="12" cy="12" r="9" />
+                            </svg>
+                            Marcar pagado
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  ) : split.settled ? (
+                    <span className="flex items-center gap-0.5 text-[10px] font-medium text-emerald-600">
+                      <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Pagado
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500">Pendiente</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </>
-      )}
+
+          {isPayer && !allSettled && (
+            <p className="mt-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
+              👆 Marca quién te ha pagado su parte
+            </p>
+          )}
+        </div>
+      </Modal>
     </>
   );
 }

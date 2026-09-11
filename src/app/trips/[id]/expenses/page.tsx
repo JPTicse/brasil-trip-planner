@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui";
 import { LiveIndicator } from "@/components/live-indicator";
 import { BalancesModal, DebtsModal } from "@/components/expense-modals";
 import { ExpenseDetailModal } from "@/components/expense-detail-modal";
-import { deleteExpense } from "@/lib/actions";
+import { DeleteExpenseButton } from "@/components/delete-expense-button";
 import { EXPENSE_CATEGORY_LABELS, type Expense } from "@/lib/types";
 import { formatDate, formatCurrency } from "@/lib/format";
 
@@ -136,19 +136,11 @@ function CompactExpenseCard({
         </p>
 
         {isPayer && (
-          <form action={deleteExpense}>
-            <input type="hidden" name="expense_id" value={expense.id} />
-            <input type="hidden" name="trip_id" value={tripId} />
-            <button
-              type="submit"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-red-50 hover:text-red-500"
-              title="Eliminar gasto"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </form>
+          <DeleteExpenseButton
+            expenseId={expense.id}
+            tripId={tripId}
+            expenseTitle={expense.description}
+          />
         )}
       </div>
 

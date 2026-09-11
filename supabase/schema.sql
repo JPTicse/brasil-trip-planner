@@ -355,3 +355,4 @@ drop trigger if exists on_access_request_update on public.trip_access_requests;
 create trigger on_access_request_update
   after insert or update of status on public.trip_access_requests
   for each row execute function public.handle_access_approval();
+

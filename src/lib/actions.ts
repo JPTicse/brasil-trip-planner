@@ -47,7 +47,7 @@ export async function updateTrip(formData: FormData) {
   if (!user) throw new Error("No autenticado");
 
   const tripId = formData.get("trip_id") as string;
-  const owner = await isTripOwner(tripId);
+  const owner = await isTripOwner(tripId, user.id);
   if (!owner) throw new Error("Solo el creador puede editar el viaje");
 
   const name = formData.get("name") as string;
@@ -85,7 +85,7 @@ export async function requestTripAccess(formData: FormData) {
   const message = (formData.get("message") as string) || null;
 
   // Verificar que no es ya miembro
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (member) throw new Error("Ya eres miembro de este viaje");
 
   const { error } = await supabase
@@ -109,7 +109,7 @@ export async function resolveAccessRequest(formData: FormData) {
   const tripId = formData.get("trip_id") as string;
   const action = formData.get("action") as string; // "approve" | "reject"
 
-  const owner = await isTripOwner(tripId);
+  const owner = await isTripOwner(tripId, user.id);
   if (!owner) throw new Error("Solo el creador puede gestionar solicitudes");
 
   const status = action === "approve" ? "approved" : "rejected";
@@ -131,7 +131,7 @@ export async function deleteTrip(formData: FormData) {
 
   const tripId = formData.get("trip_id") as string;
 
-  const owner = await isTripOwner(tripId);
+  const owner = await isTripOwner(tripId, user.id);
   if (!owner) throw new Error("Solo el creador puede eliminar el viaje");
 
   await supabase.from("trips").delete().eq("id", tripId);
@@ -146,7 +146,7 @@ export async function addTripMember(formData: FormData) {
   const tripId = formData.get("trip_id") as string;
   const email = (formData.get("email") as string).trim().toLowerCase();
 
-  const owner = await isTripOwner(tripId);
+  const owner = await isTripOwner(tripId, user.id);
   if (!owner) throw new Error("Solo el creador puede añadir miembros");
 
   // Buscar el usuario por email en profiles
@@ -192,7 +192,7 @@ export async function removeTripMember(formData: FormData) {
   const tripId = formData.get("trip_id") as string;
   const memberId = formData.get("member_id") as string;
 
-  const owner = await isTripOwner(tripId);
+  const owner = await isTripOwner(tripId, user.id);
   if (!owner && memberId !== user.id)
     throw new Error("Solo el creador puede eliminar miembros");
 
@@ -209,7 +209,7 @@ export async function createActivity(formData: FormData) {
 
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   const { error } = await supabase
@@ -246,7 +246,7 @@ export async function deleteActivity(formData: FormData) {
   const activityId = formData.get("activity_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   await supabase.from("activities").delete().eq("id", activityId);
@@ -260,7 +260,7 @@ export async function updateActivity(formData: FormData) {
   const activityId = formData.get("activity_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   const { error } = await supabase
@@ -292,7 +292,7 @@ export async function joinActivity(formData: FormData) {
   const activityId = formData.get("activity_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   const { error } = await supabase
@@ -313,7 +313,7 @@ export async function leaveActivity(formData: FormData) {
   const activityId = formData.get("activity_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   await supabase
@@ -333,7 +333,7 @@ export async function createAccommodation(formData: FormData) {
 
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   const { error } = await supabase
@@ -362,7 +362,7 @@ export async function deleteAccommodation(formData: FormData) {
   const accId = formData.get("accommodation_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   await supabase.from("accommodations").delete().eq("id", accId);
@@ -377,7 +377,7 @@ export async function createTransport(formData: FormData) {
 
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   const departure = formData.get("departure_at") as string;
@@ -408,7 +408,7 @@ export async function deleteTransport(formData: FormData) {
   const transportId = formData.get("transport_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   await supabase.from("transports").delete().eq("id", transportId);
@@ -426,7 +426,7 @@ export async function createExpense(formData: FormData) {
   const paidBy = (formData.get("paid_by") as string) || user.id;
   const splitMode = (formData.get("split_mode") as string) || "equal";
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   // Crear el gasto
@@ -524,7 +524,7 @@ export async function deleteExpense(formData: FormData) {
   const expenseId = formData.get("expense_id") as string;
   const tripId = formData.get("trip_id") as string;
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   // Solo quien pagó el gasto puede eliminarlo
@@ -549,7 +549,7 @@ export async function toggleSplitSettled(formData: FormData) {
   const tripId = formData.get("trip_id") as string;
   const settled = formData.get("settled") === "true";
 
-  const member = await isTripMember(tripId);
+  const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
   // Solo quien pagó el gasto puede marcar splits como saldados

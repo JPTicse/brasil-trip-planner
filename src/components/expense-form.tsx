@@ -7,6 +7,7 @@ import { Field, TextInput, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { CURRENCIES, EXPENSE_CATEGORY_LABELS, type Profile } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
+import { Modal } from "@/components/modal";
 
 export function ExpenseForm({
   tripId,
@@ -32,36 +33,27 @@ export function ExpenseForm({
       />
 
       {open && (
-        <>
-          <div
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm dark:bg-black/70"
-            onClick={() => setOpen(false)}
-          />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900">
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-zinc-200" />
-            </div>
-            <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Nuevo gasto</h3>
-              <button
-                onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
-
-            <ExpenseFormInner
-              tripId={tripId}
-              allMembers={members}
-              otherMembers={otherMembers}
-              currentUserId={currentUserId}
-              onSuccess={handleSuccess}
-            />
+        <Modal open={open} onClose={() => setOpen(false)} zIndex={50}>
+          <div className="flex shrink-0 items-center justify-between px-5 pb-2">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Nuevo gasto</h3>
+            <button
+              onClick={() => setOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
-        </>
+
+          <ExpenseFormInner
+            tripId={tripId}
+            allMembers={members}
+            otherMembers={otherMembers}
+            currentUserId={currentUserId}
+            onSuccess={handleSuccess}
+          />
+        </Modal>
       )}
     </>
   );
@@ -392,15 +384,17 @@ function ExpenseFormInner({
         <p className="text-sm text-red-600">{state}</p>
       )}
 
-      <SubmitButton
-        className={`w-full ${!canSubmit ? "opacity-50" : ""}`}
-      >
-        {!canSubmit
-          ? participants.size < 2
-            ? "Mínimo 2 participantes"
-            : "Los montos no cuadran"
-          : "Añadir gasto"}
-      </SubmitButton>
+      <div className="sticky bottom-0 -mx-5 mt-2 border-t border-zinc-100 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+        <SubmitButton
+          className={`w-full ${!canSubmit ? "opacity-50" : ""}`}
+        >
+          {!canSubmit
+            ? participants.size < 2
+              ? "Mínimo 2 participantes"
+              : "Los montos no cuadran"
+            : "Añadir gasto"}
+        </SubmitButton>
+      </div>
     </form>
   );
 }
