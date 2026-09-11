@@ -99,6 +99,7 @@ function Wizard({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Datos finales del formulario
   const [title, setTitle] = useState("");
@@ -159,13 +160,16 @@ function Wizard({
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
   const handleSubmit = async (formData: FormData) => {
-    // El formulario ya tiene todos los campos hidden
+    // Asegurar que image_url esté presente en el FormData
+    if (!formData.has("image_url")) {
+      formData.set("image_url", imageUrl ?? "");
+    }
     try {
       await createActivity(formData);
       router.refresh();
       onSuccess();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al crear");
+      setFormError(e instanceof Error ? e.message : "Error al crear");
     }
   };
 
@@ -467,7 +471,7 @@ function Wizard({
             {notes && <p className="mt-2 text-xs text-zinc-500">{notes}</p>}
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
 
           <form action={handleSubmit}>
             <input type="hidden" name="trip_id" value={tripId} />
