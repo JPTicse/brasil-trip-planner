@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
 import { suggestPlace, type Suggestion } from "@/lib/suggest";
@@ -68,6 +68,19 @@ export function NewActivityWizard({
   const [currency, setCurrency] = useState("BRL");
   const [notes, setNotes] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // Buscar sugerencias automáticamente al escribir título
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (title.trim().length >= 3) {
+        searchSuggestions(title);
+      } else {
+        setSuggestions([]);
+        setSearchError(null);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [title]);
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
@@ -237,23 +250,14 @@ export function NewActivityWizard({
         <Step title="¿Dónde queda?" subtitle="Busca o escribe la ubicación">
           <div className="space-y-3">
             <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-3">
-              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Sugerencias</p>
-              <div className="flex gap-2">
-                <TextInput
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Buscar con el nombre"
-                  className="flex-1 rounded-xl"
-                />
-                <button
-                  type="button"
-                  onClick={() => searchSuggestions(title)}
-                  disabled={title.trim().length < 3 || loading}
-                  className="shrink-0 rounded-xl bg-emerald-500 px-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:opacity-40"
-                >
-                  {loading ? "..." : "Buscar"}
-                </button>
-              </div>
+              <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Sugerencias automáticas</p>
+              <TextInput
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Escribe el nombre para buscar"
+                className="w-full rounded-xl"
+              />
+              {loading && <p className="mt-2 text-xs text-zinc-400">Buscando...</p>}
               {searchError && <p className="mt-2 text-xs text-amber-600">{searchError}</p>}
               {suggestions.length > 0 && (
                 <div className="mt-3 space-y-2">
