@@ -8,8 +8,17 @@ import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { ImageUpload } from "@/components/image-upload";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
+import { POPULAR_COUNTRIES } from "@/components/country-select";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Profile, type ActivityType } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
+
+function parseTripDestination(destination?: string) {
+  const [city = "", country = ""] = (destination ?? "").split(",").map((s) => s.trim());
+  const code =
+    POPULAR_COUNTRIES.find((c) => c.name.toLowerCase() === country.toLowerCase())?.code ??
+    country;
+  return { city, country, code };
+}
 
 export function ActivityForm({
   tripId,
@@ -84,9 +93,7 @@ function Wizard({
   onSuccess: () => void;
 }) {
   const router = useRouter();
-  const tripCountry = tripDestination.toLowerCase().includes("brasil") || tripDestination.toLowerCase().includes("brazil")
-    ? "br"
-    : undefined;
+  const { city: tripCity, country: tripCountryName, code: tripCountryCode } = parseTripDestination(tripDestination);
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -113,7 +120,7 @@ function Wizard({
     setLoading(true);
     setError(null);
     try {
-      const data = await suggestPlace(query, tripDestination);
+      const data = await suggestPlace(query, tripCountryName || tripDestination);
       if (data.error) {
         setError(data.error);
       } else if (data.suggestions?.length) {
@@ -316,7 +323,7 @@ function Wizard({
                   setLng(newLng);
                 }}
                 placeholder="Ej: Copacabana, Río de Janeiro"
-                country={tripCountry}
+                country={tripCountryCode}
               />
             </div>
           )}
@@ -379,7 +386,7 @@ function Wizard({
                 setLng(newLng);
               }}
               placeholder="Dirección o lugar"
-              country={tripCountry}
+              country={tripCountryCode}
             />
           </Field>
 

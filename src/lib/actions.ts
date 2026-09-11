@@ -41,6 +41,40 @@ export async function createTrip(formData: FormData) {
   redirect(`/trips/${trip.id}`);
 }
 
+
+export async function updateTrip(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const tripId = formData.get("trip_id") as string;
+  const owner = await isTripOwner(tripId);
+  if (!owner) throw new Error("Solo el creador puede editar el viaje");
+
+  const name = formData.get("name") as string;
+  const country = (formData.get("country") as string) || null;
+  const city = (formData.get("city") as string) || null;
+  const destination = city && country ? `${city}, ${country}` : city ?? country ?? null;
+  const startDate = (formData.get("start_date") as string) || null;
+  const endDate = (formData.get("end_date") as string) || null;
+  const description = (formData.get("description") as string) || null;
+
+  const { error } = await supabase
+    .from("trips")
+    .update({
+      name,
+      destination,
+      start_date: startDate,
+      end_date: endDate,
+      description,
+    })
+    .eq("id", tripId);
+
+  if (error) throw new Error(`Error al actualizar viaje: ${error.message}`);
+
+  revalidatePath("/trips");
+  revalidatePath(`/trips/${tripId}`);
+  revalidatePath(`/trips/${tripId}/itinerary`);
+}
 // --- Solicitudes de acceso ---
 
 export async function requestTripAccess(formData: FormData) {

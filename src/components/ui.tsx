@@ -33,15 +33,17 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 export function SubmitButton({
   children,
   pending,
+  className = "",
 }: {
   children: React.ReactNode;
   pending?: boolean;
+  className?: string;
 }) {
   return (
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50"
+      className={`rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 ${className}`}
     >
       {pending ? "Guardando..." : children}
     </button>
