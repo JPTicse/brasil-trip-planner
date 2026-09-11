@@ -3,10 +3,10 @@
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { deleteActivity, joinActivity, leaveActivity } from "@/lib/actions";
+import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatDate, formatTime, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { AnimatedActionButton } from "@/components/animated-action-button";
-import { ConfirmButton } from "@/components/confirm-button";
 
 const TYPE_BG: Record<ActivityType, string> = {
   visit: "bg-blue-600",
@@ -295,22 +295,15 @@ export function ExploreCardC({
             {activity.created_by === currentUserId && (
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <EditActivityModal activity={activity} tripId={tripId} currentUserId={currentUserId} />
-                <ConfirmButton
-                  action={deleteActivity}
-                  fields={[
-                    { name: "activity_id", value: activity.id },
-                    { name: "trip_id", value: tripId },
-                  ]}
-                  confirmTitle="¿Eliminar actividad?"
-                  confirmMessage={`"${activity.title}" se eliminará permanentemente del itinerario.`}
-                  confirmLabel="Eliminar"
-                  variant="danger"
+                <DeleteActivityButton
+                  activity={activity}
+                  tripId={tripId}
                   className="flex h-6 w-6 items-center justify-center rounded-full bg-black/35 text-white/90 transition hover:bg-red-500 active:scale-90"
                 >
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                </ConfirmButton>
+                </DeleteActivityButton>
               </div>
             )}
           </div>

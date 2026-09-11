@@ -29,17 +29,19 @@ export function ConfirmButton({
   children,
   className = "",
   onSuccess,
+  detail,
 }: {
   action: (formData: FormData) => Promise<void>;
   fields: { name: string; value: string }[];
   confirmTitle: string;
-  confirmMessage: string;
+  confirmMessage: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "warning" | "neutral";
   children: React.ReactNode;
   className?: string;
   onSuccess?: () => void;
+  detail?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -143,6 +145,11 @@ export function ConfirmButton({
               <p className="mt-1 text-center text-sm text-zinc-500 dark:text-zinc-400">
                 {confirmMessage}
               </p>
+              {detail && (
+                <div className="mt-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-800/50">
+                  {detail}
+                </div>
+              )}
 
               {/* Botones */}
               <div className="mt-5 flex gap-2">
