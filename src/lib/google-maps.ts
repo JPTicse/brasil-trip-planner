@@ -1,6 +1,7 @@
 // Carga dinámica de Google Maps JavaScript API
 let loaded = false;
 let loadingPromise: Promise<void> | null = null;
+const CALLBACK_NAME = "__gmapsInit__";
 
 export function loadGoogleMaps(): Promise<void> {
   if (typeof window === "undefined") {
@@ -16,41 +17,32 @@ export function loadGoogleMaps(): Promise<void> {
       return;
     }
 
-    // Si ya existe el objeto google.maps, usarlo
+    (window as any)[CALLBACK_NAME] = () => {
+      loaded = true;
+      resolve();
+    };
+
+    // Si ya existe el objeto google.maps, resolver inmediatamente
     if ((window as any).google?.maps) {
       loaded = true;
       resolve();
       return;
     }
 
-    // Evitar cargar el script múltiples veces
+    // Si ya se está cargando el script, esperar al callback global
     const existing = document.querySelector('script[data-google-maps]');
     if (existing) {
-      // Ya se está cargando, esperar
-      existing.addEventListener("load", () => {
-        loaded = true;
-        resolve();
-      });
-      existing.addEventListener("error", () => reject(new Error("Error al cargar Google Maps")));
       return;
     }
 
-    // Callback global con nombre único (Google Maps requiere callback)
-    const callbackName = `__gmapsInit_${Date.now()}`;
-    (window as any)[callbackName] = () => {
-      loaded = true;
-      delete (window as any)[callbackName];
-      resolve();
-    };
-
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&callback=${callbackName}&v=weekly`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&callback=${CALLBACK_NAME}&v=weekly`;
     script.async = true;
     script.defer = true;
     script.setAttribute("data-google-maps", "true");
     script.onerror = () => {
       reject(new Error("Error al cargar Google Maps"));
-      delete (window as any)[callbackName];
+      delete (window as any)[CALLBACK_NAME];
     };
     document.head.appendChild(script);
   });

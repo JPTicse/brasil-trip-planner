@@ -5,9 +5,27 @@ import { useRouter } from "next/navigation";
 import { updateActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { PlacesAutocomplete, type PlaceResult } from "@/components/places-autocomplete";
+import { LocationAutocomplete } from "@/components/location-autocomplete";
 import { ImageUpload } from "@/components/image-upload";
-import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Activity } from "@/lib/types";
+import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Activity, type ActivityType } from "@/lib/types";
+
+const TYPE_GRADIENT: Record<string, string> = {
+  visit: "from-sky-400 to-blue-600",
+  tour: "from-violet-400 to-purple-600",
+  meal: "from-amber-300 to-orange-500",
+  event: "from-rose-300 to-red-500",
+  free: "from-emerald-300 to-green-600",
+  transport: "from-slate-300 to-zinc-600",
+};
+
+const TYPE_EMOJI: Record<string, string> = {
+  visit: "👀",
+  tour: "🚌",
+  meal: "🍽️",
+  event: "🎉",
+  free: "🌿",
+  transport: "✈️",
+};
 
 export function EditActivityModal({
   activity,
@@ -27,7 +45,7 @@ export function EditActivityModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-300 transition hover:bg-blue-50 hover:text-blue-500"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30"
         title="Editar actividad"
       >
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -38,22 +56,10 @@ export function EditActivityModal({
       {open && (
         <>
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-2xl bg-white shadow-2xl">
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md max-h-[92dvh] rounded-t-3xl bg-white shadow-2xl">
             <div className="flex justify-center pt-3 pb-1">
               <div className="h-1 w-10 rounded-full bg-zinc-200" />
             </div>
-            <div className="flex items-center justify-between px-5 pb-2">
-              <h3 className="text-base font-bold text-zinc-900">Editar actividad</h3>
-              <button
-                onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
-
             <EditActivityFormInner
               activity={activity}
               tripId={tripId}
@@ -77,18 +83,22 @@ function EditActivityFormInner({
 }) {
   const router = useRouter();
   const [submitted, setSubmitted] = useState(false);
-  const [place, setPlace] = useState<PlaceResult | null>(
-    activity.location_lat && activity.location_lng
-      ? {
-          name: activity.location ?? "",
-          lat: activity.location_lat,
-          lng: activity.location_lng,
-        }
-      : null,
-  );
-  const [locationName, setLocationName] = useState(activity.location ?? "");
+
   const [title, setTitle] = useState(activity.title);
+  const [date, setDate] = useState(activity.date);
+  const [type, setType] = useState(activity.type);
+  const [startTime, setStartTime] = useState(activity.start_time ?? "");
+  const [endTime, setEndTime] = useState(activity.end_time ?? "");
+  const [location, setLocation] = useState(activity.location ?? "");
+  const [lat, setLat] = useState<number | null>(activity.location_lat);
+  const [lng, setLng] = useState<number | null>(activity.location_lng);
+  const [cost, setCost] = useState(activity.cost?.toString() ?? "");
+  const [currency, setCurrency] = useState(activity.currency ?? "BRL");
+  const [notes, setNotes] = useState(activity.notes ?? "");
   const [imageUrl, setImageUrl] = useState<string | null>(activity.image_url ?? null);
+
+  const gradient = TYPE_GRADIENT[type] ?? TYPE_GRADIENT.visit;
+  const emoji = TYPE_EMOJI[type] ?? "👀";
 
   const [state, formAction] = useActionState(
     async (_prev: string | null, formData: FormData) => {
@@ -109,25 +119,58 @@ function EditActivityFormInner({
     }
   }, [submitted, state, onClose, router]);
 
+  const handleSubmit = (formData: FormData) => {
+    formData.set("location_lat", lat != null ? String(lat) : "");
+    formData.set("location_lng", lng != null ? String(lng) : "");
+    formData.set("location", location);
+    formData.set("title", title);
+    formData.set("date", date);
+    formData.set("type", type);
+    formData.set("start_time", startTime);
+    formData.set("end_time", endTime);
+    formData.set("cost", cost);
+    formData.set("currency", currency);
+    formData.set("notes", notes);
+
+    let finalImage = imageUrl ?? "";
+    if (!finalImage && lat != null && lng != null) {
+      const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (key) {
+        finalImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=400x300&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${key}`;
+      }
+    }
+    formData.set("image_url", finalImage);
+
+    setSubmitted(true);
+    formAction(formData);
+  };
+
   return (
     <form
-      action={(formData) => {
-        if (place) {
-          formData.set("location_lat", String(place.lat));
-          formData.set("location_lng", String(place.lng));
-          if (!formData.get("location")) {
-            formData.set("location", place.name);
-          }
-        }
-        setSubmitted(true);
-        formAction(formData);
-      }}
-      className="max-h-[70vh] space-y-3 overflow-y-auto px-5 pb-6 pt-1"
+      action={handleSubmit}
+      className="max-h-[85dvh] space-y-3 overflow-y-auto px-5 pb-6 pt-1"
     >
       <input type="hidden" name="activity_id" value={activity.id} />
       <input type="hidden" name="trip_id" value={tripId} />
-      <input type="hidden" name="location_lat" value={place?.lat ?? ""} />
-      <input type="hidden" name="location_lng" value={place?.lng ?? ""} />
+
+      {/* Header con imagen */}
+      <div className="relative -mx-5 -mt-1 mb-3 h-44 w-[calc(100%+2.5rem)] overflow-hidden">
+        {imageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+          </>
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${gradient}`} />
+        )}
+        <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+          <div className="flex items-center gap-2">
+            <span className="text-3xl">{emoji}</span>
+            <h3 className="text-xl font-extrabold drop-shadow">{title || "Editar actividad"}</h3>
+          </div>
+        </div>
+      </div>
 
       <Field label="Título *">
         <TextInput
@@ -140,10 +183,10 @@ function EditActivityFormInner({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Fecha *">
-          <TextInput name="date" type="date" required defaultValue={activity.date} />
+          <TextInput name="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
         <Field label="Tipo">
-          <Select name="type" defaultValue={activity.type}>
+          <Select name="type" value={type} onChange={(e) => setType(e.target.value as ActivityType)}>
             {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
@@ -153,24 +196,24 @@ function EditActivityFormInner({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Hora inicio">
-          <TextInput name="start_time" type="time" defaultValue={activity.start_time ?? ""} />
+          <TextInput name="start_time" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
         </Field>
         <Field label="Hora fin">
-          <TextInput name="end_time" type="time" defaultValue={activity.end_time ?? ""} />
+          <TextInput name="end_time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
         </Field>
       </div>
 
       <Field label="Ubicación">
-        <PlacesAutocomplete
-          value={locationName}
-          onChange={(p, name) => {
-            setPlace(p);
-            setLocationName(name);
+        <LocationAutocomplete
+          value={location}
+          onChange={(name, newLat, newLng, photoUrl) => {
+            setLocation(name);
+            setLat(newLat);
+            setLng(newLng);
+            if (photoUrl != null) setImageUrl(photoUrl);
           }}
           placeholder="Busca un lugar..."
-          titleHint={title}
         />
-        <input type="hidden" name="location" value={locationName} />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
@@ -179,11 +222,12 @@ function EditActivityFormInner({
             name="cost"
             type="number"
             step="0.01"
-            defaultValue={activity.cost?.toString() ?? ""}
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
           />
         </Field>
         <Field label="Moneda">
-          <Select name="currency" defaultValue={activity.currency}>
+          <Select name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
             {CURRENCIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -193,19 +237,20 @@ function EditActivityFormInner({
 
       <Field label="Imagen">
         <ImageUpload
-          imageUrl={place?.photo_url ?? imageUrl}
+          imageUrl={imageUrl}
           onUploaded={(url) => setImageUrl(url)}
         />
-        <input type="hidden" name="image_url" value={imageUrl ?? place?.photo_url ?? ""} />
       </Field>
 
       <Field label="Notas">
-        <TextArea name="notes" rows={2} defaultValue={activity.notes ?? ""} />
+        <TextArea name="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
 
       {state && <p className="text-sm text-red-600">{state}</p>}
 
-      <SubmitButton className="w-full">Guardar cambios</SubmitButton>
+      <SubmitButton className="w-full rounded-2xl py-3.5 text-base shadow-lg shadow-emerald-500/20">
+        Guardar cambios
+      </SubmitButton>
     </form>
   );
 }
