@@ -41,11 +41,11 @@ export function ActivityCard({
 
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-md">
-      {/* Contenedor 16:9 */}
-      <div className="flex aspect-[16/9] w-full overflow-hidden">
+      {/* Contenedor */}
+      <div className="flex w-full overflow-hidden">
         {/* Lado izquierdo: datos con gradiente */}
         <div
-          className={`relative flex w-[72%] flex-col justify-between bg-gradient-to-br ${gradient} p-3 text-white`}
+          className={`relative flex w-[70%] flex-col justify-between self-stretch bg-gradient-to-br ${gradient} p-3 text-white`}
         >
           {/* Badge tipo */}
           <div className="flex items-start justify-between">
@@ -178,8 +178,8 @@ export function ActivityCard({
           </div>
         </div>
 
-        {/* Lado derecho: imagen */}
-        <div className="relative w-[28%] overflow-hidden bg-zinc-100">
+        {/* Lado derecho: imagen en 3:4 */}
+        <div className="relative aspect-[3/4] w-[30%] shrink-0 overflow-hidden bg-zinc-100">
           {activity.image_url ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}

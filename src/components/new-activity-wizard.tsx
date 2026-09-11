@@ -89,6 +89,14 @@ export function NewActivityWizard({
     if (!formData.has("image_url")) {
       formData.set("image_url", imageUrl ?? "");
     }
+    const currentImage = formData.get("image_url") as string;
+    if (!currentImage && lat != null && lng != null) {
+      const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (key) {
+        const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=400x300&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${key}`;
+        formData.set("image_url", mapUrl);
+      }
+    }
     try {
       await createActivity(formData);
       router.refresh();

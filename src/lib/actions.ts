@@ -227,6 +227,7 @@ export async function createActivity(formData: FormData) {
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       notes: (formData.get("notes") as string) || null,
+      image_url: (formData.get("image_url") as string) || null,
       assigned_to: (formData.get("assigned_to") as string) || null,
       created_by: user.id,
     })
@@ -276,6 +277,7 @@ export async function updateActivity(formData: FormData) {
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       notes: (formData.get("notes") as string) || null,
+      image_url: (formData.get("image_url") as string) || null,
     })
     .eq("id", activityId);
 
