@@ -7,7 +7,6 @@ import { formatTime, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { AnimatedActionButton } from "@/components/animated-action-button";
 
-// Colores sólidos con buen contraste para texto blanco
 const TYPE_BG: Record<ActivityType, string> = {
   visit: "bg-blue-600",
   tour: "bg-violet-600",
@@ -26,6 +25,16 @@ const TYPE_ICON: Record<ActivityType, string> = {
   transport: "M4 16l2-6h12l2 6M4 16v3a1 1 0 001 1h1a1 1 0 001-1v-1M4 16h16M18 16v3a1 1 0 001 1h1a1 1 0 001-1v-1M7 10V7a2 2 0 012-2h6a2 2 0 012 2v3",
 };
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 export function ActivityCard({
   activity,
   tripId,
@@ -40,20 +49,21 @@ export function ActivityCard({
   const isCreator = activity.created_by === currentUserId;
   const bgColor = TYPE_BG[activity.type] ?? TYPE_BG.visit;
 
-  return (
+  const visibleAvatars = participants.slice(0, 3);
+  const remaining = Math.max(0, participants.length - 3);
+
+  const cardContent = (
     <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-md dark:bg-zinc-900">
       <div className="flex w-full overflow-hidden">
         {/* Lado izquierdo: datos con color sólido */}
-        <div
-          className={`relative flex w-[70%] flex-col justify-between self-stretch ${bgColor} p-3 text-white`}
-        >
-          {/* Badge tipo */}
+        <div className={`relative flex w-[70%] flex-col justify-between self-stretch ${bgColor} p-3 text-white`}>
+          {/* Badge tipo y acciones de creador */}
           <div className="relative flex items-start justify-between">
             <span className="rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-bold backdrop-blur-sm ring-1 ring-white/20">
               {ACTIVITY_TYPE_LABELS[activity.type]}
             </span>
             {isCreator && (
-              <div className="flex gap-1">
+              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <EditActivityModal activity={activity} tripId={tripId} currentUserId={currentUserId} />
                 <form action={deleteActivity}>
                   <input type="hidden" name="activity_id" value={activity.id} />
@@ -71,10 +81,10 @@ export function ActivityCard({
             )}
           </div>
 
-          {/* Título y datos principales */}
-          <div className="relative">
-            <h4 className="line-clamp-1 text-base font-extrabold leading-tight">{activity.title}</h4>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-white/90">
+          {/* Título y datos */}
+          <div className="relative my-1">
+            <h4 className="line-clamp-1 text-base font-extrabold leading-tight drop-shadow-sm">{activity.title}</h4>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-white/95 drop-shadow-sm">
               {(activity.start_time || activity.end_time) && (
                 <span className="flex items-center gap-0.5">
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -102,34 +112,46 @@ export function ActivityCard({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="relative mt-2 flex items-center justify-end border-t border-white/20 pt-2">
-            <div className="flex shrink-0 items-center gap-1.5">
-              <ActivityDetailModal
-                activity={activity}
-                tripId={tripId}
-                currentUserId={currentUserId}
-                trigger={
-                  <button
-                    type="button"
-                    className="flex items-center gap-0.5 rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm transition hover:bg-black/40 active:scale-90"
+          {/* Avatares de participantes */}
+          {participants.length > 0 && (
+            <div className="mb-1.5 flex -space-x-1.5" onClick={(e) => e.stopPropagation()}>
+              {visibleAvatars.map((p) => {
+                const name = p.profile?.name ?? "Usuario";
+                return (
+                  <div
+                    key={p.id}
+                    className="relative z-0 flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-emerald-600 text-[8px] font-semibold text-white"
+                    title={name}
                   >
-                    Ver
-                  </button>
-                }
-              />
-
-              <AnimatedActionButton
-                action={isJoined ? leaveActivity : joinActivity}
-                variant={isJoined ? "leave" : "join"}
-                label={isJoined ? "Unido" : "Unirme"}
-                fields={[
-                  { name: "activity_id", value: activity.id },
-                  { name: "trip_id", value: tripId },
-                ]}
-                showIcon={false}
-              />
+                    {p.profile?.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+                    ) : (
+                      getInitials(name)
+                    )}
+                  </div>
+                );
+              })}
+              {remaining > 0 && (
+                <div className="z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/40 bg-black/30 text-[8px] font-semibold text-white">
+                  +{remaining}
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Footer con botón Unirme/Unido */}
+          <div className="relative mt-1 flex items-center justify-end border-t border-white/20 pt-2" onClick={(e) => e.stopPropagation()}>
+            <AnimatedActionButton
+              action={isJoined ? leaveActivity : joinActivity}
+              variant={isJoined ? "leave" : "join"}
+              label={isJoined ? "Unido" : "Unirme"}
+              fields={[
+                { name: "activity_id", value: activity.id },
+                { name: "trip_id", value: tripId },
+              ]}
+              showIcon={false}
+            />
           </div>
         </div>
 
@@ -156,5 +178,14 @@ export function ActivityCard({
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <ActivityDetailModal
+      activity={activity}
+      tripId={tripId}
+      currentUserId={currentUserId}
+      trigger={cardContent}
+    />
   );
 }
