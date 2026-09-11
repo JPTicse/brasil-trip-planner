@@ -7,10 +7,12 @@ export function LocationAutocomplete({
   value,
   onChange,
   placeholder,
+  country = "br",
 }: {
   value: string;
   onChange: (name: string, lat: number | null, lng: number | null) => void;
   placeholder?: string;
+  country?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
@@ -25,19 +27,27 @@ export function LocationAutocomplete({
         const google = (window as any).google;
         if (!google?.maps?.places) return;
 
+        // No se puede mezclar "geocode" con otros tipos
+        const types = ["establishment"];
+        const options: any = {
+          types,
+          fields: ["name", "geometry", "place_id", "formatted_address"],
+        };
+
+        if (country) {
+          options.componentRestrictions = { country: country.toLowerCase() };
+        }
+
         autocompleteRef.current = new google.maps.places.Autocomplete(
           inputRef.current,
-          {
-            types: ["geocode", "establishment", "tourist_attraction", "point_of_interest"],
-            fields: ["name", "geometry", "place_id", "formatted_address"],
-          },
+          options,
         );
 
         autocompleteRef.current.addListener("place_changed", () => {
           const place = autocompleteRef.current.getPlace();
           if (place && place.geometry) {
             onChange(
-              place.name || place.formatted_address || place.formatted_address || "",
+              place.name || place.formatted_address || "",
               place.geometry.location.lat(),
               place.geometry.location.lng(),
             );
@@ -49,7 +59,7 @@ export function LocationAutocomplete({
     return () => {
       cancelled = true;
     };
-  }, [onChange]);
+  }, [onChange, country]);
 
   return (
     <input

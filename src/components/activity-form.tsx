@@ -84,6 +84,9 @@ function Wizard({
   onSuccess: () => void;
 }) {
   const router = useRouter();
+  const tripCountry = tripDestination.toLowerCase().includes("brasil") || tripDestination.toLowerCase().includes("brazil")
+    ? "br"
+    : undefined;
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -313,6 +316,7 @@ function Wizard({
                   setLng(newLng);
                 }}
                 placeholder="Ej: Copacabana, Río de Janeiro"
+                country={tripCountry}
               />
             </div>
           )}
@@ -375,6 +379,7 @@ function Wizard({
                 setLng(newLng);
               }}
               placeholder="Dirección o lugar"
+              country={tripCountry}
             />
           </Field>
 
