@@ -1,6 +1,6 @@
 import { getActivities, getTrip, getTripMembers } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
-import { ActivityForm } from "@/components/activity-form";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { EditActivityModal } from "@/components/edit-activity-modal";
@@ -167,13 +167,15 @@ export default async function ItineraryPage({
         )}
       </section>
 
-      <ActivityForm
-        tripId={id}
-        members={memberProfiles}
-        tripDestination={trip?.destination ?? "Brasil"}
-        tripStartDate={trip?.start_date ?? ""}
-        tripEndDate={trip?.end_date ?? ""}
-      />
+      <Link
+        href={`/trips/${id}/itinerary/new`}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xl shadow-emerald-500/30 transition hover:scale-110 active:scale-95"
+        aria-label="Nuevo plan"
+      >
+        <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+          <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </Link>
     </div>
   );
 }
