@@ -11,16 +11,17 @@ import { useEffect, useRef } from "react";
  * Más confiable que Supabase Realtime cuando se usa service_role
  * (que bypassa RLS y por tanto no recibe eventos de realtime).
  */
-export function useTripPolling(tripId: string, intervalMs = 5000) {
+export function useTripPolling(tripId: string, options: { pause?: boolean } = {}) {
   const router = useRouter();
+  const { pause } = options;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const startPolling = () => {
-      if (intervalRef.current) return;
+      if (intervalRef.current || pause) return;
       intervalRef.current = setInterval(() => {
         router.refresh();
-      }, intervalMs);
+      }, 5000);
     };
 
     const stopPolling = () => {
@@ -32,16 +33,16 @@ export function useTripPolling(tripId: string, intervalMs = 5000) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        // Refrescar inmediatamente al volver a la pestaña
-        router.refresh();
-        startPolling();
+        if (!pause) {
+          router.refresh();
+          startPolling();
+        }
       } else {
         stopPolling();
       }
     };
 
-    // Iniciar polling si la pestaña está visible
-    if (document.visibilityState === "visible") {
+    if (!pause && document.visibilityState === "visible") {
       startPolling();
     }
 
@@ -51,5 +52,5 @@ export function useTripPolling(tripId: string, intervalMs = 5000) {
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [tripId, router, intervalMs]);
+  }, [tripId, router, pause]);
 }
