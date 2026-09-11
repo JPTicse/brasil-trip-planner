@@ -165,53 +165,7 @@ export function NewActivityWizard({
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
-  const Step = ({
-    title: stepTitle,
-    subtitle,
-    children,
-    hideNext,
-    nextLabel,
-  }: {
-    title: string;
-    subtitle: string;
-    children: React.ReactNode;
-    hideNext?: boolean;
-    nextLabel?: string;
-  }) => (
-    <div className="space-y-4 pb-24 pt-2">
-      <div className="text-center">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-          Paso {step + 1} de {STEPS.length}
-        </p>
-        <h2 className="mt-1 text-xl font-extrabold text-zinc-900 dark:text-zinc-100">{stepTitle}</h2>
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">{subtitle}</p>
-      </div>
-
-      {children}
-
-      {!hideNext && (
-        <div className="flex gap-2 pt-2">
-          {step > 0 && (
-            <button
-              type="button"
-              onClick={prev}
-              className="rounded-2xl border border-zinc-200 px-5 py-3.5 text-sm font-bold text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              Atrás
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={next}
-            disabled={!isStepValid()}
-            className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 disabled:opacity-40"
-          >
-            {nextLabel ?? "Continuar"}
-          </button>
-        </div>
-      )}
-    </div>
-  );
+  const stepProps = { step, total: STEPS.length, prev, next, isStepValid: isStepValid() };
 
   return (
     <div className="relative px-5">
@@ -238,7 +192,7 @@ export function NewActivityWizard({
 
       {/* Step 0: Nombre */}
       {step === 0 && (
-        <Step title="¿Qué propones?" subtitle="Un nombre claro para el plan">
+        <Step {...stepProps} title="¿Qué propones?" subtitle="Un nombre claro para el plan">
           <div className="flex flex-col items-center gap-4 py-6">
             <div className="text-5xl">📝</div>
             <input
@@ -255,7 +209,7 @@ export function NewActivityWizard({
 
       {/* Step 1: Ubicación */}
       {step === 1 && (
-        <Step title="¿Dónde queda?" subtitle="Busca o escribe la ubicación">
+        <Step {...stepProps} title="¿Dónde queda?" subtitle="Busca o escribe la ubicación">
           <div className="space-y-3">
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
               <p className="mb-2 text-xs font-bold uppercase text-zinc-400">Sugerencias automáticas</p>
@@ -317,7 +271,7 @@ export function NewActivityWizard({
 
       {/* Step 2: Fecha */}
       {step === 2 && (
-        <Step title="¿Qué día?" subtitle="Dentro del viaje">
+        <Step {...stepProps} title="¿Qué día?" subtitle="Dentro del viaje">
           {tripStartDate && tripEndDate ? (
             <div className="grid grid-cols-3 gap-2">
               {dateOptions().map((d) => {
@@ -353,7 +307,7 @@ export function NewActivityWizard({
 
       {/* Step 3: Tipo */}
       {step === 3 && (
-        <Step title="¿Qué tipo?" subtitle="Elige una categoría">
+        <Step {...stepProps} title="¿Qué tipo?" subtitle="Elige una categoría">
           <div className="grid grid-cols-2 gap-3">
             {TYPE_ORDER.map((t) => {
               const card = TYPE_CARD[t];
@@ -381,7 +335,7 @@ export function NewActivityWizard({
 
       {/* Step 4: Horario */}
       {step === 4 && (
-        <Step title="¿A qué hora?" subtitle="Opcional">
+        <Step {...stepProps} title="¿A qué hora?" subtitle="Opcional">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800">
               <p className="mb-2 text-center text-xs font-bold uppercase text-zinc-400">Inicio</p>
@@ -397,7 +351,7 @@ export function NewActivityWizard({
 
       {/* Step 5: Costo */}
       {step === 5 && (
-        <Step title="¿Costo aprox?" subtitle="Déjalo en 0 si es gratis">
+        <Step {...stepProps} title="¿Costo aprox?" subtitle="Déjalo en 0 si es gratis">
           <div className="grid grid-cols-3 gap-2">
             {CURRENCIES.map((c) => (
               <button
@@ -430,7 +384,7 @@ export function NewActivityWizard({
 
       {/* Step 6: Detalles */}
       {step === 6 && (
-        <Step title="¿Algo más?" subtitle="Notas e imagen" nextLabel="Revisar">
+        <Step {...stepProps} title="¿Algo más?" subtitle="Notas e imagen" nextLabel="Revisar">
           {imageUrl && (
             <div className="overflow-hidden rounded-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -455,7 +409,7 @@ export function NewActivityWizard({
 
       {/* Step 7: Revisar */}
       {step === 7 && (
-        <Step title="¿Todo listo?" subtitle="Revisa antes de guardar" hideNext>
+        <Step {...stepProps} title="¿Todo listo?" subtitle="Revisa antes de guardar" hideNext>
           <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-sm">
             {imageUrl && (
               <div className="h-40 w-full overflow-hidden">
@@ -521,6 +475,66 @@ export function NewActivityWizard({
             </div>
           </form>
         </Step>
+      )}
+    </div>
+  );
+}
+
+function Step({
+  step,
+  total,
+  prev,
+  next,
+  isStepValid,
+  title: stepTitle,
+  subtitle,
+  children,
+  hideNext,
+  nextLabel,
+}: {
+  step: number;
+  total: number;
+  prev: () => void;
+  next: () => void;
+  isStepValid: boolean;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+  hideNext?: boolean;
+  nextLabel?: string;
+}) {
+  return (
+    <div className="space-y-4 pb-24 pt-2">
+      <div className="text-center">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+          Paso {step + 1} de {total}
+        </p>
+        <h2 className="mt-1 text-xl font-extrabold text-zinc-900 dark:text-zinc-100">{stepTitle}</h2>
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">{subtitle}</p>
+      </div>
+
+      {children}
+
+      {!hideNext && (
+        <div className="flex gap-2 pt-2">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={prev}
+              className="rounded-2xl border border-zinc-200 px-5 py-3.5 text-sm font-bold text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Atrás
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={next}
+            disabled={!isStepValid}
+            className="flex-1 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 disabled:opacity-40"
+          >
+            {nextLabel ?? "Continuar"}
+          </button>
+        </div>
       )}
     </div>
   );
