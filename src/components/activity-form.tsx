@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { NewActivityWizard } from "@/components/new-activity-wizard";
+import { useDockVisible } from "@/components/use-dock-visible";
 
 export function ActivityForm({
   tripId,
@@ -15,6 +16,7 @@ export function ActivityForm({
   tripEndDate?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const dockVisible = useDockVisible();
 
   const handleOpen = useCallback(() => {
     document.body.setAttribute("data-pause-polling", "true");
@@ -46,7 +48,9 @@ export function ActivityForm({
       <button
         type="button"
         onClick={handleOpen}
-        className="fixed bottom-6 right-6 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xl shadow-emerald-500/30 transition hover:scale-110 active:scale-95"
+        className={`fixed right-6 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-110 active:scale-95 ${
+          dockVisible ? "bottom-20" : "bottom-6"
+        }`}
         aria-label="Nuevo plan"
       >
         <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>

@@ -37,11 +37,11 @@ export default async function TripLayout({
               </Link>
               <Logo size="sm" href="/" />
               <div className="min-w-0">
-                <h1 className="truncate text-base font-bold text-zinc-900 dark:text-zinc-100">
+                <h1 className="truncate text-base font-bold text-zinc-900 dark:text-white">
                   {trip.name}
                 </h1>
                 {(trip.start_date || trip.end_date) && (
-                  <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                  <p className="truncate text-xs text-zinc-400 dark:text-zinc-300">
                     {formatDateRange(trip.start_date, trip.end_date)}
                   </p>
                 )}
@@ -58,7 +58,7 @@ export default async function TripLayout({
                 <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Viaje privado</h2>
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Viaje privado</h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               No eres miembro de este viaje. Solicita acceso para ver el itinerario, gastos y más.
             </p>
@@ -103,11 +103,11 @@ export default async function TripLayout({
             </Link>
             <Logo size="sm" href="/" />
             <div className="min-w-0">
-              <h1 className="truncate text-base font-bold text-zinc-900 dark:text-zinc-100">
+              <h1 className="truncate text-base font-bold text-zinc-900 dark:text-white">
                 {trip.name}
               </h1>
               {(trip.start_date || trip.end_date) && (
-                <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                <p className="truncate text-xs text-zinc-400 dark:text-zinc-300">
                   {formatDateRange(trip.start_date, trip.end_date)}
                 </p>
               )}

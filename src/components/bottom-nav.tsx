@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useDockVisible } from "@/components/use-dock-visible";
 
 const TABS = [
   { href: "itinerary", label: "Itinerario", icon: CalendarIcon },
@@ -14,9 +15,14 @@ const TABS = [
 export function BottomNav({ tripId }: { tripId: string }) {
   const pathname = usePathname();
   const basePath = `/trips/${tripId}`;
+  const visible = useDockVisible();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/95">
+    <nav
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md transition-transform duration-300 dark:border-zinc-800 dark:bg-zinc-900/95 ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
       <div className="mx-auto flex max-w-md items-stretch justify-between">
         {TABS.map((tab) => {
           const href = `${basePath}/${tab.href}`;
