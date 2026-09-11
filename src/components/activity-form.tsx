@@ -316,11 +316,12 @@ function Wizard({
               </label>
               <LocationAutocomplete
                 value={location}
-                onChange={(name, newLat, newLng) => {
+                onChange={(name, newLat, newLng, photoUrl) => {
                   setLocation(name);
                   setSelectedSuggestion(null);
                   setLat(newLat);
                   setLng(newLng);
+                  if (photoUrl != null) setImageUrl(photoUrl);
                 }}
                 placeholder="Ej: Copacabana, Río de Janeiro"
                 country={tripCountryCode}
@@ -380,10 +381,11 @@ function Wizard({
           <Field label="Ubicación">
             <LocationAutocomplete
               value={location}
-              onChange={(name, newLat, newLng) => {
+              onChange={(name, newLat, newLng, photoUrl) => {
                 setLocation(name);
                 setLat(newLat);
                 setLng(newLng);
+                if (photoUrl != null) setImageUrl(photoUrl);
               }}
               placeholder="Dirección o lugar"
               country={tripCountryCode}
