@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { joinActivity, leaveActivity } from "@/lib/actions";
-import { GoogleMap, type MapMarker } from "@/components/google-map";
 import { formatCurrency, formatTime } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 
@@ -41,14 +40,6 @@ export function ActivityDetailModal({
   const isJoined = participants.some((p) => p.user_id === currentUserId);
   const isCreator = activity.created_by === currentUserId;
   const hasCoords = activity.location_lat != null && activity.location_lng != null;
-
-  const markers: MapMarker[] | undefined = hasCoords
-    ? [{
-        lat: activity.location_lat!,
-        lng: activity.location_lng!,
-        title: activity.title,
-      }]
-    : undefined;
 
   return (
     <>
@@ -135,24 +126,13 @@ export function ActivityDetailModal({
                 )}
               </div>
 
-              {/* Mapa */}
-              {hasCoords && (
-                <div className="mx-5 mt-3 overflow-hidden rounded-xl border border-zinc-200">
-                  <GoogleMap
-                    center={{ lat: activity.location_lat!, lng: activity.location_lng! }}
-                    markers={markers}
-                    height="180px"
-                  />
-                </div>
-              )}
-
               {/* Botón Cómo llegar */}
               {hasCoords && (
                 <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${activity.location_lat},${activity.location_lng}&destination_place_id=${markers?.[0]?.title ?? ""}`}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${activity.location_lat},${activity.location_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mx-5 mt-2 flex items-center justify-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                  className="mx-5 mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />

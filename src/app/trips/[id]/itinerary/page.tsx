@@ -167,7 +167,13 @@ export default async function ItineraryPage({
         )}
       </section>
 
-      <ActivityForm tripId={id} members={memberProfiles} tripDestination={trip?.destination ?? "Brasil"} />
+      <ActivityForm
+        tripId={id}
+        members={memberProfiles}
+        tripDestination={trip?.destination ?? "Brasil"}
+        tripStartDate={trip?.start_date ?? ""}
+        tripEndDate={trip?.end_date ?? ""}
+      />
     </div>
   );
 }
