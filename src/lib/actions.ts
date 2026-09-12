@@ -330,6 +330,62 @@ export async function leaveActivity(formData: FormData) {
   revalidatePath(`/trips/${tripId}/itinerary-v2`);
 }
 
+// --- Inspiraciones ---
+
+export async function refreshInspirations(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const tripId = formData.get("trip_id") as string;
+  const member = await isTripMember(tripId, user.id);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  // Obtener el destino del viaje
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("destination")
+    .eq("id", tripId)
+    .single();
+  const destination = trip?.destination ?? "Brasil";
+
+  // Buscar lugares en Google Places
+  const { fetchInspirations } = await import("@/lib/places");
+  const places = await fetchInspirations(destination);
+
+  if (places.length === 0) return;
+
+  // Upsert en la tabla inspirations
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const rows = places.map((p) => ({
+    trip_id: tripId,
+    place_id: p.place_id,
+    title: p.title,
+    address: p.address,
+    image_url: p.image_url,
+    rating: p.rating,
+    price_level: p.price_level,
+    types: p.types,
+    suggested_type: p.suggested_type,
+    lat: p.lat,
+    lng: p.lng,
+    cost_estimate: p.cost_estimate,
+    currency: p.currency,
+    expires_at: expiresAt,
+  }));
+
+  const { error: upsertError } = await supabase
+    .from("inspirations")
+    .upsert(rows, { onConflict: "trip_id,place_id" })
+    .select();
+
+  // Si la tabla no existe, el error se ignora (se crea desde el dashboard)
+  if (upsertError) {
+    console.warn("No se pudo guardar inspiraciones:", upsertError.message);
+  }
+
+  revalidatePath(`/trips/${tripId}/itinerary-v2`);
+}
+
 // --- Alojamientos ---
 
 export async function createAccommodation(formData: FormData) {

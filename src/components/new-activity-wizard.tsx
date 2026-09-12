@@ -42,6 +42,7 @@ export function NewActivityWizard({
   tripEndDate,
   defaultDate,
   onClose,
+  prefill,
 }: {
   tripId: string;
   tripDestination: string;
@@ -49,28 +50,38 @@ export function NewActivityWizard({
   tripEndDate?: string;
   defaultDate?: string;
   onClose: () => void;
+  prefill?: {
+    title: string;
+    location: string;
+    lat: number | null;
+    lng: number | null;
+    image_url: string | null;
+    type: ActivityType;
+    cost: number | null;
+    currency: string;
+  } | null;
 }) {
   const router = useRouter();
   const { country: tripCountryName, code: tripCountryCode } = parseTripDestination(tripDestination);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(prefill ? 2 : 0);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(prefill?.title ?? "");
   const [date, setDate] = useState(defaultDate ?? "");
-  const [type, setType] = useState<ActivityType>("visit");
+  const [type, setType] = useState<ActivityType>(prefill?.type ?? "visit");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [location, setLocation] = useState("");
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [cost, setCost] = useState<string>("");
-  const [currency, setCurrency] = useState("BRL");
+  const [location, setLocation] = useState(prefill?.location ?? "");
+  const [lat, setLat] = useState<number | null>(prefill?.lat ?? null);
+  const [lng, setLng] = useState<number | null>(prefill?.lng ?? null);
+  const [cost, setCost] = useState<string>(prefill?.cost != null ? String(prefill.cost) : "");
+  const [currency, setCurrency] = useState(prefill?.currency ?? "BRL");
   const [notes, setNotes] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(prefill?.image_url ?? null);
 
   // Buscar sugerencias automáticamente al escribir título
   useEffect(() => {

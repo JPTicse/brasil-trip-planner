@@ -193,3 +193,25 @@ export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
 
 export const CURRENCIES = ["BRL", "EUR", "USD", "ARS", "COP", "MXN", "CLP"] as const;
 export type Currency = (typeof CURRENCIES)[number];
+
+// --- Inspiraciones (cache de lugares recomendados por Google Places) ---
+
+export type Inspiration = {
+  id: string;
+  trip_id: string;
+  place_id: string;
+  title: string;
+  address: string | null;
+  image_url: string | null;
+  rating: number | null;
+  price_level: number | null;
+  types: string[];
+  suggested_type: ActivityType;
+  location: string | null;
+  lat: number | null;
+  lng: number | null;
+  cost_estimate: number | null;
+  currency: string;
+  cached_at: string;
+  expires_at: string;
+};

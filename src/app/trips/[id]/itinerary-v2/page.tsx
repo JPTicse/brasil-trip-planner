@@ -1,9 +1,10 @@
-import { getActivities, getTrip, getTripMembers } from "@/lib/data";
+import { getActivities, getTrip, getTripMembers, getInspirations } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { ActivityForm } from "@/components/activity-form";
 import { ExploreActivitiesModal } from "@/components/explore-activities-modal";
 import { ExploreCardV2 } from "@/components/v2/explore-card-v2";
 import { ItineraryTabsV2 } from "@/components/v2/itinerary-tabs-v2";
+import { InspireButton } from "@/components/v2/inspire-button";
 import { type Activity } from "@/lib/types";
 import { getDaysBetween } from "@/lib/format";
 
@@ -11,11 +12,12 @@ export default async function ItineraryV2Page({
   params,
 }: PageProps<"/trips/[id]/itinerary-v2">) {
   const { id } = await params;
-  const [activities, trip, members, user] = await Promise.all([
+  const [activities, trip, members, user, inspirations] = await Promise.all([
     getActivities(id),
     getTrip(id),
     getTripMembers(id),
     getCurrentUser(),
+    getInspirations(id),
   ]);
 
   const memberProfiles = members
@@ -54,11 +56,20 @@ export default async function ItineraryV2Page({
             v2 beta
           </span>
         </div>
-        <ExploreActivitiesModal
-          activities={activities}
-          tripId={id}
-          currentUserId={currentUserId}
-        />
+        <div className="flex items-center gap-2">
+          <InspireButton
+            inspirations={inspirations}
+            tripId={id}
+            tripDestination={trip?.destination ?? "Brasil"}
+            tripStartDate={trip?.start_date ?? undefined}
+            tripEndDate={trip?.end_date ?? undefined}
+          />
+          <ExploreActivitiesModal
+            activities={activities}
+            tripId={id}
+            currentUserId={currentUserId}
+          />
+        </div>
       </div>
 
       {/* Mis planes — vistas Día / Mapa / Lista */}

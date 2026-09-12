@@ -11,6 +11,7 @@ import type {
   TripWithAccess,
   TripMember,
   TripAccessRequest,
+  Inspiration,
 } from "@/lib/types";
 
 // --- Autorización ---
@@ -418,4 +419,26 @@ export async function getPendingAccessRequests(
     .eq("status", "pending")
     .order("created_at", { ascending: false });
   return (data ?? []) as TripAccessRequest[];
+}
+
+// --- Inspiraciones ---
+
+export async function getInspirations(tripId: string): Promise<Inspiration[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const member = await isTripMember(tripId, user.id);
+  if (!member) return [];
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("inspirations")
+    .select("*")
+    .eq("trip_id", tripId)
+    .gt("expires_at", new Date().toISOString())
+    .order("rating", { ascending: false, nullsFirst: false });
+
+  // Si la tabla no existe aún, devolver vacío (se crea desde el dashboard)
+  if (error) return [];
+
+  return (data ?? []) as Inspiration[];
 }
