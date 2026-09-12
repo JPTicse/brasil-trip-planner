@@ -23,7 +23,7 @@ export function priceLevelToCost(priceLevel: number | null): number | null {
   return COST_MAP[priceLevel] ?? null;
 }
 
-// Coordenadas aproximadas por ciudad para sesgo de búsqueda
+// Coordenadas aproximadas por ciudad para sesgo de búsqueda (textSearch no las requiere, pero si hacemos nearbySearch las usamos)
 const CITY_COORDS: Record<string, { lat: number; lng: number; radius: number }> = {
   "rio de janeiro": { lat: -22.9068, lng: -43.1729, radius: 15000 },
   rio: { lat: -22.9068, lng: -43.1729, radius: 15000 },
@@ -37,18 +37,25 @@ const CITY_COORDS: Record<string, { lat: number; lng: number; radius: number }> 
   natal: { lat: -5.7945, lng: -35.211, radius: 15000 },
   manaus: { lat: -3.119, lng: -60.0217, radius: 15000 },
   curitiba: { lat: -25.4284, lng: -49.2733, radius: 15000 },
+  brasilia: { lat: -15.7975, lng: -47.8919, radius: 15000 },
+  "brasília": { lat: -15.7975, lng: -47.8919, radius: 15000 },
+  "belo horizonte": { lat: -19.9167, lng: -43.9345, radius: 15000 },
+  "porto alegre": { lat: -30.0346, lng: -51.2177, radius: 15000 },
+  "foz do iguacu": { lat: -25.5163, lng: -54.5854, radius: 15000 },
+  "foz do iguaçu": { lat: -25.5163, lng: -54.5854, radius: 15000 },
+  buenos: { lat: -34.6037, lng: -58.3816, radius: 15000 },
+  "buenos aires": { lat: -34.6037, lng: -58.3816, radius: 15000 },
+  santiago: { lat: -33.4489, lng: -70.6693, radius: 15000 },
+  "valparaiso": { lat: -33.0472, lng: -71.6127, radius: 15000 },
+  bogota: { lat: 4.711, lng: -74.0721, radius: 15000 },
+  "bogotá": { lat: 4.711, lng: -74.0721, radius: 15000 },
+  medellin: { lat: 6.2476, lng: -75.5658, radius: 15000 },
+  "medellín": { lat: 6.2476, lng: -75.5658, radius: 15000 },
+  cartagena: { lat: 10.391, lng: -75.4794, radius: 15000 },
+  lima: { lat: -12.0464, lng: -77.0428, radius: 15000 },
+  cusco: { lat: -13.1631, lng: -72.545, radius: 15000 },
+  "machu picchu": { lat: -13.1631, lng: -72.545, radius: 20000 },
 };
-
-const INSPIRE_QUERIES = [
-  "tourist attractions",
-  "restaurants",
-  "parks and nature",
-  "tours and experiences",
-  "nightlife and bars",
-  "museums and culture",
-  "beaches",
-  "shopping",
-];
 
 type RawPlace = {
   place_id: string;
@@ -60,13 +67,6 @@ type RawPlace = {
   rating?: number;
   price_level?: number;
   types?: string[];
-};
-
-type PlaceDetails = RawPlace & {
-  formatted_address?: string;
-  website?: string;
-  formatted_phone_number?: string;
-  opening_hours?: { weekday_text?: string[] };
 };
 
 type InspirationRow = {
@@ -98,8 +98,8 @@ function buildPhotoUrl(photoReference: string | undefined): string | null {
 }
 
 /**
- * Busca lugares populares en la ciudad del viaje usando Google Places REST API.
- * Usa múltiples queries para obtener variedad de tipos de actividades.
+ * Busca lugares populares en la ciudad del viaje usando Google Places Text Search.
+ * Text Search acepta nombres de ciudad/país y devuelve resultados georreferenciados.
  */
 export async function fetchInspirations(
   destination: string,
@@ -110,15 +110,20 @@ export async function fetchInspirations(
     return [];
   }
 
-  const coords = getCityCoords(destination);
+  const queries = [
+    `best things to do in ${destination}`,
+    `top attractions in ${destination}`,
+    `best restaurants in ${destination}`,
+    `tours and activities in ${destination}`,
+    `parks and nature in ${destination}`,
+    `nightlife in ${destination}`,
+    `museums and culture in ${destination}`,
+  ];
+
   const allPlaces: Map<string, RawPlace> = new Map();
 
-  // Hacer 4 queries en paralelo (limitamos para no exceder cuota)
-  const queries = INSPIRE_QUERIES.slice(0, 4);
   const results = await Promise.allSettled(
-    queries.map((query) =>
-      nearbySearch(query, coords.lat, coords.lng, coords.radius),
-    ),
+    queries.slice(0, 4).map((query) => textSearch(query)),
   );
 
   for (const result of results) {
@@ -131,7 +136,93 @@ export async function fetchInspirations(
     }
   }
 
-  // Convertir a InspirationRow
+  const inspirations: InspirationRow[] = [];
+  for (const place of allPlaces.values()) {
+    if (inspirations.length >= maxResults) break;
+
+    const types = place.types ?? [];
+    const suggestedType = mapGoogleTypeToActivityType(types);
+    const photoRef = place.photos?.[0]?.photo_reference;
+    const imageUrl = buildPhotoUrl(photoRef);
+
+    inspirations.push({
+      place_id: place.place_id,
+      title: place.name,
+      address: place.formatted_address ?? place.vicinity ?? null,
+      image_url: imageUrl,
+      rating: place.rating ?? null,
+      price_level: place.price_level ?? null,
+      types,
+      suggested_type: suggestedType,
+      lat: place.geometry?.location?.lat ?? null,
+      lng: place.geometry?.location?.lng ?? null,
+      cost_estimate: priceLevelToCost(place.price_level ?? null),
+      currency: "BRL",
+    });
+  }
+
+  return inspirations;
+}
+
+async function textSearch(query: string): Promise<RawPlace[]> {
+  if (!API_KEY) return [];
+
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&language=es&key=${API_KEY}`;
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      console.error("HTTP error en textSearch:", res.status, res.statusText);
+      return [];
+    }
+    const data = await res.json();
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      console.error("Google Places textSearch status:", data.status, data.error_message);
+      return [];
+    }
+    return (data.results ?? []) as RawPlace[];
+  } catch (e) {
+    console.error("Error en textSearch:", e);
+    return [];
+  }
+}
+
+/**
+ * Fallback por nearbySearch si se necesita búsqueda por radio.
+ */
+export async function fetchInspirationsNearby(
+  destination: string,
+  maxResults = 40,
+): Promise<InspirationRow[]> {
+  if (!API_KEY) {
+    console.warn("GOOGLE_MAPS_API_KEY no configurada para fetchInspirationsNearby");
+    return [];
+  }
+
+  const coords = getCityCoords(destination);
+  const allPlaces: Map<string, RawPlace> = new Map();
+
+  const queries = [
+    "tourist attractions",
+    "restaurants",
+    "parks and nature",
+    "tours and experiences",
+  ];
+
+  const results = await Promise.allSettled(
+    queries.map((query) => nearbySearch(query, coords.lat, coords.lng, coords.radius)),
+  );
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      for (const place of result.value) {
+        if (place.place_id && !allPlaces.has(place.place_id)) {
+          allPlaces.set(place.place_id, place);
+        }
+      }
+    }
+  }
+
   const inspirations: InspirationRow[] = [];
   for (const place of allPlaces.values()) {
     if (inspirations.length >= maxResults) break;
@@ -172,8 +263,15 @@ async function nearbySearch(
 
   try {
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error("HTTP error en nearbySearch:", res.status, res.statusText);
+      return [];
+    }
     const data = await res.json();
+    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+      console.error("Google Places nearbySearch status:", data.status, data.error_message);
+      return [];
+    }
     return (data.results ?? []) as RawPlace[];
   } catch (e) {
     console.error("Error en nearbySearch:", e);

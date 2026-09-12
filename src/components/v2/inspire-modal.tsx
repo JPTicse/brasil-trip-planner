@@ -3,10 +3,13 @@
 import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { refreshInspirations, createActivity } from "@/lib/actions";
+import { saveInspirations, createActivity } from "@/lib/actions";
+import { fetchInspirationsClient } from "@/lib/places-client";
 import { toast } from "sonner";
 import { ACTIVITY_TYPE_LABELS, type ActivityType, type Inspiration } from "@/lib/types";
 import { getDaysBetween } from "@/lib/format";
+
+const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const TYPE_DOT: Record<ActivityType, string> = {
   visit: "bg-blue-500",
@@ -45,6 +48,7 @@ export function InspireModal({
   tripStartDate?: string;
   tripEndDate?: string;
 }) {
+  const [localInspirations, setLocalInspirations] = useState<Inspiration[]>(inspirations);
   const [filter, setFilter] = useState<Filter>("trending");
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Inspiration | null>(null);
@@ -53,7 +57,7 @@ export function InspireModal({
 
   // Filtrar y ordenar
   const filtered = (() => {
-    const list = [...inspirations];
+    const list = [...localInspirations];
     if (filter === "trending") {
       // Trending: rating * log(1 + popularity proxy)
       list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
@@ -65,14 +69,29 @@ export function InspireModal({
   })();
 
   const handleRefresh = async () => {
+    if (!GOOGLE_KEY) {
+      toast.error("Falta la clave de Google Maps");
+      return;
+    }
     setRefreshing(true);
     try {
+      const places = await fetchInspirationsClient(tripDestination, GOOGLE_KEY);
+      if (places.length === 0) {
+        toast.error("No se encontraron resultados para este destino");
+        return;
+      }
+
+      // Guardar en Supabase
       const formData = new FormData();
       formData.append("trip_id", tripId);
-      await refreshInspirations(formData);
-      toast.success("Inspiraciones actualizadas ✓");
+      formData.append("places", JSON.stringify(places));
+      await saveInspirations(formData);
+
+      setLocalInspirations(places);
+      toast.success(`${places.length} inspiraciones encontradas ✓`);
     } catch (e) {
-      toast.error("Error al actualizar inspiraciones");
+      const message = e instanceof Error ? e.message : "Error al buscar inspiraciones";
+      toast.error(message);
     } finally {
       setRefreshing(false);
     }

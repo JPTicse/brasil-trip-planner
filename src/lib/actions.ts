@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAuthClient } from "@/lib/auth";
 import { getTripMembers, isTripMember, isTripOwner } from "@/lib/data";
+import type { Inspiration } from "@/lib/types";
 
 // --- Viajes ---
 
@@ -332,7 +333,7 @@ export async function leaveActivity(formData: FormData) {
 
 // --- Inspiraciones ---
 
-export async function refreshInspirations(formData: FormData) {
+export async function saveInspirations(formData: FormData) {
   const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
 
@@ -340,21 +341,18 @@ export async function refreshInspirations(formData: FormData) {
   const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
-  // Obtener el destino del viaje
-  const { data: trip } = await supabase
-    .from("trips")
-    .select("destination")
-    .eq("id", tripId)
-    .single();
-  const destination = trip?.destination ?? "Brasil";
+  const rawPlaces = formData.get("places") as string;
+  let places: Inspiration[] = [];
+  try {
+    places = JSON.parse(rawPlaces) as Inspiration[];
+  } catch {
+    throw new Error("Datos de inspiraciones inválidos");
+  }
 
-  // Buscar lugares en Google Places
-  const { fetchInspirations } = await import("@/lib/places");
-  const places = await fetchInspirations(destination);
+  if (places.length === 0) {
+    throw new Error("No se recibieron inspiraciones para guardar");
+  }
 
-  if (places.length === 0) return;
-
-  // Upsert en la tabla inspirations
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const rows = places.map((p) => ({
     trip_id: tripId,
@@ -366,6 +364,7 @@ export async function refreshInspirations(formData: FormData) {
     price_level: p.price_level,
     types: p.types,
     suggested_type: p.suggested_type,
+    location: p.address,
     lat: p.lat,
     lng: p.lng,
     cost_estimate: p.cost_estimate,
@@ -378,9 +377,9 @@ export async function refreshInspirations(formData: FormData) {
     .upsert(rows, { onConflict: "trip_id,place_id" })
     .select();
 
-  // Si la tabla no existe, el error se ignora (se crea desde el dashboard)
   if (upsertError) {
-    console.warn("No se pudo guardar inspiraciones:", upsertError.message);
+    console.error("No se pudo guardar inspiraciones:", upsertError.message);
+    throw new Error("No se pudieron guardar las inspiraciones: " + upsertError.message);
   }
 
   revalidatePath(`/trips/${tripId}/itinerary-v2`);

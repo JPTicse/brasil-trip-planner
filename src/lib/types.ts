@@ -212,6 +212,6 @@ export type Inspiration = {
   lng: number | null;
   cost_estimate: number | null;
   currency: string;
-  cached_at: string;
-  expires_at: string;
+  cached_at: string | null;
+  expires_at: string | null;
 };
