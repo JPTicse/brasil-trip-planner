@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { saveInspirations, createActivity } from "@/lib/actions";
@@ -52,15 +52,23 @@ export function InspireModal({
   const [filter, setFilter] = useState<Filter>("trending");
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Inspiration | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Actualizar cuando cambian las inspiraciones del servidor
+  useEffect(() => {
+    setLocalInspirations(inspirations);
+  }, [inspirations]);
 
   // Filtrar y ordenar
   const filtered = (() => {
     const list = [...localInspirations];
     if (filter === "trending") {
-      // Trending: rating * log(1 + popularity proxy)
-      list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      // Trending: rating * log(1 + user_ratings_total)
+      list.sort((a, b) => {
+        const scoreA = (a.rating ?? 0) * Math.log(1 + (a.user_ratings_total ?? 0));
+        const scoreB = (b.rating ?? 0) * Math.log(1 + (b.user_ratings_total ?? 0));
+        return scoreB - scoreA;
+      });
     } else if (filter === "best-rated") {
       list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
@@ -95,11 +103,6 @@ export function InspireModal({
     } finally {
       setRefreshing(false);
     }
-  };
-
-  const handleAddToPlan = (inspiration: Inspiration) => {
-    setSelected(inspiration);
-    setShowWizard(true);
   };
 
   if (!open) return null;
@@ -166,10 +169,10 @@ export function InspireModal({
           </div>
         </div>
 
-        {/* Feed */}
+        {/* Feed — collage cards (sin botón "Crear plan", se abre detalle al tocar) */}
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain snap-y snap-mandatory"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           style={{ scrollbarWidth: "none" }}
         >
           {filtered.length === 0 ? (
@@ -177,7 +180,7 @@ export function InspireModal({
               <div className="text-center">
                 <div className="mb-3 text-4xl">✨</div>
                 <p className="text-sm font-medium text-white/80">No hay inspiraciones aún</p>
-                <p className="mt-1 text-xs text-white/50">Busca actividades en {tripDestination}</p>
+                <p className="mt-1 text-xs text-white/50">Busca lugares trending en {tripDestination}</p>
               </div>
               <button
                 onClick={handleRefresh}
@@ -192,32 +195,29 @@ export function InspireModal({
               </button>
             </div>
           ) : (
-            <div className="space-y-3 px-4 pb-8 pt-2">
+            <div className="space-y-4 px-4 pb-8 pt-3">
               {filtered.map((insp, i) => (
-                <InspireCard
+                <CollageCard
                   key={insp.id}
                   inspiration={insp}
                   index={i}
-                  onAddToPlan={() => handleAddToPlan(insp)}
+                  onClick={() => setSelected(insp)}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* Wizard pre-lleno */}
+        {/* Vista de detalle — bottom sheet con galería + info + "Agregar al viaje" */}
         <AnimatePresence>
-          {showWizard && selected && (
-            <PrefillWizard
+          {selected && (
+            <PlaceDetailSheet
               inspiration={selected}
               tripId={tripId}
               tripDestination={tripDestination}
               tripStartDate={tripStartDate}
               tripEndDate={tripEndDate}
-              onClose={() => {
-                setShowWizard(false);
-                setSelected(null);
-              }}
+              onClose={() => setSelected(null)}
             />
           )}
         </AnimatePresence>
@@ -227,106 +227,143 @@ export function InspireModal({
   );
 }
 
-// --- Card individual ---
+// --- Card con collage de imágenes (sin botón, se abre detalle al tocar) ---
 
-function InspireCard({
+function CollageCard({
   inspiration,
   index,
-  onAddToPlan,
+  onClick,
 }: {
   inspiration: Inspiration;
   index: number;
-  onAddToPlan: () => void;
+  onClick: () => void;
 }) {
-  const [imageLoaded, setImageLoaded] = useState(false);
   const type = inspiration.suggested_type;
   const emoji = TYPE_EMOJI[type];
+  const images = inspiration.image_urls?.length > 0
+    ? inspiration.image_urls
+    : inspiration.image_url
+      ? [inspiration.image_url]
+      : [];
 
   return (
-    <motion.div
-      className="relative h-[70dvh] min-h-[420px] w-full snap-start overflow-hidden rounded-2xl border-l-4"
-      style={{ borderColor: getTypeBorderColor(type) }}
-      initial={{ opacity: 0, y: 30 }}
+    <motion.button
+      onClick={onClick}
+      className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 text-left transition active:scale-[0.98]"
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.06, 0.4), duration: 0.4 }}
+      transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3 }}
     >
-      {/* Imagen */}
-      {inspiration.image_url ? (
-        <>
-          {!imageLoaded && (
-            <div className="absolute inset-0 animate-pulse bg-zinc-800" />
-          )}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={inspiration.image_url}
-            alt={inspiration.title}
-            className={`h-full w-full object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
-            onLoad={() => setImageLoaded(true)}
-            loading="lazy"
-          />
-        </>
-      ) : (
-        <div className="h-full w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
-      )}
+      {/* Collage de imágenes */}
+      <ImageCollage images={images} />
 
-      {/* Gradiente */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/20" />
-
-      {/* Top: tipo y rating */}
-      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
-        <span className="flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm ring-1 ring-white/25">
-          <span className={`h-2 w-2 rounded-full ${TYPE_DOT[type]}`} />
-          {emoji} {ACTIVITY_TYPE_LABELS[type]}
-        </span>
-        {inspiration.rating != null && (
-          <span className="flex items-center gap-1 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm ring-1 ring-white/25">
-            ⭐ {inspiration.rating.toFixed(1)}
-          </span>
-        )}
-      </div>
-
-      {/* Bottom: info + CTA */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-4">
-        <div>
-          <h3 className="text-xl font-extrabold leading-tight text-white">
+      {/* Info */}
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="line-clamp-1 text-base font-bold text-white">
             {inspiration.title}
           </h3>
-          {inspiration.address && (
-            <p className="mt-1 line-clamp-1 text-sm text-white/70">
-              📍 {inspiration.address}
-            </p>
+          {inspiration.rating != null && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold text-white">
+              ⭐ {inspiration.rating.toFixed(1)}
+            </span>
           )}
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-white/60">
-            {inspiration.cost_estimate != null && inspiration.cost_estimate > 0 && (
-              <span className="rounded bg-black/35 px-2 py-0.5 font-semibold text-white ring-1 ring-white/25">
-                ~{inspiration.currency} {inspiration.cost_estimate}
-              </span>
-            )}
-            {inspiration.cost_estimate === 0 && (
-              <span className="rounded bg-emerald-500/80 px-2 py-0.5 font-semibold text-white">
-                Gratis
-              </span>
-            )}
-          </div>
         </div>
-
-        <button
-          onClick={onAddToPlan}
-          className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 active:scale-95"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-            <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Crear plan
-        </button>
+        <div className="mt-1.5 flex items-center gap-2 text-xs text-white/50">
+          <span className="flex items-center gap-1">
+            <span className={`h-2 w-2 rounded-full ${TYPE_DOT[type]}`} />
+            {emoji} {ACTIVITY_TYPE_LABELS[type]}
+          </span>
+          {inspiration.user_ratings_total != null && (
+            <span>· {inspiration.user_ratings_total.toLocaleString("es")} reseñas</span>
+          )}
+        </div>
+        {inspiration.address && (
+          <p className="mt-1 line-clamp-1 text-xs text-white/40">
+            📍 {inspiration.address}
+          </p>
+        )}
       </div>
-    </motion.div>
+    </motion.button>
   );
 }
 
-// --- Wizard pre-lleno (quick add) ---
+// --- Collage de imágenes (grid adaptativo según cantidad) ---
 
-function PrefillWizard({
+function ImageCollage({ images }: { images: string[] }) {
+  if (images.length === 0) {
+    return (
+      <div className="aspect-[4/3] w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
+    );
+  }
+
+  // 1 imagen → full
+  if (images.length === 1) {
+    return (
+      <div className="aspect-[4/3] w-full overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={images[0]} alt="" className="h-full w-full object-cover" loading="lazy" />
+      </div>
+    );
+  }
+
+  // 2 imágenes → 50/50
+  if (images.length === 2) {
+    return (
+      <div className="grid aspect-[4/3] grid-cols-2 gap-0.5">
+        {images.slice(0, 2).map((src, i) => (
+          <div key={i} className="overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // 3 imágenes → hero left (2/3) + 2 stacked right (1/3)
+  if (images.length === 3) {
+    return (
+      <div className="grid aspect-[4/3] grid-cols-3 grid-rows-2 gap-0.5">
+        <div className="col-span-2 row-span-2 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={images[0]} alt="" className="h-full w-full object-cover" loading="lazy" />
+        </div>
+        {images.slice(1, 3).map((src, i) => (
+          <div key={i} className="overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // 4+ imágenes → hero left (2/3) + 3 stacked right (1/3) con "+N"
+  return (
+    <div className="grid aspect-[4/3] grid-cols-3 grid-rows-3 gap-0.5">
+      <div className="col-span-2 row-span-3 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={images[0]} alt="" className="h-full w-full object-cover" loading="lazy" />
+      </div>
+      {images.slice(1, 4).map((src, i) => (
+        <div key={i} className="relative overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+          {i === 2 && images.length > 4 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <span className="text-lg font-bold text-white">+{images.length - 4}</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Vista de detalle — bottom sheet con galería swipeable + info + "Agregar al viaje" ---
+
+function PlaceDetailSheet({
   inspiration,
   tripId,
   tripDestination,
@@ -340,6 +377,218 @@ function PrefillWizard({
   tripStartDate?: string;
   tripEndDate?: string;
   onClose: () => void;
+}) {
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [showAddToTrip, setShowAddToTrip] = useState(false);
+  const type = inspiration.suggested_type;
+  const emoji = TYPE_EMOJI[type];
+
+  const images = inspiration.image_urls?.length > 0
+    ? inspiration.image_urls
+    : inspiration.image_url
+      ? [inspiration.image_url]
+      : [];
+
+  return createPortal(
+    <motion.div
+      className="fixed inset-0 z-[70] flex items-end sm:items-center sm:justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+
+      {/* Sheet */}
+      <motion.div
+        className="relative z-10 flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-zinc-950 shadow-2xl sm:rounded-3xl"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+      >
+        {/* Grabber */}
+        <div className="flex shrink-0 justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-zinc-700" />
+        </div>
+
+        {/* Contenido scrollable */}
+        <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+          {/* Galería swipeable (scroll-snap nativo, sin dependencias) */}
+          {images.length > 0 ? (
+            <div
+              className="flex aspect-[4/3] w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
+              style={{ scrollbarWidth: "none" }}
+              onScroll={(e) => {
+                const scrollLeft = e.currentTarget.scrollLeft;
+                const width = e.currentTarget.clientWidth;
+                setGalleryIndex(Math.round(scrollLeft / width));
+              }}
+            >
+              {images.map((src, i) => (
+                <div key={i} className="h-full w-full shrink-0 snap-start">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={inspiration.title} className="h-full w-full object-cover" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="aspect-[4/3] w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
+          )}
+
+          {/* Indicadores de galería (dots) */}
+          {images.length > 1 && (
+            <div className="flex justify-center gap-1.5 py-2">
+              {images.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === galleryIndex ? "w-5 bg-emerald-500" : "w-1.5 bg-zinc-700"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Info */}
+          <div className="space-y-3 p-5">
+            {/* Tipo + rating */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-bold text-white">
+                <span className={`h-2 w-2 rounded-full ${TYPE_DOT[type]}`} />
+                {emoji} {ACTIVITY_TYPE_LABELS[type]}
+              </span>
+              {inspiration.rating != null && (
+                <span className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 font-bold text-white">
+                  ⭐ {inspiration.rating.toFixed(1)}
+                </span>
+              )}
+              {inspiration.user_ratings_total != null && (
+                <span className="text-white/40">
+                  {inspiration.user_ratings_total.toLocaleString("es")} reseñas
+                </span>
+              )}
+            </div>
+
+            {/* Título */}
+            <h2 className="text-xl font-extrabold leading-tight text-white">
+              {inspiration.title}
+            </h2>
+
+            {/* Dirección */}
+            {inspiration.address && (
+              <p className="flex items-start gap-1.5 text-sm text-white/60">
+                <span className="mt-0.5">📍</span>
+                <span>{inspiration.address}</span>
+              </p>
+            )}
+
+            {/* Descripción editorial */}
+            {inspiration.description && (
+              <p className="text-sm leading-relaxed text-white/70">
+                {inspiration.description}
+              </p>
+            )}
+
+            {/* Costo estimado */}
+            {inspiration.cost_estimate != null && inspiration.cost_estimate > 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="rounded-lg bg-white/10 px-2.5 py-1 font-semibold text-white">
+                  ~{inspiration.currency} {inspiration.cost_estimate}
+                </span>
+              </div>
+            )}
+            {inspiration.cost_estimate === 0 && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="rounded-lg bg-emerald-500/20 px-2.5 py-1 font-semibold text-emerald-400">
+                  Gratis
+                </span>
+              </div>
+            )}
+
+            {/* Horarios */}
+            {inspiration.opening_hours && inspiration.opening_hours.length > 0 && (
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-white/40">
+                  Horarios
+                </p>
+                <div className="space-y-0.5">
+                  {inspiration.opening_hours.map((h, i) => (
+                    <p key={i} className="text-xs text-white/60">{h}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Website */}
+            {inspiration.website && (
+              <a
+                href={inspiration.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-emerald-400 hover:text-emerald-300"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M15 3h6v6M10 14L21 3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Ver sitio web
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Footer — botón "Agregar al viaje" (solo aquí, no en el feed) */}
+        <div
+          className="shrink-0 border-t border-white/10 bg-zinc-950 p-4"
+          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
+          <button
+            onClick={() => setShowAddToTrip(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 active:scale-95"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Agregar al viaje
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Wizard de "agregar al viaje" — selector de día */}
+      <AnimatePresence>
+        {showAddToTrip && (
+          <AddToTripWizard
+            inspiration={inspiration}
+            tripId={tripId}
+            tripStartDate={tripStartDate}
+            tripEndDate={tripEndDate}
+            onClose={() => setShowAddToTrip(false)}
+            onDone={onClose}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>,
+    document.body,
+  );
+}
+
+// --- Wizard para agregar la inspiración al viaje (selector de día) ---
+
+function AddToTripWizard({
+  inspiration,
+  tripId,
+  tripStartDate,
+  tripEndDate,
+  onClose,
+  onDone,
+}: {
+  inspiration: Inspiration;
+  tripId: string;
+  tripStartDate?: string;
+  tripEndDate?: string;
+  onClose: () => void;
+  onDone: () => void;
 }) {
   const [date, setDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -367,8 +616,8 @@ function PrefillWizard({
 
       await createActivity(formData);
       toast.success("Plan creado ✓");
-      onClose();
-    } catch (e) {
+      onDone();
+    } catch {
       toast.error("Error al crear el plan");
       setSubmitting(false);
     }
@@ -376,15 +625,12 @@ function PrefillWizard({
 
   return createPortal(
     <motion.div
-      className="fixed inset-0 z-[70] flex items-end sm:items-center sm:justify-center"
+      className="fixed inset-0 z-[80] flex items-end sm:items-center sm:justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <motion.div
         className="relative z-10 w-full max-w-md overflow-hidden rounded-t-3xl bg-white shadow-2xl dark:bg-zinc-900 sm:rounded-3xl"
         initial={{ y: "100%" }}
@@ -415,9 +661,6 @@ function PrefillWizard({
                   {ACTIVITY_TYPE_LABELS[inspiration.suggested_type]}
                 </span>
                 {inspiration.rating != null && <span>⭐ {inspiration.rating.toFixed(1)}</span>}
-                {inspiration.cost_estimate != null && inspiration.cost_estimate > 0 && (
-                  <span>~{inspiration.currency} {inspiration.cost_estimate}</span>
-                )}
               </div>
               {inspiration.address && (
                 <p className="mt-0.5 line-clamp-1 text-xs text-zinc-400 dark:text-zinc-500">
@@ -433,7 +676,7 @@ function PrefillWizard({
               ¿Qué día?
             </label>
             {days.length > 0 ? (
-              <div className="mb-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <div className="mb-4 grid max-h-48 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
                 {days.map((day) => {
                   const d = new Date(day + "T00:00");
                   const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(d);
@@ -487,16 +730,4 @@ function PrefillWizard({
     </motion.div>,
     document.body,
   );
-}
-
-function getTypeBorderColor(type: ActivityType): string {
-  const colors: Record<ActivityType, string> = {
-    visit: "#3b82f6",
-    tour: "#8b5cf6",
-    meal: "#f97316",
-    event: "#f43f5e",
-    free: "#10b981",
-    transport: "#71717a",
-  };
-  return colors[type];
 }

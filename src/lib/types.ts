@@ -205,6 +205,16 @@ export type Inspiration = {
   title: string;
   address: string | null;
   image_url: string | null;
+  // Múltiples fotos para el collage (hasta 10 de Google Places)
+  image_urls: string[];
+  // Descripción editorial de Google Places
+  description: string | null;
+  // Horarios de apertura (texto por día)
+  opening_hours: string[] | null;
+  // Sitio web del lugar
+  website: string | null;
+  // Número total de reseñas
+  user_ratings_total: number | null;
   rating: number | null;
   price_level: number | null;
   types: string[];

@@ -25,11 +25,16 @@ export function priceLevelToCost(priceLevel: number | null): number | null {
   return COST_MAP[priceLevel] ?? null;
 }
 
+// Queries que encuentran spots trending/instagramables/iconic en vez de tours genéricos
 const INSPIRE_QUERIES = [
-  "best things to do in",
-  "top attractions in",
-  "best restaurants in",
-  "tours and activities in",
+  "most photographed places in",
+  "iconic landmarks in",
+  "famous viewpoints in",
+  "best photo spots in",
+  "instagrammable places in",
+  "must-see places in",
+  "famous monuments in",
+  "hidden gems in",
 ];
 
 type GPlaceResult = google.maps.places.PlaceResult;
@@ -40,15 +45,26 @@ function placeToInspiration(place: GPlaceResult): Inspiration | null {
   const types = place.types ?? [];
   const suggestedType = mapGoogleTypeToActivityType(types);
 
-  let imageUrl: string | null = null;
-  try {
-    imageUrl = place.photos?.[0]?.getUrl({ maxWidth: 800, maxHeight: 600 }) ?? null;
-  } catch {
-    imageUrl = null;
+  // Múltiples fotos (hasta 10)
+  const imageUrls: string[] = [];
+  if (place.photos) {
+    for (const photo of place.photos.slice(0, 10)) {
+      try {
+        const url = photo.getUrl({ maxWidth: 800, maxHeight: 600 });
+        if (url) imageUrls.push(url);
+      } catch {
+        // skip
+      }
+    }
   }
 
   const lat = place.geometry?.location?.lat();
   const lng = place.geometry?.location?.lng();
+
+  // editorial_summary no está tipado en @types/google.maps pero sí existe en runtime
+  const editorialSummary = (place as any).editorial_summary as
+    | { overview?: string }
+    | undefined;
 
   return {
     id: place.place_id,
@@ -56,7 +72,12 @@ function placeToInspiration(place: GPlaceResult): Inspiration | null {
     trip_id: "",
     title: place.name,
     address: place.formatted_address ?? place.vicinity ?? null,
-    image_url: imageUrl,
+    image_url: imageUrls[0] ?? null,
+    image_urls: imageUrls,
+    description: editorialSummary?.overview ?? null,
+    opening_hours: place.opening_hours?.weekday_text ?? null,
+    website: place.website ?? null,
+    user_ratings_total: place.user_ratings_total ?? null,
     rating: place.rating ?? null,
     price_level: place.price_level ?? null,
     types,
@@ -72,14 +93,17 @@ function placeToInspiration(place: GPlaceResult): Inspiration | null {
 }
 
 /**
- * Busca lugares populares en la ciudad del viaje usando Google Places
- * a través del SDK de JavaScript (no REST), porque la API key pública está
- * restringida por referer y el endpoint REST no soporta CORS desde el navegador.
+ * Busca lugares trending/instagramables en la ciudad del viaje.
+ * Usa Google Places JavaScript SDK (no REST) porque la API key está
+ * restringida por referer y el endpoint REST no soporta CORS.
+ *
+ * 1. textSearch con queries que encuentran spots icónicos (no tours)
+ * 2. getDetails para cada place_id → hasta 10 fotos + descripción + horarios
  */
 export async function fetchInspirationsClient(
   destination: string,
   _apiKey: string, // no se usa: la key ya está cargada por loadGoogleMaps()
-  maxResults = 40,
+  maxResults = 30,
 ): Promise<Inspiration[]> {
   await loadGoogleMaps();
 
@@ -89,14 +113,13 @@ export async function fetchInspirationsClient(
   }
 
   // PlacesService requiere un Map o un Element para atribución.
-  // Usamos un div oculto temporal.
   const attribDiv = document.createElement("div");
   attribDiv.style.display = "none";
   document.body.appendChild(attribDiv);
   const service = new google.maps.places.PlacesService(attribDiv);
 
+  // Fase 1: textSearch con múltiples queries para encontrar places
   const queries = INSPIRE_QUERIES.map((q) => `${q} ${destination}`);
-
   const allPlaces = new Map<string, GPlaceResult>();
 
   await Promise.allSettled(
@@ -120,15 +143,67 @@ export async function fetchInspirationsClient(
     ),
   );
 
-  // Limpiar el div temporal
+  // Fase 2: getDetails para los top places → múltiples fotos + descripción
+  // Limitamos a maxResults * 2 para tener margen tras filtrar los sin fotos
+  const placeIds = Array.from(allPlaces.keys()).slice(0, maxResults * 2);
+  const detailedPlaces: GPlaceResult[] = [];
+
+  await Promise.allSettled(
+    placeIds.map(
+      (placeId) =>
+        new Promise<void>((resolve) => {
+          service.getDetails(
+            {
+              placeId,
+              fields: [
+                "name",
+                "place_id",
+                "formatted_address",
+                "vicinity",
+                "geometry",
+                "types",
+                "rating",
+                "user_ratings_total",
+                "price_level",
+                "photos",
+                "editorial_summary",
+                "opening_hours",
+                "website",
+                "business_status",
+              ],
+              language: "es",
+            },
+            (place: GPlaceResult | null, detailStatus: string) => {
+              if (
+                detailStatus === google.maps.places.PlacesServiceStatus.OK &&
+                place &&
+                place.photos &&
+                place.photos.length > 0
+              ) {
+                detailedPlaces.push(place);
+              }
+              resolve();
+            },
+          );
+        }),
+    ),
+  );
+
+  // Limpiar div temporal
   attribDiv.remove();
 
+  // Mapear a Inspiration, ordenar por rating descendente
   const inspirations: Inspiration[] = [];
-  for (const place of allPlaces.values()) {
-    if (inspirations.length >= maxResults) break;
+  for (const place of detailedPlaces) {
     const insp = placeToInspiration(place);
-    if (insp) inspirations.push(insp);
+    if (insp && insp.image_urls.length > 0) {
+      inspirations.push(insp);
+    }
+    if (inspirations.length >= maxResults) break;
   }
+
+  // Ordenar por rating (nulls last)
+  inspirations.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
 
   return inspirations;
 }
