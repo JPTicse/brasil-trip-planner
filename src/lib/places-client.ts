@@ -222,7 +222,7 @@ function getDetails(
 export async function fetchInspirationsClient(
   destination: string,
   _apiKey: string,
-  maxResults = 30,
+  maxResults = 50,
 ): Promise<Inspiration[]> {
   await loadGoogleMaps();
 
@@ -324,6 +324,13 @@ export async function fetchInspirationsClient(
     `must-see places in ${destination}`,
     `famous monuments in ${destination}`,
     `hidden gems in ${destination}`,
+    `best beaches in ${destination}`,
+    `best parks in ${destination}`,
+    `famous squares in ${destination}`,
+    `best museums in ${destination}`,
+    `mirantes famosos em ${destination}`,
+    `lugares instagramáveis em ${destination}`,
+    `pontos turísticos famosos em ${destination}`,
   ];
 
   const allPlaces = new Map<string, GPlaceResult>();

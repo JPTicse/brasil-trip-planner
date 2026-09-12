@@ -512,21 +512,38 @@ function PlaceDetailSheet({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Overlay */}
+      {/* Overlay — clicable para cerrar */}
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
-      {/* Sheet */}
+      {/* Sheet — con drag para cerrar */}
       <motion.div
-        className="relative z-10 flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-zinc-950 shadow-2xl sm:rounded-3xl"
+        className="relative z-10 flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-zinc-950 shadow-2xl sm:rounded-3xl"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.4 }}
+        onDragEnd={(_, info) => {
+          // Cerrar si desliza hacia abajo más de 100px
+          if (info.offset.y > 100) onClose();
+        }}
       >
-        {/* Grabber */}
-        <div className="flex shrink-0 justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-zinc-700" />
+        {/* Grabber — area de arrastre visible */}
+        <div className="flex shrink-0 justify-center pt-2 pb-1" style={{ touchAction: "none" }}>
+          <div className="h-1.5 w-12 rounded-full bg-zinc-600" />
         </div>
+
+        {/* Botón cerrar (X) — siempre visible */}
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 active:scale-90"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
         {/* Contenido scrollable */}
         <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
@@ -857,10 +874,26 @@ function AddToTripWizard({
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.4 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100) onClose();
+        }}
       >
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+        <div className="flex justify-center pt-3 pb-1" style={{ touchAction: "none" }}>
+          <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
         </div>
+
+        {/* Botón cerrar */}
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-zinc-600 transition hover:bg-zinc-300 active:scale-90 dark:bg-zinc-700 dark:text-zinc-300"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
         <div className="px-5 pb-5 pt-2">
           {/* Preview */}
