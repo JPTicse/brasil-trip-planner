@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateTrip } from "@/lib/actions";
+import { toast } from "sonner";
 import { Field, TextInput, TextArea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { CountrySelect, POPULAR_COUNTRIES, type Country } from "@/components/country-select";
@@ -50,9 +51,11 @@ export function EditTripForm({
     try {
       await updateTrip(formData);
       router.refresh();
+      toast.success("Viaje actualizado ✓");
     } catch (e) {
-      setPending(false);
       setError(e instanceof Error ? e.message : "Error al actualizar");
+    } finally {
+      setPending(false);
     }
   };
 
