@@ -1,30 +1,68 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { motion } from "motion/react";
-import { haptic } from "@/lib/haptics";
+import { useRef, useEffect } from "react";
+import { DayChipWater1 } from "@/components/v2/day-chips-water-1";
+import { DayChipWater2 } from "@/components/v2/day-chips-water-2";
+import { DayChipWater3 } from "@/components/v2/day-chips-water-3";
+import { type Activity } from "@/lib/types";
+
+function timeToMinutes(t: string | null | undefined): number {
+  if (!t) return 0;
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
 
 /**
- * Day chips minimalista v2.
- * - Sin badges de conteo
- * - Sin flechas de scroll
- * - Estado activo monocromo
- * - Punto esmeralda para "hoy"
- * - Más pequeño y limpio
+ * Calcula el porcentaje de horas agendadas vs 16 horas disponibles.
+ */
+function getFillPercent(day: string, activities: Activity[]): number {
+  const dayActivities = activities.filter((a) => a.date === day);
+  let totalMinutes = 0;
+  for (const a of dayActivities) {
+    if (!a.start_time) continue;
+    const start = timeToMinutes(a.start_time);
+    const end = a.end_time ? timeToMinutes(a.end_time) : start + 60;
+    totalMinutes += Math.max(0, end - start);
+  }
+  const maxMinutes = 16 * 60; // 16 horas disponibles
+  return Math.min(100, Math.round((totalMinutes / maxMinutes) * 100));
+}
+
+/**
+ * Determina qué efecto de agua usar según el número del día:
+ * - Múltiplo de 3 → efecto 3 (burbujas)
+ * - Múltiplo de 2 (no de 3) → efecto 2 (bloques)
+ * - Resto → efecto 1 (onda suave)
+ */
+function getEffectForDay(dayNum: number): 1 | 2 | 3 {
+  if (dayNum % 3 === 0) return 3;
+  if (dayNum % 2 === 0) return 2;
+  return 1;
+}
+
+/**
+ * Day chips v2 con efecto de "agua" que muestra cuántas horas
+ * de actividades están agendadas por día.
+ *
+ * Cada día usa un efecto distinto para comparar:
+ * - Efecto 1: onda suave (días no múltiplos de 2 ni 3)
+ * - Efecto 2: bloques escalonados (días múltiplos de 2)
+ * - Efecto 3: burbujas (días múltiplos de 3)
  */
 export function DayChipsV2({
   days,
   selectedDay,
   onSelect,
+  activities = [],
 }: {
   days: string[];
   selectedDay: string;
   onSelect: (day: string) => void;
+  activities?: Activity[];
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const today = new Date().toISOString().slice(0, 10);
 
-  // Auto-scroll al día seleccionado
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -42,37 +80,29 @@ export function DayChipsV2({
       className="flex gap-2 overflow-x-auto pb-1"
       style={{ scrollbarWidth: "none" }}
     >
-      {days.map((day) => {
+      {days.map((day, idx) => {
         const isActive = day === selectedDay;
         const isToday = day === today;
         const d = new Date(day + "T00:00");
-        const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(d);
         const dayNum = d.getDate();
+        const fillPercent = getFillPercent(day, activities);
+        const effect = getEffectForDay(dayNum);
+
+        const chipProps = {
+          day,
+          dayNum,
+          isSelected: isActive,
+          isToday,
+          fillPercent,
+          onSelect: () => onSelect(day),
+        };
 
         return (
-          <motion.button
-            key={day}
-            onClick={() => {
-              haptic("light");
-              onSelect(day);
-            }}
-            animate={{ scale: isActive ? 1.06 : 1 }}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 500, damping: 14, mass: 0.6 }}
-            className={`relative flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg border ${
-              isActive
-                ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900"
-                : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
-            }`}
-          >
-            {isToday && !isActive && (
-              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            )}
-            <span className="text-[10px] font-medium uppercase opacity-70">
-              {weekday}
-            </span>
-            <span className="text-base font-bold leading-tight">{dayNum}</span>
-          </motion.button>
+          <div key={day} className="shrink-0">
+            {effect === 1 && <DayChipWater1 {...chipProps} />}
+            {effect === 2 && <DayChipWater2 {...chipProps} />}
+            {effect === 3 && <DayChipWater3 {...chipProps} />}
+          </div>
         );
       })}
     </div>

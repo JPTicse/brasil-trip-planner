@@ -114,7 +114,7 @@ export function ItineraryTimelineV2({
 
   return (
     <div className="space-y-4">
-      <DayChipsV2 days={days} selectedDay={selectedDay} onSelect={onSelectDay} />
+      <DayChipsV2 days={days} selectedDay={selectedDay} onSelect={onSelectDay} activities={activities} />
 
       {dayActivities.length === 0 ? (
         <div className="py-16 text-center">

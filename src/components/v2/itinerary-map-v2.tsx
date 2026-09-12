@@ -181,7 +181,7 @@ export function ItineraryMapV2({
   return (
     <div className="space-y-4">
       {days.length > 0 && (
-        <DayChipsV2 days={days} selectedDay={selectedDay} onSelect={onSelectDay} />
+        <DayChipsV2 days={days} selectedDay={selectedDay} onSelect={onSelectDay} activities={activities} />
       )}
 
       <div className="relative h-[40dvh] overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
