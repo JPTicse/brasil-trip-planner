@@ -1,29 +1,8 @@
 // Spots trending/instagramables curados del Sur de Brasil.
 // Florianópolis, Balneário Camboriú, y Serra Gaúcha (Gramado/Canela).
 
-export type CuratedSpot = {
-  name: string;
-  name_en?: string;
-  type: "visit" | "tour" | "meal" | "event" | "free" | "transport";
-  category:
-    | "landmark"
-    | "viewpoint"
-    | "beach"
-    | "hiking"
-    | "street-art"
-    | "stadium"
-    | "museum"
-    | "park"
-    | "nightlife"
-    | "food";
-  description: string;
-  viral_trend?: string;
-  address: string;
-  lat: number;
-  lng: number;
-  search_query: string;
-  emoji: string;
-};
+import type { CuratedSpot } from "@/lib/photo-types";
+export type { CuratedSpot };
 
 export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
   {
@@ -38,6 +17,31 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5477,
     search_query: "Ponte Hercílio Luz Florianópolis",
     emoji: "🌉",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Atardecer / blue hour",
+    photo_concepts: [
+      {
+        title: "Silueta al atardecer",
+        pose: "De pie en el malecón, mirando al puente con el sol poniéndose detrás",
+        camera_angle: "Cámara baja, a la altura de la cintura, puente como línea de horizonte",
+        best_time: "Atardecer / blue hour",
+        clothing: "Ropa oscura para crear silueta, chaqueta ligera",
+        instagram_score: 9,
+        camera_tip: "iPhone 2x zoom para comprimir el puente contra el cielo",
+        format: "Vertical 4:5",
+      },
+      {
+        title: "Reflejo nocturno",
+        pose: "Sentado en el borde del malecón, piernas colgando",
+        camera_angle: "Cámara a nivel del suelo capturando el reflejo en el agua",
+        best_time: "Blue hour (20 min después del atardecer)",
+        clothing: "Camisa blanca para contrastar con la oscuridad",
+        instagram_score: 8,
+        camera_tip: "Modo nocturno, trípode o superficie estable",
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Santo Antônio de Lisboa",
@@ -50,6 +54,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5233,
     search_query: "Santo Antônio de Lisboa Florianópolis",
     emoji: "🏘️",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Tarde dorada",
+    photo_concepts: [
+      {
+        title: "Calle colonial al atardecer",
+        pose: "Caminando por la calle adoquinada, mirando hacia atrás sobre el hombro",
+        camera_angle: "Cámara a media altura, calle como línea guía hacia el mar",
+        best_time: "Tarde dorada, 1 hora antes del atardecer",
+        clothing: "Vestido floral o ropa clara, sombrero de paja",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para capturar la calle completa",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Ilha do Campeche",
@@ -63,6 +82,30 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4789,
     search_query: "Ilha do Campeche Florianópolis",
     emoji: "🏝️",
+    instagram_score: 10,
+    difficulty: 3,
+    best_time: "Mañana (10:00-12:00)",
+    photo_concepts: [
+      {
+        title: "Agua turquesa desde arriba",
+        pose: "De pie en una roca elevada, brazos abiertos mirando al mar",
+        camera_angle: "Drone o cámara elevada, picado suave",
+        best_time: "Mañana, 10:00-12:00 (luz directa sobre el agua)",
+        clothing: "Bikini o traje de baño, ropa de colores vivos",
+        instagram_score: 10,
+        camera_tip: "Drone DJI Mini o iPhone 2x zoom desde altura",
+        format: "Vertical 4:5",
+      },
+      {
+        title: "Arena blanca y sombra",
+        pose: "Acostado en la arena, cámara sobre el pecho",
+        camera_angle: "POV desde el suelo, pies hacia el mar",
+        best_time: "Mediodía para sombras mínimas",
+        clothing: "Bikini, gafas de sol, sombrero",
+        instagram_score: 8,
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia Mole",
@@ -75,6 +118,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4494,
     search_query: "Praia Mole Florianópolis",
     emoji: "🏄",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Tarde (14:00-17:00)",
+    photo_concepts: [
+      {
+        title: "Parapente sobre la playa",
+        pose: "Acostado en la arena mirando al cielo, parapente volando encima",
+        camera_angle: "Cámara hacia arriba, contrapicado total",
+        best_time: "Tarde, 14:00-17:00 (viento óptimo para parapente)",
+        clothing: "Bikini, gafas de sol, collar de conchas",
+        instagram_score: 8,
+        camera_tip: "iPhone 1x, modo ráfaga para capturar el parapente",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Dunas da Joaquina",
@@ -88,6 +146,31 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4456,
     search_query: "Dunas da Joaquina Florianópolis",
     emoji: "🏜️",
+    instagram_score: 9,
+    difficulty: 2,
+    best_time: "Tarde dorada / atardecer",
+    photo_concepts: [
+      {
+        title: "Salto en las dunas",
+        pose: "Saltando en el aire sobre la duna, piernas flexionadas",
+        camera_angle: "Cámara baja, contrapicado para exagerar el salto",
+        best_time: "Tarde dorada, sombras largas en las dunas",
+        clothing: "Ropa deportiva, gafas de sol, ropa de colores vivos",
+        instagram_score: 9,
+        camera_tip: "Modo ráfaga, 1/1000s para congelar el salto",
+        format: "Vertical 4:5",
+      },
+      {
+        title: "Sandboard descenso",
+        pose: "Deslizando en sandboard por la duna, arena volando",
+        camera_angle: "Lateral, siguiendo el descenso",
+        best_time: "Mañana o tarde, evitando mediodía",
+        clothing: "Ropa deportiva, casco opcional",
+        instagram_score: 8,
+        camera_tip: "Action 4 POV o modo video slow-motion",
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Mirante da Lagoa da Conceição",
@@ -100,6 +183,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4506,
     search_query: "Mirante da Lagoa da Conceição Florianópolis",
     emoji: "⛰️",
+    instagram_score: 9,
+    difficulty: 2,
+    best_time: "Atardecer",
+    photo_concepts: [
+      {
+        title: "Panorámica triple",
+        pose: "De pie en el mirante, brazos extendidos señalando el paisaje",
+        camera_angle: "Cámara a la altura del pecho, modo panorámico",
+        best_time: "Atardecer, colores cálidos sobre la laguna",
+        clothing: "Chaqueta ligera, ropa de colores neutros",
+        instagram_score: 9,
+        camera_tip: "Modo panorámico del iPhone o gran angular 0.5x",
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Jurerê Internacional",
@@ -112,6 +210,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5039,
     search_query: "Jurerê Internacional Florianópolis",
     emoji: "🛥️",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Tarde (16:00-18:00)",
+    photo_concepts: [
+      {
+        title: "Cabana de beach club",
+        pose: "Acostado en la cabana con copa de champagne, sombra de la tela",
+        camera_angle: "Cámara desde arriba, picado suave",
+        best_time: "Tarde, 16:00-18:00, luz dorada filtrada",
+        clothing: "Bikini, gafas de sol de diseño, joyería dorada",
+        instagram_score: 8,
+        camera_tip: "iPhone 2x zoom para comprimir el fondo",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Lagoinha do Leste",
@@ -124,6 +237,31 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5039,
     search_query: "Lagoinha do Leste Florianópolis",
     emoji: "🥾",
+    instagram_score: 10,
+    difficulty: 4,
+    best_time: "Mañana temprano",
+    photo_concepts: [
+      {
+        title: "Borde del acantilado",
+        pose: "De pie en el borde de la pedra, mirando a la playa abajo",
+        camera_angle: "Cámara baja, contrapicado para mostrar el vacío debajo",
+        best_time: "Mañana temprano, luz lateral sobre el acantilado",
+        clothing: "Ropa de senderismo, zapatillas, mochila",
+        instagram_score: 10,
+        camera_tip: "Gran angular 0.5x, cuidado con el viento",
+        format: "Vertical 4:5",
+        safety_note: "El borde es resbaladizo, mantener distancia del vacío",
+      },
+      {
+        title: "Playa salvaje vacía",
+        pose: "Caminando por la playa sola, huellas en la arena",
+        camera_angle: "Cámara alta, picado suave, playa como protagonista",
+        best_time: "Mañana, marea baja",
+        clothing: "Ropa ligera, sombrero",
+        instagram_score: 8,
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Praia da Joaquina",
@@ -135,6 +273,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4456,
     search_query: "Praia da Joaquina Florianópolis",
     emoji: "🏄‍♀️",
+    instagram_score: 7,
+    difficulty: 1,
+    best_time: "Mañana (07:00-10:00)",
+    photo_concepts: [
+      {
+        title: "Surfista al amanecer",
+        pose: "Caminando con tabla bajo el brazo hacia el mar",
+        camera_angle: "Lateral, cámara a media altura",
+        best_time: "Mañana, 07:00-10:00, luz dorada",
+        clothing: "Traje de neopreno, tabla de surf",
+        instagram_score: 7,
+        camera_tip: "Modo retrato para desenfocar el fondo",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Mercado Público",
@@ -146,6 +299,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5528,
     search_query: "Mercado Público Florianópolis",
     emoji: "🦐",
+    instagram_score: 7,
+    difficulty: 1,
+    best_time: "Mediodía (12:00-14:00)",
+    photo_concepts: [
+      {
+        title: "Plato de mariscos",
+        pose: "Manos sosteniendo el plato de mariscos sobre la mesa",
+        camera_angle: "Cámara desde arriba, picado total (flat lay)",
+        best_time: "Mediodía, luz natural del mercado",
+        clothing: "Ropa casual, manos limpias",
+        instagram_score: 7,
+        camera_tip: "Modo retrato o 2x zoom para aislar el plato",
+        format: "Cuadrada",
+      },
+    ],
   },
   {
     name: "Lagoa da Conceição",
@@ -157,6 +325,30 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4506,
     search_query: "Lagoa da Conceição Florianópolis",
     emoji: "🛶",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Tarde dorada",
+    photo_concepts: [
+      {
+        title: "Stand-up paddle al atardecer",
+        pose: "De pie en el paddle board, remando sobre la laguna",
+        camera_angle: "Cámara baja desde otra tabla, nivel del agua",
+        best_time: "Tarde dorada, 1 hora antes del atardecer",
+        clothing: "Bikini o traje de baño, sombrero",
+        instagram_score: 8,
+        camera_tip: "Action 4 POV o iPhone con funda impermeable",
+        format: "Horizontal",
+      },
+      {
+        title: "Reflejo en la laguna",
+        pose: "Sentado en el muelle, pies en el agua",
+        camera_angle: "Cámara baja capturando el reflejo en el agua",
+        best_time: "Mañana temprano, agua en calma",
+        clothing: "Ropa casual de verano, sandalias",
+        instagram_score: 7,
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia do Moçambique",
@@ -168,6 +360,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.3889,
     search_query: "Praia do Moçambique Florianópolis",
     emoji: "🌊",
+    instagram_score: 7,
+    difficulty: 2,
+    best_time: "Mañana temprano",
+    photo_concepts: [
+      {
+        title: "Playa salvaje infinita",
+        pose: "Caminando por la orilla, olas rompiendo",
+        camera_angle: "Lateral, cámara baja a nivel del agua",
+        best_time: "Mañana temprano, marea baja",
+        clothing: "Vestido ligero, pies descalzos",
+        instagram_score: 7,
+        camera_tip: "Gran angular 0.5x para capturar la extensión",
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Ribeirão da Ilha",
@@ -179,6 +386,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5233,
     search_query: "Ribeirão da Ilha Florianópolis",
     emoji: "🦪",
+    instagram_score: 7,
+    difficulty: 1,
+    best_time: "Tarde (16:00-18:00)",
+    photo_concepts: [
+      {
+        title: "Ostras frescas frente al mar",
+        pose: "Sosteniendo una ostra abierta frente a la bahía",
+        camera_angle: "Cámara a media altura, ostra en primer plano, bahía de fondo",
+        best_time: "Tarde, 16:00-18:00, luz dorada",
+        clothing: "Ropa casual de playa, sombrero",
+        instagram_score: 7,
+        camera_tip: "Modo retrato para desenfocar el fondo",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia do Campeche",
@@ -190,6 +412,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.4789,
     search_query: "Praia do Campeche Florianópolis",
     emoji: "🏖️",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Mañana (08:00-11:00)",
+    photo_concepts: [
+      {
+        title: "Isla de fondo",
+        pose: "De pie en la orilla, isla visible al fondo",
+        camera_angle: "Cámara a media altura, isla como punto focal",
+        best_time: "Mañana, 08:00-11:00, agua más cristalina",
+        clothing: "Bikini, sombrero de paja, gafas de sol",
+        instagram_score: 8,
+        camera_tip: "iPhone 2x zoom para acercar la isla",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia do Forte",
@@ -201,6 +438,21 @@ export const CURATED_SPOTS_FLORIANOPOLIS: CuratedSpot[] = [
     lng: -48.5778,
     search_query: "Forte de Santa Cruz de Anhatomirim Florianópolis",
     emoji: "🏰",
+    instagram_score: 8,
+    difficulty: 2,
+    best_time: "Tarde dorada",
+    photo_concepts: [
+      {
+        title: "Vista desde el fuerte",
+        pose: "De pie en la muralla del fuerte, mirando a la bahía",
+        camera_angle: "Cámara a la altura del hombro, bahía y puente de fondo",
+        best_time: "Tarde dorada, 1 hora antes del atardecer",
+        clothing: "Ropa casual, chaqueta ligera",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para capturar todo el panorama",
+        format: "Horizontal",
+      },
+    ],
   },
 ];
 
@@ -217,6 +469,30 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6239,
     search_query: "FG Big Wheel Balneário Camboriú",
     emoji: "🎡",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Atardecer / blue hour",
+    photo_concepts: [
+      {
+        title: "Panorámica desde la cabina",
+        pose: "Sentado en la cabina, mirando al horizonte",
+        camera_angle: "Cámara contra el vidrio de la cabina, gran angular",
+        best_time: "Atardecer / blue hour, luces de la ciudad encendiéndose",
+        clothing: "Ropa casual, chaqueta ligera",
+        instagram_score: 9,
+        camera_tip: "Gran angular 0.5x, limpiar el vidrio de la cabina primero",
+        format: "Horizontal",
+      },
+      {
+        title: "Selfie con la rueda",
+        pose: "De pie frente a la rueda, mirando hacia arriba",
+        camera_angle: "Cámara baja, contrapicado para capturar toda la rueda",
+        best_time: "Noche, rueda iluminada",
+        clothing: "Ropa oscura para contrastar con las luces",
+        instagram_score: 8,
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Estrada da Rainha",
@@ -230,6 +506,21 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6339,
     search_query: "Estrada da Rainha Balneário Camboriú",
     emoji: "🌻",
+    instagram_score: 9,
+    difficulty: 2,
+    best_time: "Mañana (08:00-10:00)",
+    photo_concepts: [
+      {
+        title: "Mural de girasoles + skyline",
+        pose: "De pie junto al mural de girasoles, skyline de fondo",
+        camera_angle: "Cámara a media altura, mural y skyline en el mismo cuadro",
+        best_time: "Mañana, 08:00-10:00, luz suave",
+        clothing: "Vestido amarillo o blanco, sombrero",
+        instagram_score: 9,
+        camera_tip: "iPhone 1x, equilibrar mural y skyline",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia das Laranjeiras",
@@ -241,6 +532,31 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6039,
     search_query: "Praia das Laranjeiras Balneário Camboriú",
     emoji: "🏖️",
+    instagram_score: 9,
+    difficulty: 2,
+    best_time: "Mañana (09:00-12:00)",
+    photo_concepts: [
+      {
+        title: "Bahía turquesa",
+        pose: "De pie en la arena, mar de fondo, barcos anclados",
+        camera_angle: "Cámara a media altura, bahía en curva natural",
+        best_time: "Mañana, 09:00-12:00, agua más cristalina",
+        clothing: "Bikini, sombrero, gafas de sol",
+        instagram_score: 9,
+        camera_tip: "iPhone 2x zoom para comprimir los barcos",
+        format: "Vertical 4:5",
+      },
+      {
+        title: "Teleférico sobre la playa",
+        pose: "Sentado en la cabina del teleférico, playa abajo",
+        camera_angle: "Cámara hacia abajo, picado total",
+        best_time: "Mañana, luz directa sobre el agua",
+        clothing: "Ropa casual, gafas de sol",
+        instagram_score: 8,
+        camera_tip: "Action 4 POV o iPhone contra el vidrio",
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Passarela da Barra",
@@ -252,6 +568,21 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6439,
     search_query: "Passarela da Barra Balneário Camboriú",
     emoji: "🌅",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Atardecer",
+    photo_concepts: [
+      {
+        title: "Atardecer con barcos",
+        pose: "De pie en la pasarela, apoyado en la baranda",
+        camera_angle: "Cámara a la altura del pecho, barcos y sol de fondo",
+        best_time: "Atardecer, 30 min antes y después",
+        clothing: "Ropa casual, chaqueta ligera",
+        instagram_score: 9,
+        camera_tip: "Modo retrato para desenfocar los barcos",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia Central",
@@ -263,6 +594,21 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6339,
     search_query: "Praia Central Balneário Camboriú",
     emoji: "🏙️",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Tarde (16:00-18:00)",
+    photo_concepts: [
+      {
+        title: "Skyline de rascacielos",
+        pose: "Acostado en la arena, cámara hacia los edificios",
+        camera_angle: "Cámara desde el suelo, contrapicado total",
+        best_time: "Tarde, 16:00-18:00, luz dorada sobre los edificios",
+        clothing: "Bikini, gafas de sol",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para capturar todo el skyline",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Unipraias Parque",
@@ -274,6 +620,21 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6039,
     search_query: "Unipraias Parque Teleférico Balneário Camboriú",
     emoji: "🚡",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Mañana (09:00-11:00)",
+    photo_concepts: [
+      {
+        title: "Teleférico sobre el bosque",
+        pose: "Sentado en la cabina, bosque y costa abajo",
+        camera_angle: "Cámara hacia abajo, picado suave",
+        best_time: "Mañana, 09:00-11:00, luz directa",
+        clothing: "Ropa casual, gafas de sol",
+        instagram_score: 9,
+        camera_tip: "Gran angular 0.5x contra el vidrio, limpiar primero",
+        format: "Horizontal",
+      },
+    ],
   },
   {
     name: "Cristo Luz",
@@ -285,6 +646,21 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6539,
     search_query: "Cristo Luz Balneário Camboriú",
     emoji: "✝️",
+    instagram_score: 8,
+    difficulty: 2,
+    best_time: "Atardecer / blue hour",
+    photo_concepts: [
+      {
+        title: "Cristo con ciudad de fondo",
+        pose: "De pie frente a la estatua, mirando a la ciudad",
+        camera_angle: "Cámara baja, contrapicado para incluir la estatua completa",
+        best_time: "Atardecer / blue hour, luces de la ciudad",
+        clothing: "Ropa casual, chaqueta",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para capturar estatua + ciudad",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Praia dos Amores",
@@ -296,6 +672,21 @@ export const CURATED_SPOTS_BALNEARIO: CuratedSpot[] = [
     lng: -48.6139,
     search_query: "Praia dos Amores Balneário Camboriú",
     emoji: "💕",
+    instagram_score: 8,
+    difficulty: 3,
+    best_time: "Mañana temprano",
+    photo_concepts: [
+      {
+        title: "Calas entre rocas",
+        pose: "Sentado en una roca, pies en el agua",
+        camera_angle: "Cámara a media altura, rocas enmarcando la playa",
+        best_time: "Mañana temprano, marea baja",
+        clothing: "Bikini, sombrero, sandalias",
+        instagram_score: 8,
+        camera_tip: "iPhone 2x zoom para comprimir las rocas",
+        format: "Vertical 4:5",
+      },
+    ],
   },
 ];
 
@@ -312,6 +703,31 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8739,
     search_query: "Rua Coberta Gramado",
     emoji: "🌿",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Tarde / noche (luz cálida)",
+    photo_concepts: [
+      {
+        title: "Corredor cubierto con plantas",
+        pose: "Caminando por el centro de la calle, mirando al dosel",
+        camera_angle: "Cámara hacia arriba, contrapicado suave",
+        best_time: "Tarde / noche, luz cálida del dosel",
+        clothing: "Abrigo, bufanda, ropa de colores cálidos",
+        instagram_score: 9,
+        camera_tip: "Gran angular 0.5x para capturar el dosel completo",
+        format: "Vertical 4:5",
+      },
+      {
+        title: "Café con plantas",
+        pose: "Sentado en una mesa exterior, taza de café en mano",
+        camera_angle: "Cámara a media altura, plantas colgantes de fondo",
+        best_time: "Tarde, luz natural filtrada",
+        clothing: "Suéter, bufanda, ropa de invierno",
+        instagram_score: 8,
+        camera_tip: "Modo retrato para desenfocar las plantas",
+        format: "Cuadrada",
+      },
+    ],
   },
   {
     name: "Lago Negro",
@@ -325,6 +741,30 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8639,
     search_query: "Lago Negro Gramado",
     emoji: "🦢",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Mañana temprano (niebla)",
+    photo_concepts: [
+      {
+        title: "Barco cisé en el lago",
+        pose: "Sentado en el barco cisé, remando",
+        camera_angle: "Cámara desde el muelle, nivel del agua",
+        best_time: "Mañana temprano, niebla sobre el lago",
+        clothing: "Abrigo, bufanda, ropa de invierno",
+        instagram_score: 9,
+        camera_tip: "iPhone 2x zoom para comprimir los pinos",
+        format: "Horizontal",
+      },
+      {
+        title: "Reflejo en el agua oscura",
+        pose: "De pie en el muelle, pinos reflejados en el agua",
+        camera_angle: "Cámara baja, capturando el reflejo",
+        best_time: "Mañana, agua en calma",
+        clothing: "Abrigo, sombrero",
+        instagram_score: 8,
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Catedral de Pedra",
@@ -338,6 +778,21 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8239,
     search_query: "Catedral de Pedra Canela",
     emoji: "⛪",
+    instagram_score: 10,
+    difficulty: 1,
+    best_time: "Blue hour (noche)",
+    photo_concepts: [
+      {
+        title: "Fachada iluminada de noche",
+        pose: "De pie frente a la catedral, mirando hacia arriba",
+        camera_angle: "Cámara baja, contrapicado total para incluir las torres",
+        best_time: "Blue hour, 20 min después del atardecer",
+        clothing: "Abrigo, bufanda, ropa oscura",
+        instagram_score: 10,
+        camera_tip: "Modo nocturno, trípode o superficie estable",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Cascata do Caracol",
@@ -351,6 +806,31 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8239,
     search_query: "Cascata do Caracol Canela",
     emoji: "💦",
+    instagram_score: 9,
+    difficulty: 2,
+    best_time: "Mañana (08:00-11:00)",
+    photo_concepts: [
+      {
+        title: "Cascada desde el teleférico",
+        pose: "Sentado en la cabina del teleférico, cascada abajo",
+        camera_angle: "Cámara hacia abajo, picado total",
+        best_time: "Mañana, 08:00-11:00, luz lateral",
+        clothing: "Ropa de senderismo, chaqueta",
+        instagram_score: 9,
+        camera_tip: "Action 4 POV o iPhone contra el vidrio",
+        format: "Horizontal",
+      },
+      {
+        title: "Cascada desde el mirador",
+        pose: "De pie en el mirador, cascada de fondo",
+        camera_angle: "Cámara a media altura, cascada como línea vertical",
+        best_time: "Mañana, luz suave",
+        clothing: "Ropa de senderismo, mochila",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para capturar toda la cascada",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Mini Mundo",
@@ -363,6 +843,21 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8739,
     search_query: "Mini Mundo Gramado",
     emoji: "🏰",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Mañana (09:00-12:00)",
+    photo_concepts: [
+      {
+        title: "Perspectura forzada con miniaturas",
+        pose: "Manos cerca de la cámara, miniatura de fondo",
+        camera_angle: "Cámara baja, forzando la escala",
+        best_time: "Mañana, 09:00-12:00, luz directa",
+        clothing: "Ropa casual, manos limpias",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para exagerar la perspectiva",
+        format: "Cuadrada",
+      },
+    ],
   },
   {
     name: "Snowland",
@@ -374,6 +869,21 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8539,
     search_query: "Snowland Gramado",
     emoji: "❄️",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Cualquier hora (indoor)",
+    photo_concepts: [
+      {
+        title: "Ski indoor",
+        pose: "Con equipo de ski, posando en la nieve",
+        camera_angle: "Cámara a media altura, nieve de fondo",
+        best_time: "Cualquier hora (indoor con luz artificial)",
+        clothing: "Equipo de ski, chaqueta de nieve, gafas",
+        instagram_score: 8,
+        camera_tip: "Flash desactivado, usar luz del recinto",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Parque do Caracol",
@@ -385,6 +895,21 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8239,
     search_query: "Parque do Caracol Canela",
     emoji: "🌲",
+    instagram_score: 8,
+    difficulty: 2,
+    best_time: "Mañana (08:00-11:00)",
+    photo_concepts: [
+      {
+        title: "Sendero entre araucarias",
+        pose: "Caminando por el sendero, mirando hacia las copas",
+        camera_angle: "Cámara hacia arriba, contrapicado",
+        best_time: "Mañana, 08:00-11:00, luz filtrada",
+        clothing: "Ropa de senderismo, mochila",
+        instagram_score: 8,
+        camera_tip: "Gran angular 0.5x para capturar las copas",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Vinícola Aurora",
@@ -396,6 +921,21 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -51.5139,
     search_query: "Vinícola Aurora Bento Gonçalves",
     emoji: "🍷",
+    instagram_score: 8,
+    difficulty: 1,
+    best_time: "Tarde (14:00-17:00)",
+    photo_concepts: [
+      {
+        title: "Catas de vino",
+        pose: "Sosteniendo una copa de vino, barricas de fondo",
+        camera_angle: "Cámara a media altura, copa en primer plano",
+        best_time: "Tarde, 14:00-17:00, luz cálida de la bodega",
+        clothing: "Ropa elegante casual, colores oscuros",
+        instagram_score: 8,
+        camera_tip: "Modo retrato para desenfocar las barricas",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Vale dos Vinhedos",
@@ -408,6 +948,31 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -51.4939,
     search_query: "Vale dos Vinhedos Bento Gonçalves",
     emoji: "🍇",
+    instagram_score: 9,
+    difficulty: 2,
+    best_time: "Tarde dorada / otoño",
+    photo_concepts: [
+      {
+        title: "Filas de vides al atardecer",
+        pose: "Caminando entre las filas de vides, mirando al horizonte",
+        camera_angle: "Cámara baja, filas como líneas guía",
+        best_time: "Tarde dorada, 1 hora antes del atardecer",
+        clothing: "Sombrero, ropa casual, colores tierra",
+        instagram_score: 9,
+        camera_tip: "Gran angular 0.5x para capturar las filas",
+        format: "Horizontal",
+      },
+      {
+        title: "Racimo de uvas en mano",
+        pose: "Sosteniendo un racimo de uvas frente a las vides",
+        camera_angle: "Cámara a media altura, racimo en primer plano",
+        best_time: "Otoño, época de cosecha",
+        clothing: "Ropa casual, manos limpias",
+        instagram_score: 8,
+        camera_tip: "Modo retrato para desenfocar las vides",
+        format: "Vertical 4:5",
+      },
+    ],
   },
   {
     name: "Maria Fumaça",
@@ -421,5 +986,30 @@ export const CURATED_SPOTS_SERRA_GAUCHA: CuratedSpot[] = [
     lng: -50.8239,
     search_query: "Maria Fumaça Canela Bento Gonçalves",
     emoji: "🚂",
+    instagram_score: 9,
+    difficulty: 1,
+    best_time: "Mañana (09:00-11:00)",
+    photo_concepts: [
+      {
+        title: "Tren humeando entre viñedos",
+        pose: "De pie junto a la vía, tren pasando",
+        camera_angle: "Cámara baja, siguiendo el tren en movimiento",
+        best_time: "Mañana, 09:00-11:00, luz lateral",
+        clothing: "Ropa casual, sombrero, bufanda",
+        instagram_score: 9,
+        camera_tip: "Modo ráfaga, 1/500s para congelar el humo",
+        format: "Horizontal",
+      },
+      {
+        title: "Ventanilla del tren",
+        pose: "Sentado junto a la ventanilla, mirando al paisaje",
+        camera_angle: "Cámara desde el interior, paisaje visible",
+        best_time: "Mañana, luz suave",
+        clothing: "Ropa casual, gafas de sol",
+        instagram_score: 8,
+        camera_tip: "Modo retrato para desenfocar el interior",
+        format: "Vertical 4:5",
+      },
+    ],
   },
 ];

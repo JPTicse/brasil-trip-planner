@@ -198,6 +198,17 @@ export type Currency = (typeof CURRENCIES)[number];
 
 // --- Inspiraciones (cache de lugares recomendados por Google Places) ---
 
+export type PhotoConcept = {
+  title: string;
+  pose: string;
+  camera_angle: string;
+  best_time: string;
+  clothing: string;
+  instagram_score: number;
+  camera_tip?: string | null;
+  format?: string | null;
+};
+
 export type Inspiration = {
   id: string;
   trip_id: string;
@@ -205,21 +216,21 @@ export type Inspiration = {
   title: string;
   address: string | null;
   image_url: string | null;
-  // Múltiples fotos para el collage (hasta 10 de Google Places)
   image_urls: string[];
-  // Descripción editorial de Google Places
   description: string | null;
-  // Trend viral / foto icónica que la gente hace en este lugar
   viral_trend: string | null;
-  // Categoría del lugar (landmark, viewpoint, beach, hiking, etc.)
   category: string | null;
-  // Emoji representativo
   emoji: string | null;
-  // Horarios de apertura (texto por día)
+  // NUEVO: conceptos de foto detallados (como respuesta de IA)
+  photo_concepts: PhotoConcept[];
+  // NUEVO: score de Instagram (1-10)
+  instagram_score: number | null;
+  // NUEVO: dificultad (1-5)
+  difficulty: number | null;
+  // NUEVO: mejor hora del día
+  best_time: string | null;
   opening_hours: string[] | null;
-  // Sitio web del lugar
   website: string | null;
-  // Número total de reseñas
   user_ratings_total: number | null;
   rating: number | null;
   price_level: number | null;

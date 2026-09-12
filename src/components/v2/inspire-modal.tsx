@@ -330,9 +330,10 @@ function CollageCard({
           <h3 className="line-clamp-1 text-base font-bold text-white">
             {spotEmoji} {inspiration.title}
           </h3>
-          {inspiration.rating != null && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold text-white">
-              ⭐ {inspiration.rating.toFixed(1)}
+          {/* Score de Instagram */}
+          {inspiration.instagram_score != null && (
+            <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-2 py-0.5 text-xs font-bold text-white">
+              📸 {inspiration.instagram_score}/10
             </span>
           )}
         </div>
@@ -347,15 +348,25 @@ function CollageCard({
           </div>
         )}
 
-        <div className="mt-1.5 flex items-center gap-2 text-xs text-white/50">
-          <span className="flex items-center gap-1">
-            <span className={`h-2 w-2 rounded-full ${TYPE_DOT[type]}`} />
-            {typeEmoji} {ACTIVITY_TYPE_LABELS[type]}
-          </span>
-          {inspiration.user_ratings_total != null && (
-            <span>· {inspiration.user_ratings_total.toLocaleString("es")} reseñas</span>
+        {/* Info rápida: mejor hora + dificultad */}
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-white/50">
+          {inspiration.best_time && (
+            <span className="flex items-center gap-1">
+              🕐 {inspiration.best_time}
+            </span>
+          )}
+          {inspiration.difficulty != null && inspiration.difficulty > 1 && (
+            <span className="flex items-center gap-1">
+              {"🥾".repeat(Math.min(inspiration.difficulty, 5))}
+            </span>
+          )}
+          {inspiration.photo_concepts && inspiration.photo_concepts.length > 0 && (
+            <span className="flex items-center gap-1 text-fuchsia-300">
+              ✨ {inspiration.photo_concepts.length} {inspiration.photo_concepts.length === 1 ? "concepto" : "conceptos"}
+            </span>
           )}
         </div>
+
         {inspiration.address && (
           <p className="mt-1 line-clamp-1 text-xs text-white/40">
             📍 {inspiration.address}
@@ -607,6 +618,96 @@ function PlaceDetailSheet({
               <p className="text-sm leading-relaxed text-white/70">
                 {inspiration.description}
               </p>
+            )}
+
+            {/* 📸 Guía de fotos — como si fuera respuesta de IA */}
+            {inspiration.photo_concepts && inspiration.photo_concepts.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📸</span>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-fuchsia-300">
+                    Cómo tomar la foto perfecta
+                  </h3>
+                </div>
+
+                {inspiration.photo_concepts.map((concept, ci) => (
+                  <div
+                    key={ci}
+                    className="rounded-2xl border border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-500/10 to-pink-500/5 p-4"
+                  >
+                    {/* Header del concepto */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-base font-bold text-white">
+                        {ci + 1}. {concept.title}
+                      </h4>
+                      <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-2 py-0.5 text-[11px] font-bold text-white">
+                        📸 {concept.instagram_score}/10
+                      </span>
+                    </div>
+
+                    {/* Detalles de la guía */}
+                    <div className="mt-3 space-y-2.5">
+                      {/* Pose */}
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 text-sm">🧍</span>
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Pose</p>
+                          <p className="text-sm text-white/80">{concept.pose}</p>
+                        </div>
+                      </div>
+
+                      {/* Ángulo de cámara */}
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 text-sm">📷</span>
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Cámara</p>
+                          <p className="text-sm text-white/80">{concept.camera_angle}</p>
+                        </div>
+                      </div>
+
+                      {/* Mejor momento */}
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 text-sm">🕐</span>
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Mejor momento</p>
+                          <p className="text-sm text-white/80">{concept.best_time}</p>
+                        </div>
+                      </div>
+
+                      {/* Ropa */}
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 text-sm">👕</span>
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Ropa</p>
+                          <p className="text-sm text-white/80">{concept.clothing}</p>
+                        </div>
+                      </div>
+
+                      {/* Tip de equipo */}
+                      {concept.camera_tip && (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-sm">💡</span>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Tip de equipo</p>
+                            <p className="text-sm text-white/80">{concept.camera_tip}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Formato */}
+                      {concept.format && (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-sm">📐</span>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Formato</p>
+                            <p className="text-sm text-white/80">{concept.format}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
 
             {/* Costo estimado */}
