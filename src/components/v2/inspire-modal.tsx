@@ -256,7 +256,12 @@ function CollageCard({
       transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3 }}
     >
       {/* Collage de imágenes */}
-      <ImageCollage images={images} />
+      <ImageCollage
+        images={images}
+        emoji={inspiration.emoji}
+        category={inspiration.category}
+        title={inspiration.title}
+      />
 
       {/* Info */}
       <div className="p-3">
@@ -302,10 +307,37 @@ function CollageCard({
 
 // --- Collage de imágenes (grid adaptativo según cantidad) ---
 
-function ImageCollage({ images }: { images: string[] }) {
+// Gradientes por categoría para placeholders sin foto
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  landmark: "from-amber-500/30 to-orange-700/40",
+  viewpoint: "from-sky-500/30 to-indigo-700/40",
+  beach: "from-cyan-500/30 to-blue-700/40",
+  hiking: "from-emerald-500/30 to-green-800/40",
+  "street-art": "from-fuchsia-500/30 to-purple-700/40",
+  stadium: "from-rose-500/30 to-red-700/40",
+  museum: "from-violet-500/30 to-indigo-800/40",
+  park: "from-lime-500/30 to-green-700/40",
+  nightlife: "from-purple-500/30 to-zinc-800/40",
+  food: "from-orange-500/30 to-red-600/40",
+};
+
+function ImageCollage({
+  images,
+  emoji,
+  category,
+  title,
+}: {
+  images: string[];
+  emoji?: string | null;
+  category?: string | null;
+  title?: string;
+}) {
   if (images.length === 0) {
+    const gradient = CATEGORY_GRADIENTS[category ?? ""] ?? "from-zinc-700 to-zinc-900";
     return (
-      <div className="aspect-[4/3] w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
+      <div className={`flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br ${gradient}`}>
+        <span className="text-6xl opacity-80">{emoji ?? "📍"}</span>
+      </div>
     );
   }
 
@@ -445,7 +477,9 @@ function PlaceDetailSheet({
               ))}
             </div>
           ) : (
-            <div className="aspect-[4/3] w-full bg-gradient-to-br from-zinc-800 to-zinc-900" />
+            <div className={`flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br ${CATEGORY_GRADIENTS[inspiration.category ?? ""] ?? "from-zinc-800 to-zinc-900"}`}>
+              <span className="text-7xl opacity-80">{inspiration.emoji ?? "📍"}</span>
+            </div>
           )}
 
           {/* Indicadores de galería (dots) */}

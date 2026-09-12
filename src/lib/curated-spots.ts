@@ -1,5 +1,5 @@
 // Unificador de spots curados por ciudad/país.
-// Importa los arrays de cada archivo y los mapea a nombres de ciudad normalizados.
+// Prioriza SIEMPRE la ciudad del viaje. El fallback por país es último recurso.
 
 import type { CuratedSpot } from "@/lib/curated-spots-rio";
 import { CURATED_SPOTS_RIO } from "@/lib/curated-spots-rio";
@@ -25,30 +25,6 @@ import {
 } from "@/lib/curated-spots-latam";
 
 export type { CuratedSpot };
-
-// "Lo mejor de Brasil" — top spots de varias ciudades brasileñas
-const BEST_OF_BRAZIL: CuratedSpot[] = [
-  // Top 10 de Rio
-  ...CURATED_SPOTS_RIO.slice(0, 10),
-  // Top 5 de SP
-  ...CURATED_SPOTS_SP.slice(0, 5),
-  // Top 3 de Salvador
-  ...CURATED_SPOTS_SALVADOR.slice(0, 3),
-  // Top 3 de Florianópolis
-  ...CURATED_SPOTS_FLORIANOPOLIS.slice(0, 3),
-  // Top 3 de Jericoacoara
-  ...CURATED_SPOTS_JERICOACOARA.slice(0, 3),
-];
-
-// "Lo mejor de Latinoamérica" — top spots de varias ciudades
-const BEST_OF_LATAM: CuratedSpot[] = [
-  ...CURATED_SPOTS_BUENOS_AIRES.slice(0, 4),
-  ...CURATED_SPOTS_CARTAGENA.slice(0, 4),
-  ...CURATED_SPOTS_BOGOTA.slice(0, 3),
-  ...CURATED_SPOTS_LIMA.slice(0, 3),
-  ...CURATED_SPOTS_SANTIAGO.slice(0, 3),
-  ...CURATED_SPOTS_CUSCO.slice(0, 3),
-];
 
 // Mapa: nombre de ciudad normalizado (lowercase, sin acentos) → spots curados
 const CITY_MAP: Record<string, CuratedSpot[]> = {
@@ -85,15 +61,14 @@ const CITY_MAP: Record<string, CuratedSpot[]> = {
   "machu picchu": CURATED_SPOTS_CUSCO,
 };
 
-// Mapa de país → spots (para cuando la ciudad no coincide pero el país sí)
+// Mapa de país → spots (SOLO si la ciudad no coincide pero el país sí)
 const COUNTRY_MAP: Record<string, CuratedSpot[]> = {
-  brasil: BEST_OF_BRAZIL,
-  brazil: BEST_OF_BRAZIL,
-  "brasil ": BEST_OF_BRAZIL,
-  argentina: BEST_OF_LATAM,
-  colombia: BEST_OF_LATAM,
-  peru: BEST_OF_LATAM,
-  chile: BEST_OF_LATAM,
+  brasil: CURATED_SPOTS_RIO, // Brasil → Rio como representante
+  brazil: CURATED_SPOTS_RIO,
+  argentina: CURATED_SPOTS_BUENOS_AIRES,
+  colombia: CURATED_SPOTS_CARTAGENA,
+  chile: CURATED_SPOTS_SANTIAGO,
+  peru: CURATED_SPOTS_LIMA,
 };
 
 // Normaliza un nombre para buscar
@@ -105,7 +80,15 @@ function normalize(s: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-// Devuelve los spots curados para una ciudad o país, o "lo mejor" si no hay match
+/**
+ * Devuelve los spots curados para una ciudad.
+ *
+ * Prioridad:
+ * 1. Match exacto de ciudad
+ * 2. Match parcial de ciudad (la ciudad contiene una clave o viceversa)
+ * 3. Match de país (solo si la ciudad no coincide)
+ * 4. Fallback: Lima, Perú (destino por defecto de la app)
+ */
 export function getCuratedSpotsForCity(city: string): CuratedSpot[] {
   const normalized = normalize(city);
 
@@ -119,18 +102,16 @@ export function getCuratedSpotsForCity(city: string): CuratedSpot[] {
     }
   }
 
-  // 3. Match de país
+  // 3. Match de país (último recurso antes del fallback)
   if (COUNTRY_MAP[normalized]) return COUNTRY_MAP[normalized];
-
-  // 4. Si el texto contiene un nombre de país
   for (const key of Object.keys(COUNTRY_MAP)) {
     if (normalized.includes(key)) {
       return COUNTRY_MAP[key];
     }
   }
 
-  // 5. Fallback: lo mejor de Brasil (destino principal de la app)
-  return BEST_OF_BRAZIL;
+  // 4. Fallback: Lima, Perú
+  return CURATED_SPOTS_LIMA;
 }
 
 // Lista de todas las ciudades soportadas

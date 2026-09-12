@@ -288,12 +288,18 @@ export async function fetchInspirationsClient(
       }
     }
 
-    // Ordenar: enriquecidos con foto primero, luego sin foto
+    // Ordenar: spots con viral_trend + foto primero, luego con foto, luego sin foto
     results.sort((a, b) => {
-      const aHasPhoto = a.image_urls.length > 0 ? 1 : 0;
-      const bHasPhoto = b.image_urls.length > 0 ? 1 : 0;
-      if (aHasPhoto !== bHasPhoto) return bHasPhoto - aHasPhoto;
-      return (b.rating ?? 0) - (a.rating ?? 0);
+      // Score: viral_trend (2 pts) + tiene foto (1 pt) + rating
+      const scoreA =
+        (a.viral_trend ? 2 : 0) +
+        (a.image_urls.length > 0 ? 1 : 0) +
+        (a.rating ?? 0) / 10;
+      const scoreB =
+        (b.viral_trend ? 2 : 0) +
+        (b.image_urls.length > 0 ? 1 : 0) +
+        (b.rating ?? 0) / 10;
+      return scoreB - scoreA;
     });
 
     attribDiv.remove();
