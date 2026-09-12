@@ -156,12 +156,7 @@ function ExploreCard({
       {/* Fondo: imagen o color sólido */}
       {activity.image_url ? (
         <>
-          <img
-            src={activity.image_url}
-            alt={activity.title}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-           
-          />
+          <CachedImage src={activity.image_url} alt={activity.title} className="object-cover transition duration-300 group-hover:scale-105" sizes="(max-width: 768px) 50vw, 200px" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
         </>
       ) : (
