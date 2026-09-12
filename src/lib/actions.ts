@@ -237,6 +237,7 @@ export async function createActivity(formData: FormData) {
   if (error) throw new Error(`Error al crear actividad: ${error.message}`);
 
   revalidatePath(`/trips/${tripId}/itinerary`);
+  revalidatePath(`/trips/${tripId}/itinerary-v2`);
 }
 
 export async function deleteActivity(formData: FormData) {
@@ -251,6 +252,7 @@ export async function deleteActivity(formData: FormData) {
 
   await supabase.from("activities").delete().eq("id", activityId);
   revalidatePath(`/trips/${tripId}/itinerary`);
+  revalidatePath(`/trips/${tripId}/itinerary-v2`);
 }
 
 export async function updateActivity(formData: FormData) {
@@ -283,6 +285,7 @@ export async function updateActivity(formData: FormData) {
 
   if (error) throw new Error("Error al actualizar actividad");
   revalidatePath(`/trips/${tripId}/itinerary`);
+  revalidatePath(`/trips/${tripId}/itinerary-v2`);
 }
 
 export async function joinActivity(formData: FormData) {
@@ -304,6 +307,7 @@ export async function joinActivity(formData: FormData) {
   }
 
   revalidatePath(`/trips/${tripId}/itinerary`);
+  revalidatePath(`/trips/${tripId}/itinerary-v2`);
 }
 
 export async function leaveActivity(formData: FormData) {
@@ -323,6 +327,7 @@ export async function leaveActivity(formData: FormData) {
     .eq("user_id", user.id);
 
   revalidatePath(`/trips/${tripId}/itinerary`);
+  revalidatePath(`/trips/${tripId}/itinerary-v2`);
 }
 
 // --- Alojamientos ---

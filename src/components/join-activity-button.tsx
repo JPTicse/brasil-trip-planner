@@ -119,7 +119,6 @@ export function JoinActivityButton({
                   <input type="hidden" name="trip_id" value={tripId} />
                   <button
                     type="submit"
-                    onClick={() => setShowConflict(false)}
                     className="flex w-full items-center justify-center rounded-xl bg-amber-500 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-amber-600 active:scale-95"
                   >
                     Unirme igual
