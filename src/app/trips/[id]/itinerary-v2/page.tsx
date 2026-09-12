@@ -60,7 +60,7 @@ export default async function ItineraryV2Page({
           <InspireButton
             inspirations={inspirations}
             tripId={id}
-            tripDestination={trip?.destination ?? "Brasil"}
+            tripDestination={trip?.city ?? trip?.destination ?? "Brasil"}
             tripStartDate={trip?.start_date ?? undefined}
             tripEndDate={trip?.end_date ?? undefined}
           />

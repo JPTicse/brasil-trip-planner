@@ -14,6 +14,8 @@ export type Trip = {
   id: string;
   name: string;
   destination: string | null;
+  city: string | null;
+  country: string | null;
   start_date: string | null;
   end_date: string | null;
   description: string | null;

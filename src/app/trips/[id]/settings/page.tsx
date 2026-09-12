@@ -25,10 +25,10 @@ export default async function TripSettingsPage({
     );
   }
 
-  // Parsear destination como "Ciudad, País"
+  // Usar columnas city/country si existen, si no parsear destination
   const parts = (trip.destination ?? "").split(",").map((s) => s.trim());
-  const city = parts[0] ?? "";
-  const country = parts[1] ?? "";
+  const city = trip.city ?? parts[0] ?? "";
+  const country = trip.country ?? parts[1] ?? "";
 
   return (
     <div className="min-h-dvh bg-zinc-50">

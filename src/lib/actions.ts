@@ -13,7 +13,9 @@ export async function createTrip(formData: FormData) {
   if (!user) throw new Error("No autenticado");
 
   const name = formData.get("name") as string;
-  const destination = (formData.get("destination") as string) || null;
+  const country = (formData.get("country") as string) || null;
+  const city = (formData.get("city") as string) || null;
+  const destination = city && country ? `${city}, ${country}` : city ?? country ?? null;
   const startDate = (formData.get("start_date") as string) || null;
   const endDate = (formData.get("end_date") as string) || null;
   const description = (formData.get("description") as string) || null;
@@ -23,6 +25,8 @@ export async function createTrip(formData: FormData) {
     .insert({
       name,
       destination,
+      country,
+      city,
       start_date: startDate,
       end_date: endDate,
       description,
@@ -64,6 +68,8 @@ export async function updateTrip(formData: FormData) {
     .update({
       name,
       destination,
+      country,
+      city,
       start_date: startDate,
       end_date: endDate,
       description,

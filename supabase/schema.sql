@@ -21,6 +21,8 @@ create table if not exists public.trips (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   destination text,
+  city text,
+  country text,
   start_date date,
   end_date date,
   description text,
