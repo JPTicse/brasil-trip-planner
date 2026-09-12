@@ -1,10 +1,20 @@
 "use client";
 
-import { ActivityDetailModal } from "@/components/activity-detail-modal";
+import { ActivityDetailModalV2 as ActivityDetailModal } from "@/components/v2/activity-detail-modal-v2";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
-import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
+import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
+
+// Colored dot per type — "free" uses teal to distinguish from the emerald accent
+const TYPE_DOT: Record<ActivityType, string> = {
+  visit: "bg-blue-500",
+  tour: "bg-violet-500",
+  meal: "bg-orange-500",
+  event: "bg-rose-500",
+  free: "bg-teal-500",
+  transport: "bg-zinc-500",
+};
 
 function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
@@ -46,7 +56,8 @@ export function ActivityCardV2({
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         {/* Arriba: tipo y acciones */}
         <div className="flex items-start justify-between">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-white/80">
+          <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-white/80">
+            <span className={`h-1.5 w-1.5 rounded-full ${TYPE_DOT[activity.type]}`} />
             {ACTIVITY_TYPE_LABELS[activity.type]}
           </span>
           {isCreator && (

@@ -1,11 +1,32 @@
 "use client";
 
-import { ActivityDetailModal } from "@/components/activity-detail-modal";
+import { motion } from "motion/react";
+import { ActivityDetailModalV2 as ActivityDetailModal } from "@/components/v2/activity-detail-modal-v2";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatTime, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
+import { haptic } from "@/lib/haptics";
 import { DayChipsV2 } from "@/components/v2/day-chips-v2";
+
+// Variantes para la entrada escalonada de las tarjetas del timeline.
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: "easeOut" as const },
+  },
+};
 
 function getInitials(name: string) {
   return name.split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
@@ -88,23 +109,30 @@ export function ItineraryTimelineV2({
           {/* Línea vertical fina */}
           <div className="absolute bottom-2 left-[5px] top-2 w-px bg-stone-200 dark:bg-stone-800" />
 
-          <div className="space-y-4">
+          <motion.div
+            key={selectedDay}
+            className="space-y-4"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+          >
             {dayActivities.map((a, i) => {
               const isLast = i === dayActivities.length - 1;
               return (
-                <TimelineItemV2
-                  key={a.id}
-                  activity={a}
-                  tripId={tripId}
-                  currentUserId={currentUserId}
-                  isLast={isLast}
-                  myActivities={activities}
-                  isNext={nextActivityId === a.id}
-                  isPastActivity={isPast(a)}
-                />
+                <motion.div key={a.id} variants={itemVariants}>
+                  <TimelineItemV2
+                    activity={a}
+                    tripId={tripId}
+                    currentUserId={currentUserId}
+                    isLast={isLast}
+                    myActivities={activities}
+                    isNext={nextActivityId === a.id}
+                    isPastActivity={isPast(a)}
+                  />
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
@@ -134,7 +162,10 @@ function TimelineItemV2({
   const remaining = Math.max(0, participants.length - 3);
 
   const trigger = (
-    <div className="group relative flex gap-3">
+    <div
+      className="group relative flex gap-3"
+      onClick={() => haptic("light")}
+    >
       {/* Hora + punto (sin emoji, sin color de tipo) */}
       <div className="relative z-10 flex w-10 shrink-0 flex-col items-center">
         <div
@@ -156,9 +187,14 @@ function TimelineItemV2({
         } ${isPastActivity ? "opacity-40" : ""}`}
       >
         {isNext && (
-          <span className="absolute right-2 top-2 z-10 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+          <motion.span
+            className="absolute right-2 top-2 z-10 text-[10px] font-medium text-emerald-600 dark:text-emerald-400"
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: [0.6, 1.2, 1], opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
             Próximo
-          </span>
+          </motion.span>
         )}
         {activity.image_url ? (
           <div className="relative h-14 w-full overflow-hidden">

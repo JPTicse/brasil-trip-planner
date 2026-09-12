@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { motion } from "motion/react";
+import { haptic } from "@/lib/haptics";
 
 /**
  * Day chips minimalista v2.
@@ -48,10 +50,16 @@ export function DayChipsV2({
         const dayNum = d.getDate();
 
         return (
-          <button
+          <motion.button
             key={day}
-            onClick={() => onSelect(day)}
-            className={`relative flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg border transition active:scale-95 ${
+            onClick={() => {
+              haptic("light");
+              onSelect(day);
+            }}
+            animate={{ scale: isActive ? 1.06 : 1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 500, damping: 14, mass: 0.6 }}
+            className={`relative flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg border ${
               isActive
                 ? "border-stone-900 bg-stone-900 text-white dark:border-white dark:bg-white dark:text-stone-900"
                 : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
@@ -64,7 +72,7 @@ export function DayChipsV2({
               {weekday}
             </span>
             <span className="text-base font-bold leading-tight">{dayNum}</span>
-          </button>
+          </motion.button>
         );
       })}
     </div>

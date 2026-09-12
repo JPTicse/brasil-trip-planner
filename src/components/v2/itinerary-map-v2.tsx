@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ActivityDetailModal } from "@/components/activity-detail-modal";
+import { ActivityDetailModalV2 as ActivityDetailModal } from "@/components/v2/activity-detail-modal-v2";
 import { loadGoogleMaps } from "@/lib/google-maps";
 import { formatTime } from "@/lib/format";
 import { type Activity, type ActivityType } from "@/lib/types";

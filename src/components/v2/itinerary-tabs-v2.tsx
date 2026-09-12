@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "motion/react";
 import { ItineraryTimelineV2 } from "@/components/v2/itinerary-timeline-v2";
 import { ItineraryMapV2 } from "@/components/v2/itinerary-map-v2";
 import { ActivityCardV2 } from "@/components/v2/activity-card-v2";
 import { type Activity } from "@/lib/types";
+import { haptic } from "@/lib/haptics";
 
 type Tab = "day" | "map" | "list";
 
@@ -42,14 +44,24 @@ export function ItineraryTabsV2({
           return (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+              onClick={() => {
+                haptic("light");
+                setTab(t.id);
+              }}
+              className={`relative flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-white text-stone-900 shadow-sm dark:bg-stone-900 dark:text-stone-50"
-                  : "text-stone-500 dark:text-stone-400"
+                  ? "text-stone-900 dark:text-stone-50"
+                  : "text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
               }`}
             >
-              {t.label}
+              {isActive && (
+                <motion.span
+                  layoutId="activeTabIndicator"
+                  className="absolute inset-0 rounded-lg bg-white shadow-sm dark:bg-stone-900"
+                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                />
+              )}
+              <span className="relative z-10">{t.label}</span>
             </button>
           );
         })}
