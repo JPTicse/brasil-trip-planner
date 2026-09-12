@@ -209,6 +209,12 @@ export type Inspiration = {
   image_urls: string[];
   // Descripción editorial de Google Places
   description: string | null;
+  // Trend viral / foto icónica que la gente hace en este lugar
+  viral_trend: string | null;
+  // Categoría del lugar (landmark, viewpoint, beach, hiking, etc.)
+  category: string | null;
+  // Emoji representativo
+  emoji: string | null;
   // Horarios de apertura (texto por día)
   opening_hours: string[] | null;
   // Sitio web del lugar

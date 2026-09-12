@@ -26,6 +26,30 @@ import {
 
 export type { CuratedSpot };
 
+// "Lo mejor de Brasil" — top spots de varias ciudades brasileñas
+const BEST_OF_BRAZIL: CuratedSpot[] = [
+  // Top 10 de Rio
+  ...CURATED_SPOTS_RIO.slice(0, 10),
+  // Top 5 de SP
+  ...CURATED_SPOTS_SP.slice(0, 5),
+  // Top 3 de Salvador
+  ...CURATED_SPOTS_SALVADOR.slice(0, 3),
+  // Top 3 de Florianópolis
+  ...CURATED_SPOTS_FLORIANOPOLIS.slice(0, 3),
+  // Top 3 de Jericoacoara
+  ...CURATED_SPOTS_JERICOACOARA.slice(0, 3),
+];
+
+// "Lo mejor de Latinoamérica" — top spots de varias ciudades
+const BEST_OF_LATAM: CuratedSpot[] = [
+  ...CURATED_SPOTS_BUENOS_AIRES.slice(0, 4),
+  ...CURATED_SPOTS_CARTAGENA.slice(0, 4),
+  ...CURATED_SPOTS_BOGOTA.slice(0, 3),
+  ...CURATED_SPOTS_LIMA.slice(0, 3),
+  ...CURATED_SPOTS_SANTIAGO.slice(0, 3),
+  ...CURATED_SPOTS_CUSCO.slice(0, 3),
+];
+
 // Mapa: nombre de ciudad normalizado (lowercase, sin acentos) → spots curados
 const CITY_MAP: Record<string, CuratedSpot[]> = {
   // Brasil — Rio
@@ -61,31 +85,53 @@ const CITY_MAP: Record<string, CuratedSpot[]> = {
   "machu picchu": CURATED_SPOTS_CUSCO,
 };
 
-// Normaliza un nombre de ciudad para buscar en el mapa
-function normalizeCity(city: string): string {
-  return city
+// Mapa de país → spots (para cuando la ciudad no coincide pero el país sí)
+const COUNTRY_MAP: Record<string, CuratedSpot[]> = {
+  brasil: BEST_OF_BRAZIL,
+  brazil: BEST_OF_BRAZIL,
+  "brasil ": BEST_OF_BRAZIL,
+  argentina: BEST_OF_LATAM,
+  colombia: BEST_OF_LATAM,
+  peru: BEST_OF_LATAM,
+  chile: BEST_OF_LATAM,
+};
+
+// Normaliza un nombre para buscar
+function normalize(s: string): string {
+  return s
     .toLowerCase()
     .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-// Devuelve los spots curados para una ciudad, o array vacío si no hay
+// Devuelve los spots curados para una ciudad o país, o "lo mejor" si no hay match
 export function getCuratedSpotsForCity(city: string): CuratedSpot[] {
-  const normalized = normalizeCity(city);
+  const normalized = normalize(city);
 
-  // Buscar match exacto
+  // 1. Match exacto de ciudad
   if (CITY_MAP[normalized]) return CITY_MAP[normalized];
 
-  // Buscar match parcial (la ciudad contiene una clave o viceversa)
+  // 2. Match parcial de ciudad
   for (const key of Object.keys(CITY_MAP)) {
     if (normalized.includes(key) || key.includes(normalized)) {
       return CITY_MAP[key];
     }
   }
 
-  return [];
+  // 3. Match de país
+  if (COUNTRY_MAP[normalized]) return COUNTRY_MAP[normalized];
+
+  // 4. Si el texto contiene un nombre de país
+  for (const key of Object.keys(COUNTRY_MAP)) {
+    if (normalized.includes(key)) {
+      return COUNTRY_MAP[key];
+    }
+  }
+
+  // 5. Fallback: lo mejor de Brasil (destino principal de la app)
+  return BEST_OF_BRAZIL;
 }
 
-// Lista de todas las ciudades soportadas (para debugging/UI)
+// Lista de todas las ciudades soportadas
 export const SUPPORTED_CITIES = Object.keys(CITY_MAP);

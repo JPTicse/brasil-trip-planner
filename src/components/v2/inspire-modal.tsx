@@ -239,7 +239,8 @@ function CollageCard({
   onClick: () => void;
 }) {
   const type = inspiration.suggested_type;
-  const emoji = TYPE_EMOJI[type];
+  const typeEmoji = TYPE_EMOJI[type];
+  const spotEmoji = inspiration.emoji ?? typeEmoji;
   const images = inspiration.image_urls?.length > 0
     ? inspiration.image_urls
     : inspiration.image_url
@@ -261,7 +262,7 @@ function CollageCard({
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="line-clamp-1 text-base font-bold text-white">
-            {inspiration.title}
+            {spotEmoji} {inspiration.title}
           </h3>
           {inspiration.rating != null && (
             <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-bold text-white">
@@ -269,10 +270,21 @@ function CollageCard({
             </span>
           )}
         </div>
+
+        {/* 📸 Foto trend — el "punto humano" que el grupo querría replicar */}
+        {inspiration.viral_trend && (
+          <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-gradient-to-r from-fuchsia-500/20 to-pink-500/20 px-2.5 py-1.5">
+            <span className="text-sm">📸</span>
+            <p className="line-clamp-2 text-xs font-medium text-pink-200">
+              {inspiration.viral_trend}
+            </p>
+          </div>
+        )}
+
         <div className="mt-1.5 flex items-center gap-2 text-xs text-white/50">
           <span className="flex items-center gap-1">
             <span className={`h-2 w-2 rounded-full ${TYPE_DOT[type]}`} />
-            {emoji} {ACTIVITY_TYPE_LABELS[type]}
+            {typeEmoji} {ACTIVITY_TYPE_LABELS[type]}
           </span>
           {inspiration.user_ratings_total != null && (
             <span>· {inspiration.user_ratings_total.toLocaleString("es")} reseñas</span>
@@ -472,8 +484,20 @@ function PlaceDetailSheet({
 
             {/* Título */}
             <h2 className="text-xl font-extrabold leading-tight text-white">
-              {inspiration.title}
+              {inspiration.emoji ? `${inspiration.emoji} ` : ""}{inspiration.title}
             </h2>
+
+            {/* 📸 La foto que tienes que tomar — el trend viral del lugar */}
+            {inspiration.viral_trend && (
+              <div className="rounded-xl bg-gradient-to-r from-fuchsia-500/20 to-pink-500/20 p-3">
+                <p className="mb-0.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-pink-300">
+                  📸 La foto que tienes que tomar
+                </p>
+                <p className="text-sm font-medium text-pink-100">
+                  {inspiration.viral_trend}
+                </p>
+              </div>
+            )}
 
             {/* Dirección */}
             {inspiration.address && (

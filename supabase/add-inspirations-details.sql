@@ -2,6 +2,9 @@
 alter table public.inspirations
   add column if not exists image_urls text[] not null default '{}',
   add column if not exists description text,
+  add column if not exists viral_trend text,
+  add column if not exists category text,
+  add column if not exists emoji text,
   add column if not exists opening_hours text[],
   add column if not exists website text,
   add column if not exists user_ratings_total integer;

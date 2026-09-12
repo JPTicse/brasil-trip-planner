@@ -66,6 +66,9 @@ function placeToInspiration(place: GPlaceResult, curatedSpot?: CuratedSpot): Ins
     image_url: imageUrls[0] ?? null,
     image_urls: imageUrls,
     description: editorialSummary?.overview ?? curatedSpot?.description ?? null,
+    viral_trend: curatedSpot?.viral_trend ?? null,
+    category: curatedSpot?.category ?? null,
+    emoji: curatedSpot?.emoji ?? null,
     opening_hours: place.opening_hours?.weekday_text ?? null,
     website: place.website ?? null,
     user_ratings_total: place.user_ratings_total ?? null,
@@ -94,6 +97,9 @@ function curatedToInspiration(spot: CuratedSpot): Inspiration {
     image_url: null,
     image_urls: [],
     description: spot.description,
+    viral_trend: spot.viral_trend ?? null,
+    category: spot.category,
+    emoji: spot.emoji,
     opening_hours: null,
     website: null,
     user_ratings_total: null,
@@ -241,9 +247,17 @@ export async function fetchInspirationsClient(
             const found = await findPlace(service, spot.search_query, location);
 
             if (found && found.place_id) {
+              // FILTRAR: si Google devolvió una agencia, usar spot curado sin enriquecer
+              if (isTourismBusiness(found.name ?? "", found.types ?? [])) {
+                return curatedToInspiration(spot);
+              }
               // getDetails para fotos completas
               const detailed = await getDetails(service, found.place_id);
               if (detailed) {
+                // Filtro final en getDetails también
+                if (isTourismBusiness(detailed.name ?? "", detailed.types ?? [])) {
+                  return curatedToInspiration(spot);
+                }
                 const insp = placeToInspiration(detailed, spot);
                 if (insp) {
                   // Usar nombre curado si Google devuelve algo distinto
