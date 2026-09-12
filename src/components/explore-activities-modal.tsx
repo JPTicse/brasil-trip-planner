@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { useState } from "react";
 import { joinActivity, leaveActivity } from "@/lib/actions";
 import { formatDate, formatTime } from "@/lib/format";
@@ -38,7 +37,8 @@ function ParticipantAvatars({ participants, max = 3 }: { participants: Activity[
             title={name}
           >
             {p.profile?.avatar_url ? (
-              <CachedImage src={p.profile.avatar_url} alt={name} className="object-cover" sizes="100px" />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.profile.avatar_url} alt={name} className="h-full w-full object-cover" />
             ) : (
               getInitials(name)
             )}
@@ -156,11 +156,12 @@ function ExploreCard({
       {/* Fondo: imagen o color sólido */}
       {activity.image_url ? (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={activity.image_url}
             alt={activity.title}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-           
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
         </>

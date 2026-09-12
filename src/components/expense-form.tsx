@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { useActionState, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createExpense } from "@/lib/actions";
@@ -241,7 +240,8 @@ function ExpenseFormInner({
                   selected ? "bg-emerald-600 text-white" : "bg-zinc-300 text-white"
                 }`}>
                   {m.avatar_url ? (
-                    <CachedImage src={m.avatar_url} alt="" className="object-cover" sizes="100px" />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
                   ) : (
                     initials
                   )}
@@ -325,9 +325,10 @@ function ExpenseFormInner({
               const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
               return (
                 <div key={m.id} className="flex items-center gap-2">
-                  <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-semibold text-white">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-semibold text-white">
                     {m.avatar_url ? (
-                      <CachedImage src={m.avatar_url} alt="" className="object-cover" sizes="100px" />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
                     ) : (
                       initials
                     )}

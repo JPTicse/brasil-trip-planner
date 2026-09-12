@@ -3,7 +3,6 @@
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
-import { CachedImage } from "@/components/cached-image";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 
@@ -58,11 +57,12 @@ export function ActivityCard({
     <div className="group relative aspect-[16/9] overflow-hidden rounded-2xl shadow-sm transition active:scale-[0.98] hover:shadow-md">
       {activity.image_url ? (
         <>
-          <CachedImage
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={activity.image_url}
             alt={activity.title}
-            className="object-cover transition duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 400px"
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40" />
         </>
@@ -141,7 +141,8 @@ export function ActivityCard({
                     title={name}
                   >
                     {p.profile?.avatar_url ? (
-                      <CachedImage src={p.profile.avatar_url} alt={name} className="object-cover" sizes="28px" />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.profile.avatar_url} alt={name} className="h-full w-full object-cover" />
                     ) : (
                       getInitials(name)
                     )}

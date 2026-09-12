@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { deleteActivity, joinActivity, leaveActivity } from "@/lib/actions";
@@ -56,7 +55,8 @@ function ParticipantAvatars({ participants, max = 3 }: { participants: Activity[
             title={name}
           >
             {p.profile?.avatar_url ? (
-              <CachedImage src={p.profile.avatar_url} alt={name} className="object-cover" sizes="100px" />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.profile.avatar_url} alt={name} className="h-full w-full object-cover" />
             ) : (
               getInitials(name)
             )}
@@ -133,7 +133,8 @@ export function ExploreCardA({
         <div className="relative aspect-[3/4] w-[30%] shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-800">
           {activity.image_url ? (
             <>
-              <CachedImage src={activity.image_url} alt={activity.title} className="object-cover" sizes="100px" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/10" />
             </>
           ) : (
@@ -188,7 +189,8 @@ export function ExploreCardB({
       <div className="relative aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         {activity.image_url ? (
           <>
-            <CachedImage src={activity.image_url} alt={activity.title} className="object-cover" sizes="100px" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" loading="lazy" />
           </>
         ) : (
           <div className={`flex h-full w-full items-center justify-center ${bgColor} text-5xl`}>{emoji}</div>
@@ -276,7 +278,8 @@ export function ExploreCardC({
       <div className="relative aspect-[16/9] overflow-hidden">
         {activity.image_url ? (
           <>
-            <CachedImage src={activity.image_url} alt={activity.title} className="object-cover" sizes="100px" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" loading="lazy" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40" />
           </>
         ) : (

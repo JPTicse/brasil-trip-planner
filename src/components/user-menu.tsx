@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { signOut } from "@/lib/auth-actions";
 import type { Profile } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
@@ -30,10 +29,11 @@ export function UserMenu({ profile, email }: { profile: Profile | null; email: s
       <ThemeToggle />
       <button
         onClick={() => setOpen(!open)}
-        className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-sm font-semibold text-white ring-2 ring-white dark:ring-zinc-800"
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-sm font-semibold text-white ring-2 ring-white dark:ring-zinc-800"
       >
         {profile?.avatar_url ? (
-          <CachedImage src={profile.avatar_url} alt="" className="object-cover" sizes="100px" />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
         ) : (
           initials
         )}

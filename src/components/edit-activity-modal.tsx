@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateActivity } from "@/lib/actions";
@@ -175,7 +174,8 @@ function EditActivityFormInner({
         <div className="relative -mx-5 -mt-4 mb-3 h-44 w-[calc(100%+2.5rem)] overflow-hidden">
           {imageUrl ? (
             <>
-              <CachedImage src={imageUrl} alt={title} className="object-cover" sizes="100px" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
             </>
           ) : (

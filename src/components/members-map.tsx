@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { useMemo } from "react";
 import { GoogleMap, type MapMarker } from "@/components/google-map";
 import type { Profile } from "@/lib/types";
@@ -47,9 +46,10 @@ export function MembersMap({ members }: { members: Profile[] }) {
           const initials = name.split(" ").map((word) => word[0]).slice(0, 2).join("").toUpperCase();
           return (
             <div key={member.id} className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300">
-              <span className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-bold text-white">
+              <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[9px] font-bold text-white">
                 {member.avatar_url ? (
-                  <CachedImage src={member.avatar_url} alt="" className="object-cover" sizes="100px" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={member.avatar_url} alt="" className="h-full w-full object-cover" />
                 ) : initials}
               </span>
               <span className="max-w-24 truncate">{name}</span>

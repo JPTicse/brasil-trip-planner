@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
-import { CachedImage } from "@/components/cached-image";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { DayChips } from "@/components/day-chips";
@@ -165,7 +164,8 @@ function TimelineItem({
       <div className="relative mb-1 flex-1 overflow-hidden rounded-xl border border-zinc-100 bg-white shadow-sm transition active:scale-[0.99] hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
         {activity.image_url ? (
           <div className="relative h-16 w-full overflow-hidden">
-            <CachedImage src={activity.image_url} alt={activity.title} className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" loading="lazy" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
           </div>
         ) : null}
@@ -223,7 +223,8 @@ function TimelineItem({
                     title={name}
                   >
                     {p.profile?.avatar_url ? (
-                      <CachedImage src={p.profile?.avatar_url} alt={name} className="object-cover" sizes="20px" />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.profile?.avatar_url} alt={name} className="h-full w-full object-cover" />
                     ) : (
                       getInitials(name)
                     )}

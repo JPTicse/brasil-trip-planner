@@ -1,6 +1,5 @@
 "use client";
 
-import { CachedImage } from "@/components/cached-image";
 import { useRef, useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -66,8 +65,9 @@ export function ImageUpload({
   if (preview) {
     return (
       <div className="space-y-2">
-        <div className="relative h-32 w-full overflow-hidden rounded-xl">
-          <CachedImage src={preview} alt="Vista previa" className="object-cover" sizes="400px" />
+        <div className="relative overflow-hidden rounded-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Vista previa" className="h-32 w-full object-cover" />
           {uploading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
