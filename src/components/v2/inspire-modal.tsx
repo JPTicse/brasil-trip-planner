@@ -30,6 +30,7 @@ const TYPE_EMOJI: Record<ActivityType, string> = {
 };
 
 type Filter = "trending" | "best-rated" | "all";
+type Tab = "photos" | "places";
 
 export function InspireModal({
   open,
@@ -49,6 +50,7 @@ export function InspireModal({
   tripEndDate?: string;
 }) {
   const [localInspirations, setLocalInspirations] = useState<Inspiration[]>(inspirations);
+  const [tab, setTab] = useState<Tab>("photos");
   const [filter, setFilter] = useState<Filter>("trending");
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Inspiration | null>(null);
@@ -59,11 +61,29 @@ export function InspireModal({
     setLocalInspirations(inspirations);
   }, [inspirations]);
 
+  // Bloquear scroll del fondo cuando el detalle está abierto
+  useEffect(() => {
+    if (selected) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selected]);
+
+  // Dividir: spots con viral_trend (fotos trendy) vs todos (lugares)
+  const trendySpots = localInspirations.filter((i) => i.viral_trend);
+  const allSpots = localInspirations;
+
+  // Tab activa determina la lista base
+  const baseList = tab === "photos" ? trendySpots : allSpots;
+
   // Filtrar y ordenar
   const filtered = (() => {
-    const list = [...localInspirations];
+    const list = [...baseList];
     if (filter === "trending") {
-      // Trending: rating * log(1 + user_ratings_total)
       list.sort((a, b) => {
         const scoreA = (a.rating ?? 0) * Math.log(1 + (a.user_ratings_total ?? 0));
         const scoreB = (b.rating ?? 0) * Math.log(1 + (b.user_ratings_total ?? 0));
@@ -72,7 +92,6 @@ export function InspireModal({
     } else if (filter === "best-rated") {
       list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
-    // "all" keeps original order
     return list;
   })();
 
@@ -147,8 +166,42 @@ export function InspireModal({
             </div>
           </div>
 
-          {/* Filtros pill — sin blur */}
-          <div className="mt-3 flex gap-2 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: "none" }}>
+          {/* Tabs principales: Fotos trendy / Lugares que visitar */}
+          <div className="mt-3 flex gap-1 px-4">
+            <button
+              onClick={() => setTab("photos")}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                tab === "photos"
+                  ? "bg-fuchsia-500 text-white"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
+              }`}
+            >
+              📸 Fotos trendy
+              {trendySpots.length > 0 && (
+                <span className={`rounded-full px-1.5 text-[10px] ${tab === "photos" ? "bg-white/20" : "bg-white/10"}`}>
+                  {trendySpots.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setTab("places")}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                tab === "places"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
+              }`}
+            >
+              📍 Lugares
+              {allSpots.length > 0 && (
+                <span className={`rounded-full px-1.5 text-[10px] ${tab === "places" ? "bg-white/20" : "bg-white/10"}`}>
+                  {allSpots.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Sub-filtros pill */}
+          <div className="mt-2 flex gap-2 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: "none" }}>
             {([
               { id: "trending" as Filter, label: "🔥 Tendencias" },
               { id: "best-rated" as Filter, label: "⭐ Mejor valoradas" },
@@ -157,10 +210,10 @@ export function InspireModal({
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
+                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition active:scale-95 ${
                   filter === f.id
-                    ? "bg-emerald-500 text-white"
-                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                    ? "bg-white/20 text-white"
+                    : "bg-white/5 text-white/50 hover:bg-white/10"
                 }`}
               >
                 {f.label}
@@ -178,9 +231,17 @@ export function InspireModal({
           {filtered.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-4 px-6">
               <div className="text-center">
-                <div className="mb-3 text-4xl">✨</div>
-                <p className="text-sm font-medium text-white/80">No hay inspiraciones aún</p>
-                <p className="mt-1 text-xs text-white/50">Busca lugares trending en {tripDestination}</p>
+                <div className="mb-3 text-4xl">{tab === "photos" ? "📸" : "📍"}</div>
+                <p className="text-sm font-medium text-white/80">
+                  {tab === "photos"
+                    ? "No hay fotos trending aún"
+                    : "No hay lugares aún"}
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  {tab === "photos"
+                    ? "Busca inspiraciones para ver fotos que puedes replicar"
+                    : `Busca lugares que visitar en ${tripDestination}`}
+                </p>
               </div>
               <button
                 onClick={handleRefresh}
