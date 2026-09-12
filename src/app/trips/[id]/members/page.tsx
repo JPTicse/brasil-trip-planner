@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/ui";
 import { LocationTracker } from "@/components/location-tracker";
 import { MembersMap } from "@/components/members-map";
 import { DeleteTripButton } from "@/components/delete-trip-button";
+import { BetaAccess } from "@/components/beta-access";
 import { removeTripMember, resolveAccessRequest } from "@/lib/actions";
 import type { TripMember, TripAccessRequest } from "@/lib/types";
 
@@ -76,6 +77,9 @@ export default async function MembersPage({
       </div>
 
       {isOwner && <AddMemberForm tripId={id} />}
+
+      {/* Acceso beta a itinerario v2 */}
+      <BetaAccess tripId={id} />
 
       {/* Zona de peligro: eliminar viaje */}
       {isOwner && (
