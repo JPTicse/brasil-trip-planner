@@ -1,5 +1,6 @@
 "use client";
 
+import { CachedImage } from "@/components/cached-image";
 import { useState } from "react";
 import { joinActivity, leaveActivity } from "@/lib/actions";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
@@ -139,9 +140,8 @@ export function ActivityDetailModal({
 
           {/* Imagen */}
           {activity.image_url && (
-            <div className="mx-5 mt-3 overflow-hidden rounded-xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={activity.image_url} alt={activity.title} className="h-40 w-full object-cover" />
+            <div className="relative mx-5 mt-3 h-40 overflow-hidden rounded-xl">
+              <CachedImage src={activity.image_url} alt={activity.title} className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
             </div>
           )}
 
@@ -224,8 +224,7 @@ export function ActivityDetailModal({
                     <div key={p.id} className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 dark:bg-zinc-800">
                       <div className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[8px] font-semibold text-white">
                         {p.profile?.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                          <CachedImage src={p.profile.avatar_url} alt="" className="object-cover" sizes="100px" />
                         ) : (
                           initials
                         )}

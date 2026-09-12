@@ -5,6 +5,7 @@ import { DeleteButton } from "@/components/ui";
 import { LocationTracker } from "@/components/location-tracker";
 import { MembersMap } from "@/components/members-map";
 import { DeleteTripButton } from "@/components/delete-trip-button";
+import { CachedImage } from "@/components/cached-image";
 import { removeTripMember, resolveAccessRequest } from "@/lib/actions";
 import type { TripMember, TripAccessRequest } from "@/lib/types";
 
@@ -107,8 +108,7 @@ function AccessRequestCard({
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-amber-600 text-sm font-semibold text-white">
           {request.profile?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={request.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+            <CachedImage src={request.profile.avatar_url} alt="" className="object-cover" sizes="40px" />
           ) : (
             initials
           )}
@@ -168,8 +168,7 @@ function MemberCard({
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-sm font-semibold text-white">
           {member.profile?.avatar_url ? (
-            // eslint-disable-next-line @next/next-no-img-element
-            <img src={member.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+            <CachedImage src={member.profile.avatar_url} alt="" className="object-cover" sizes="40px" />
           ) : (
             initials
           )}

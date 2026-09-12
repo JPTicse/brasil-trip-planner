@@ -1,3 +1,4 @@
+import { CachedImage } from "@/components/cached-image";
 import { getExpenses, getTripBalances, getTripDebts, getTripMembers } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { ExpenseForm } from "@/components/expense-form";
@@ -171,8 +172,7 @@ function CompactExpenseCard({
                       title={`${name}: ${isSettled ? "pagado" : "pendiente"}`}
                     >
                       {split.profile?.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={split.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                        <CachedImage src={split.profile.avatar_url} alt="" className="object-cover" sizes="100px" />
                       ) : (
                         initials
                       )}

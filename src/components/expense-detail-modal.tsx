@@ -1,5 +1,6 @@
 "use client";
 
+import { CachedImage } from "@/components/cached-image";
 import { useState } from "react";
 import { toggleSplitSettled } from "@/lib/actions";
 import { formatCurrency } from "@/lib/format";
@@ -105,10 +106,9 @@ export function ExpenseDetailModal({
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
+                    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
                       {split.profile?.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={split.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                        <CachedImage src={split.profile.avatar_url} alt="" className="object-cover" sizes="100px" />
                       ) : (
                         initials
                       )}

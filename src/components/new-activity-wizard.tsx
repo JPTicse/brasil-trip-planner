@@ -1,5 +1,6 @@
 "use client";
 
+import { CachedImage } from "@/components/cached-image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createActivity } from "@/lib/actions";
@@ -234,8 +235,7 @@ export function NewActivityWizard({
                       }`}
                     >
                       {s.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.photo_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"><CachedImage src={s.photo_url} alt="" className="object-cover" sizes="48px" /></div>
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xl">📍</div>
                       )}
@@ -406,9 +406,8 @@ export function NewActivityWizard({
         <Step {...stepProps} title="¿Todo listo?" subtitle="Revisa antes de guardar" hideNext>
           <div className="overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-700 bg-white dark:border-zinc-700 dark:bg-zinc-800 shadow-sm">
             {imageUrl && (
-              <div className="h-40 w-full overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+              <div className="relative h-40 w-full overflow-hidden">
+                <CachedImage src={imageUrl} alt={title} className="object-cover" sizes="(max-width: 768px) 100vw, 400px" />
               </div>
             )}
             <div className="p-4">

@@ -1,5 +1,6 @@
 "use client";
 
+import { CachedImage } from "@/components/cached-image";
 import { useState } from "react";
 import type { BalancesByCurrency, DebtsByCurrency } from "@/lib/data";
 import { formatCurrency } from "@/lib/format";
@@ -57,10 +58,9 @@ export function BalancesModal({
                     const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
                     return (
                       <div key={b.profile.id} className="flex items-center gap-3 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800">
-                        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
+                        <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-[10px] font-semibold text-white">
                           {b.profile.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={b.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                            <CachedImage src={b.profile.avatar_url} alt="" className="object-cover" sizes="100px" />
                           ) : (
                             initials
                           )}
@@ -134,10 +134,9 @@ export function DebtsModal({
 
                   return (
                     <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50/50 px-3 py-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-red-400 text-[9px] font-semibold text-white">
+                      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-red-400 text-[9px] font-semibold text-white">
                         {d.from.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={d.from.avatar_url} alt="" className="h-full w-full object-cover" />
+                          <CachedImage src={d.from.avatar_url} alt="" className="object-cover" sizes="100px" />
                         ) : (
                           fromInitials
                         )}
@@ -152,10 +151,9 @@ export function DebtsModal({
                         </div>
                         <p className="truncate text-xs font-medium text-zinc-700 dark:text-zinc-200">{toName}</p>
                       </div>
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-500 text-[9px] font-semibold text-white">
+                      <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-500 text-[9px] font-semibold text-white">
                         {d.to.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={d.to.avatar_url} alt="" className="h-full w-full object-cover" />
+                          <CachedImage src={d.to.avatar_url} alt="" className="object-cover" sizes="100px" />
                         ) : (
                           toInitials
                         )}
