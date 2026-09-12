@@ -78,7 +78,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           >
             {children}
           </div>
-          <Toaster position="top-center" richColors closeButton />
+          <Toaster position="top-right" richColors closeButton toastOptions={{ style: { marginTop: "60px" } }} />
         </ThemeProvider>
       </body>
     </html>
