@@ -94,8 +94,8 @@ export function InspireModal({
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
       >
-        {/* Header */}
-        <div className="absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/80 to-transparent pb-4 pt-4">
+        {/* Header — sticky, sin blur */}
+        <div className="sticky top-0 z-20 bg-zinc-950 pb-3 pt-4">
           <div className="flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
               <span className="text-xl">✨</span>
@@ -106,7 +106,7 @@ export function InspireModal({
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur-sm transition hover:bg-white/20 active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/20 active:scale-95 disabled:opacity-50"
               >
                 <svg className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M23 4v6h-6M1 20v-6h6" strokeLinecap="round" strokeLinejoin="round" />
@@ -116,7 +116,7 @@ export function InspireModal({
               </button>
               <button
                 onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 backdrop-blur-sm transition hover:bg-white/20 active:scale-95"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 active:scale-95"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -125,7 +125,7 @@ export function InspireModal({
             </div>
           </div>
 
-          {/* Filtros pill */}
+          {/* Filtros pill — sin blur */}
           <div className="mt-3 flex gap-2 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: "none" }}>
             {([
               { id: "trending" as Filter, label: "🔥 Tendencias" },
@@ -138,7 +138,7 @@ export function InspireModal({
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
                   filter === f.id
                     ? "bg-emerald-500 text-white"
-                    : "bg-white/10 text-white/70 backdrop-blur-sm hover:bg-white/20"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
                 }`}
               >
                 {f.label}
@@ -150,10 +150,9 @@ export function InspireModal({
         {/* Feed */}
         <div
           ref={scrollRef}
-          className="h-full overflow-y-auto overscroll-contain snap-y snap-mandatory"
+          className="h-[calc(100%-88px)] overflow-y-auto overscroll-contain snap-y snap-mandatory"
           style={{ scrollbarWidth: "none" }}
         >
-          <div className="h-20" /> {/* spacer for header */}
           {filtered.length === 0 ? (
             <div className="flex h-full items-center justify-center px-6">
               <div className="text-center">
