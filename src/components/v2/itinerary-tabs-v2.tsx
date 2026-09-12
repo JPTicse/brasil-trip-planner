@@ -38,7 +38,7 @@ export function ItineraryTabsV2({
   return (
     <div className="space-y-4">
       {/* Toggle de vistas — solo texto, sin iconos */}
-      <div className="flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
+      <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-zinc-900">
         {TABS.map((t) => {
           const isActive = tab === t.id;
           return (
@@ -51,7 +51,7 @@ export function ItineraryTabsV2({
               className={`relative flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                  : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
               }`}
             >
               {isActive && (

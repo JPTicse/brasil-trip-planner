@@ -5,7 +5,25 @@ import { ActivityDetailModalV2 as ActivityDetailModal } from "@/components/v2/ac
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatTime, formatCurrency } from "@/lib/format";
-import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
+import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
+
+const TYPE_DOT: Record<ActivityType, string> = {
+  visit: "bg-blue-500",
+  tour: "bg-violet-500",
+  meal: "bg-orange-500",
+  event: "bg-rose-500",
+  free: "bg-emerald-500",
+  transport: "bg-zinc-500",
+};
+
+const TYPE_BORDER: Record<ActivityType, string> = {
+  visit: "border-l-blue-500",
+  tour: "border-l-violet-500",
+  meal: "border-l-orange-500",
+  event: "border-l-rose-500",
+  free: "border-l-emerald-500",
+  transport: "border-l-zinc-500",
+};
 import { haptic } from "@/lib/haptics";
 import { DayChipsV2 } from "@/components/v2/day-chips-v2";
 
@@ -170,7 +188,7 @@ function TimelineItemV2({
       <div className="relative z-10 flex w-10 shrink-0 flex-col items-center">
         <div
           className={`mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-white dark:ring-zinc-950 ${
-            isNext ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
+            isNext ? "bg-emerald-500" : TYPE_DOT[activity.type]
           }`}
         />
         <span className="mt-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
@@ -183,7 +201,7 @@ function TimelineItemV2({
         className={`relative mb-1 flex-1 overflow-hidden rounded-xl border bg-white transition active:scale-[0.99] dark:bg-zinc-900 ${
           isNext
             ? "border-emerald-500"
-            : "border-zinc-200 dark:border-zinc-800"
+            : "border-zinc-200 dark:border-zinc-800 border-l-4 " + TYPE_BORDER[activity.type]
         } ${isPastActivity ? "opacity-40" : ""}`}
       >
         {isNext && (
@@ -226,7 +244,10 @@ function TimelineItemV2({
           </div>
 
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="font-medium">{ACTIVITY_TYPE_LABELS[activity.type]}</span>
+            <span className="flex items-center gap-1 font-medium">
+              <span className={`h-2 w-2 rounded-full ${TYPE_DOT[activity.type]}`} />
+              {ACTIVITY_TYPE_LABELS[activity.type]}
+            </span>
             {activity.location && (
               <span className="flex items-center gap-0.5">
                 <span className="text-zinc-300 dark:text-zinc-600">·</span>

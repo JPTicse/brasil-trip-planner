@@ -63,7 +63,7 @@ export function ExploreCardV2({
   })();
 
   const card = (
-    <div className={`overflow-hidden rounded-xl border border-zinc-200 border-l-2 ${TYPE_BORDER[activity.type]} bg-white transition active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900`}>
+    <div className={`overflow-hidden rounded-xl border border-zinc-200 bg-white transition active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 border-l-4 ${TYPE_BORDER[activity.type]}`}>
       {/* Imagen opcional */}
       {activity.image_url && (
         <div className="relative h-32 w-full overflow-hidden">
@@ -79,7 +79,7 @@ export function ExploreCardV2({
             {activity.title}
           </h4>
           <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-            <span className={`h-2 w-2 rounded-full ${TYPE_DOT[activity.type]}`} />
+            <span className={`h-2 w-2 rounded-full ring-2 ring-white dark:ring-zinc-900 ${TYPE_DOT[activity.type]}`} />
             {ACTIVITY_TYPE_LABELS[activity.type]}
           </span>
         </div>

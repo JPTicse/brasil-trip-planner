@@ -47,7 +47,7 @@ export function ActivityCardV2({
   const remaining = Math.max(0, participants.length - 3);
 
   const card = (
-    <div className={`group relative aspect-[16/9] overflow-hidden rounded-xl border border-zinc-200 border-l-2 ${TYPE_BORDER[activity.type]} transition active:scale-[0.98] dark:border-zinc-800`}>
+    <div className={`group relative aspect-[16/9] overflow-hidden rounded-xl border border-zinc-200 bg-white transition active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 border-l-4 ${TYPE_BORDER[activity.type]}`}>
       {activity.image_url ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -67,7 +67,7 @@ export function ActivityCardV2({
         {/* Arriba: tipo y acciones */}
         <div className="flex items-start justify-between">
           <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-white/80">
-            <span className={`h-2 w-2 rounded-full ${TYPE_DOT[activity.type]}`} />
+            <span className={`h-2 w-2 rounded-full ring-2 ring-white/60 ${TYPE_DOT[activity.type]}`} />
             {ACTIVITY_TYPE_LABELS[activity.type]}
           </span>
           {isCreator && (
