@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createExpense } from "@/lib/actions";
 import { Field, TextInput, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -96,6 +97,7 @@ function ExpenseFormInner({
 
   useEffect(() => {
     if (submitted && state === null) {
+      toast.success("Gasto creado ✓");
       router.refresh();
       onSuccess();
     }

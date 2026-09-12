@@ -48,16 +48,16 @@ export function ItineraryTimeline({
   tripId,
   currentUserId,
   days,
+  selectedDay,
+  onSelectDay,
 }: {
   activities: Activity[];
   tripId: string;
   currentUserId: string;
   days: string[];
+  selectedDay: string;
+  onSelectDay: (day: string) => void;
 }) {
-  const [selectedDay, setSelectedDay] = useState<string>(
-    days.length > 0 ? days[0] : "",
-  );
-
   // Agrupar por fecha
   const byDate = new Map<string, Activity[]>();
   for (const a of activities) {
@@ -69,6 +69,29 @@ export function ItineraryTimeline({
   const dayActivities = (byDate.get(selectedDay) ?? []).slice().sort((a, b) => {
     return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
   });
+
+  // Calcular "próximo" plan: primera actividad con start_time > ahora (si el día es hoy)
+  const today = new Date().toISOString().slice(0, 10);
+  const isToday = selectedDay === today;
+  const nowMinutes = (() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  })();
+  const nextActivityId = isToday
+    ? dayActivities.find((a) => {
+        if (!a.start_time) return false;
+        const start = timeToMinutes(a.start_time);
+        const end = a.end_time ? timeToMinutes(a.end_time) : start + 60;
+        // En curso o próximo (no terminado aún)
+        return end > nowMinutes;
+      })?.id
+    : undefined;
+  // Actividades ya terminadas
+  const isPast = (a: Activity) => {
+    if (!isToday || !a.start_time) return false;
+    const end = a.end_time ? timeToMinutes(a.end_time) : timeToMinutes(a.start_time) + 60;
+    return end <= nowMinutes;
+  };
 
   if (days.length === 0) {
     return (
@@ -86,7 +109,7 @@ export function ItineraryTimeline({
       <DayChips
         days={days}
         selectedDay={selectedDay}
-        onSelect={setSelectedDay}
+        onSelect={onSelectDay}
         getCount={(day) => (byDate.get(day) ?? []).length}
       />
 
@@ -113,6 +136,8 @@ export function ItineraryTimeline({
                   currentUserId={currentUserId}
                   isLast={isLast}
                   myActivities={activities}
+                  isNext={nextActivityId === a.id}
+                  isPastActivity={isPast(a)}
                 />
               );
             })}
@@ -129,12 +154,16 @@ function TimelineItem({
   currentUserId,
   isLast,
   myActivities,
+  isNext,
+  isPastActivity,
 }: {
   activity: Activity;
   tripId: string;
   currentUserId: string;
   isLast: boolean;
   myActivities?: Activity[];
+  isNext?: boolean;
+  isPastActivity?: boolean;
 }) {
   const participants = activity.participants ?? [];
   const isCreator = activity.created_by === currentUserId;
@@ -161,7 +190,16 @@ function TimelineItem({
       </div>
 
       {/* Card compacta */}
-      <div className="relative mb-1 flex-1 overflow-hidden rounded-xl border border-zinc-100 bg-white shadow-sm transition active:scale-[0.99] hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+      <div className={`relative mb-1 flex-1 overflow-hidden rounded-xl border bg-white shadow-sm transition active:scale-[0.99] hover:shadow-md dark:bg-zinc-900 ${
+        isNext
+          ? "border-emerald-500 ring-1 ring-emerald-500/30"
+          : "border-zinc-100 dark:border-zinc-800"
+      } ${isPastActivity ? "opacity-50" : ""}`}>
+        {isNext && (
+          <span className="absolute right-2 top-2 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
+            PRÓXIMO
+          </span>
+        )}
         {activity.image_url ? (
           <div className="relative h-16 w-full overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}

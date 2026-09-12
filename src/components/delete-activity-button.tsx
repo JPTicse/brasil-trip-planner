@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { deleteActivity } from "@/lib/actions";
 import { ConfirmButton } from "@/components/confirm-button";
 import type { Activity } from "@/lib/types";
@@ -15,6 +17,7 @@ export function DeleteActivityButton({
   className?: string;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const participants = activity.participants ?? [];
   const count = participants.length;
 
@@ -58,6 +61,10 @@ export function DeleteActivityButton({
       variant="danger"
       className={className}
       detail={detail}
+      onSuccess={() => {
+        toast.success("Plan eliminado");
+        router.refresh();
+      }}
     >
       {children}
     </ConfirmButton>

@@ -36,19 +36,20 @@ export function ItineraryMap({
   tripId,
   currentUserId,
   days,
+  selectedDay,
+  onSelectDay,
 }: {
   activities: Activity[];
   tripId: string;
   currentUserId: string;
   days: string[];
+  selectedDay: string;
+  onSelectDay: (day: string) => void;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const polylineRef = useRef<google.maps.Polyline | null>(null);
-  const [selectedDay, setSelectedDay] = useState<string>(
-    days.length > 0 ? days[0] : "",
-  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -199,7 +200,7 @@ export function ItineraryMap({
         <DayChips
           days={days}
           selectedDay={selectedDay}
-          onSelect={setSelectedDay}
+          onSelect={onSelectDay}
           getCount={(day) => activities.filter((a) => a.date === day && a.location_lat != null).length}
         />
       )}

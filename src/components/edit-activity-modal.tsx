@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { updateActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -129,6 +130,7 @@ function EditActivityFormInner({
 
   useEffect(() => {
     if (submitted && state === null) {
+      toast.success("Cambios guardados ✓");
       router.refresh();
       onClose();
     }

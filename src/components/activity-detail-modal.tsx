@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { joinActivity, leaveActivity } from "@/lib/actions";
+import { detectConflicts } from "@/lib/conflicts";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { Modal } from "@/components/modal";
@@ -35,13 +36,6 @@ const TYPE_ICON: Record<string, string> = {
   transport: "M4 16l2-6h12l2 6M4 16v3a1 1 0 001 1h1a1 1 0 001-1v-1M4 16h16M18 16v3a1 1 0 001 1h1a1 1 0 001-1v-1M7 10V7a2 2 0 012-2h6a2 2 0 012 2v3",
 };
 
-// Convierte "HH:MM:SS" o "HH:MM" a minutos del día
-function toMin(t: string | null | undefined): number {
-  if (!t) return 0;
-  const [h, m] = t.split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
-}
-
 export function ActivityDetailModal({
   activity,
   tripId,
@@ -64,26 +58,9 @@ export function ActivityDetailModal({
   const hasCoords = activity.location_lat != null && activity.location_lng != null;
   const bgColor = TYPE_BG[activity.type] ?? TYPE_BG.visit;
 
-  // Detectar actividades con las que se solapa
-  const detectConflicts = (): Activity[] => {
-    if (!myActivities || myActivities.length === 0) return [];
-    return myActivities.filter((a) => {
-      if (a.id === activity.id) return false;
-      if (a.date !== activity.date) return false;
-      // Sin horas -> no se puede detectar solapamiento
-      if (!a.start_time && !activity.start_time) return false;
-      // Convertir a minutos
-      const aStart = toMin(a.start_time);
-      const aEnd = a.end_time ? toMin(a.end_time) : aStart + 60;
-      const bStart = toMin(activity.start_time);
-      const bEnd = activity.end_time ? toMin(activity.end_time) : bStart + 60;
-      // Solapamiento: aStart < bEnd && bStart < aEnd
-      return aStart < bEnd && bStart < aEnd;
-    });
-  };
-
+  // Detectar actividades con las que se solapa (usa utilidad compartida)
   const handleJoinClick = (e: React.MouseEvent) => {
-    const found = detectConflicts();
+    const found = detectConflicts(activity, myActivities ?? []);
     if (found.length > 0) {
       e.preventDefault();
       setConflicts(found);

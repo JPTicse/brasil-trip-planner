@@ -22,6 +22,7 @@ export function DayChips({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
 
   const update = () => {
     const el = scrollRef.current;
@@ -73,6 +74,7 @@ export function DayChips({
       >
         {days.map((day) => {
           const isActive = day === selectedDay;
+          const isToday = day === today;
           const count = getCount(day);
           const d = new Date(day + "T00:00");
           const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(d);
@@ -87,9 +89,15 @@ export function DayChips({
               className={`relative flex h-16 w-12 shrink-0 flex-col items-center justify-center rounded-xl border text-center transition active:scale-95 ${
                 isActive
                   ? "border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                  : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  : isToday
+                    ? "border-emerald-400 bg-white text-emerald-600 dark:bg-zinc-800 dark:text-emerald-400"
+                    : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
               }`}
             >
+              {/* Punto de "hoy" */}
+              {isToday && !isActive && (
+                <span className="absolute left-1/2 top-1 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-emerald-500" />
+              )}
               {/* Badge de cantidad esquina superior derecha */}
               {hasCount && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-500 px-1 text-[10px] font-bold leading-none text-white dark:border-zinc-900">

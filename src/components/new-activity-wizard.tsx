@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createActivity } from "@/lib/actions";
 import { suggestPlace, type Suggestion } from "@/lib/suggest";
 import { getDaysBetween, formatDate } from "@/lib/format";
@@ -101,9 +102,11 @@ export function NewActivityWizard({
     }
     try {
       await createActivity(formData);
+      toast.success("Plan creado ✓");
       router.refresh();
       onClose();
     } catch (e) {
+      toast.error("Error al crear el plan");
       setFormError(e instanceof Error ? e.message : "Error al crear");
     }
   };

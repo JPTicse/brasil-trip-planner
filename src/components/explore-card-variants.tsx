@@ -4,6 +4,7 @@ import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { deleteActivity, joinActivity, leaveActivity } from "@/lib/actions";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
+import { JoinActivityButton } from "@/components/join-activity-button";
 import { formatDate, formatTime, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { AnimatedActionButton } from "@/components/animated-action-button";
@@ -144,14 +145,11 @@ export function ExploreCardA({
       </div>
       {/* Botón verde largo abajo */}
       <div className="p-2" onClick={(e) => e.stopPropagation()}>
-        <AnimatedActionButton
-          action={isJoined ? leaveActivity : joinActivity}
-          variant={isJoined ? "leave" : "join"}
-          label={isJoined ? "Unido — salir" : "Unirme"}
-          fields={[
-            { name: "activity_id", value: activity.id },
-            { name: "trip_id", value: tripId },
-          ]}
+        <JoinActivityButton
+          activity={activity}
+          tripId={tripId}
+          isJoined={isJoined}
+          myActivities={myActivities}
           className="w-full py-3"
         />
       </div>
@@ -339,14 +337,11 @@ export function ExploreCardC({
       </div>
       {/* Botón verde largo abajo */}
       <div className="p-2" onClick={(e) => e.stopPropagation()}>
-        <AnimatedActionButton
-          action={isJoined ? leaveActivity : joinActivity}
-          variant={isJoined ? "leave" : "join"}
-          label={isJoined ? "Unido — salir" : "Unirme"}
-          fields={[
-            { name: "activity_id", value: activity.id },
-            { name: "trip_id", value: tripId },
-          ]}
+        <JoinActivityButton
+          activity={activity}
+          tripId={tripId}
+          isJoined={isJoined}
+          myActivities={myActivities}
           className="w-full py-3"
         />
       </div>

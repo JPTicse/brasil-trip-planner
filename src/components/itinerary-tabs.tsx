@@ -14,6 +14,12 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "list", label: "Lista", icon: "M4 6h16M4 12h16M4 18h16" },
 ];
 
+// Defaultear a hoy si está dentro del viaje
+function getDefaultDay(days: string[]): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return days.includes(today) ? today : (days.length > 0 ? days[0] : "");
+}
+
 export function ItineraryTabs({
   activities,
   tripId,
@@ -26,6 +32,7 @@ export function ItineraryTabs({
   days: string[];
 }) {
   const [tab, setTab] = useState<Tab>("day");
+  const [selectedDay, setSelectedDay] = useState<string>(getDefaultDay(days));
 
   return (
     <div className="space-y-3">
@@ -59,6 +66,8 @@ export function ItineraryTabs({
           tripId={tripId}
           currentUserId={currentUserId}
           days={days}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
         />
       )}
 
@@ -68,6 +77,8 @@ export function ItineraryTabs({
           tripId={tripId}
           currentUserId={currentUserId}
           days={days}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
         />
       )}
 

@@ -5,7 +5,7 @@ import { joinActivity, leaveActivity } from "@/lib/actions";
 import { formatDate, formatTime } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
-import { AnimatedActionButton } from "@/components/animated-action-button";
+import { JoinActivityButton } from "@/components/join-activity-button";
 import { Modal } from "@/components/modal";
 
 function getInitials(name: string) {
@@ -201,14 +201,11 @@ function ExploreCard({
           </div>
 
           <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-            <AnimatedActionButton
-              action={isJoined ? leaveActivity : joinActivity}
-              variant={isJoined ? "leave" : "join"}
-              label={isJoined ? "Unido" : "+ Unirme"}
-              fields={[
-                { name: "activity_id", value: activity.id },
-                { name: "trip_id", value: tripId },
-              ]}
+            <JoinActivityButton
+              activity={activity}
+              tripId={tripId}
+              isJoined={isJoined}
+              myActivities={myActivities}
               className="w-full py-1.5"
             />
           </div>
