@@ -235,7 +235,7 @@ export function NewActivityWizard({
                       }`}
                     >
                       {s.photo_url ? (
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"><CachedImage src={s.photo_url} alt="" className="object-cover" sizes="48px" unoptimized /></div>
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"><CachedImage src={s.photo_url} alt="" className="object-cover" sizes="48px" /></div>
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xl">📍</div>
                       )}
