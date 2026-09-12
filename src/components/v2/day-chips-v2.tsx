@@ -2,8 +2,6 @@
 
 import { useRef, useEffect } from "react";
 import { DayChipWater1 } from "@/components/v2/day-chips-water-1";
-import { DayChipWater2 } from "@/components/v2/day-chips-water-2";
-import { DayChipWater3 } from "@/components/v2/day-chips-water-3";
 import { type Activity } from "@/lib/types";
 
 function timeToMinutes(t: string | null | undefined): number {
@@ -29,26 +27,10 @@ function getFillPercent(day: string, activities: Activity[]): number {
 }
 
 /**
- * Determina qué efecto de agua usar según el número del día:
- * - Días 1, 4, 7, 10... (dayNum % 3 === 1) → efecto 1 (onda suave)
- * - Días 2, 5, 8, 11... (dayNum % 3 === 2) → efecto 2 (bloques)
- * - Días 3, 6, 9, 12... (dayNum % 3 === 0) → efecto 3 (burbujas)
- */
-function getEffectForDay(dayNum: number): 1 | 2 | 3 {
-  const mod = dayNum % 3;
-  if (mod === 1) return 1;
-  if (mod === 2) return 2;
-  return 3;
-}
-
-/**
  * Day chips v2 con efecto de "agua" que muestra cuántas horas
  * de actividades están agendadas por día.
  *
- * Cada día usa un efecto distinto para comparar:
- * - Efecto 1: onda suave (días 1, 4, 7, 10...)
- * - Efecto 2: bloques escalonados (días 2, 5, 8, 11...)
- * - Efecto 3: burbujas (días 3, 6, 9, 12...)
+ * Usa el efecto 1 (onda suave) para todos los días.
  */
 export function DayChipsV2({
   days,
@@ -81,28 +63,23 @@ export function DayChipsV2({
       className="flex gap-2 overflow-x-auto pb-1"
       style={{ scrollbarWidth: "none" }}
     >
-      {days.map((day, idx) => {
+      {days.map((day) => {
         const isActive = day === selectedDay;
         const isToday = day === today;
         const d = new Date(day + "T00:00");
         const dayNum = d.getDate();
         const fillPercent = getFillPercent(day, activities);
-        const effect = getEffectForDay(dayNum);
-
-        const chipProps = {
-          day,
-          dayNum,
-          isSelected: isActive,
-          isToday,
-          fillPercent,
-          onSelect: () => onSelect(day),
-        };
 
         return (
           <div key={day} className="shrink-0">
-            {effect === 1 && <DayChipWater1 {...chipProps} />}
-            {effect === 2 && <DayChipWater2 {...chipProps} />}
-            {effect === 3 && <DayChipWater3 {...chipProps} />}
+            <DayChipWater1
+              day={day}
+              dayNum={dayNum}
+              isSelected={isActive}
+              isToday={isToday}
+              fillPercent={fillPercent}
+              onSelect={() => onSelect(day)}
+            />
           </div>
         );
       })}
