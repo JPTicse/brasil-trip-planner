@@ -73,24 +73,30 @@ export function InspireModal({
     };
   }, [selected]);
 
-  // Dividir: spots con viral_trend (fotos trendy) vs todos (lugares)
-  const trendySpots = localInspirations.filter((i) => i.viral_trend);
+  // Dividir: spots con photo_concepts (fotos trendy) vs todos (lugares)
+  const trendySpots = localInspirations.filter((i) => i.photo_concepts && i.photo_concepts.length > 0);
   const allSpots = localInspirations;
 
   // Tab activa determina la lista base
   const baseList = tab === "photos" ? trendySpots : allSpots;
 
-  // Filtrar y ordenar
+  // Ordenar por score según la tab
   const filtered = (() => {
     const list = [...baseList];
-    if (filter === "trending") {
+    if (tab === "photos") {
+      // Fotos trendy: score de Instagram, luego dificultad, luego rating
       list.sort((a, b) => {
-        const scoreA = (a.rating ?? 0) * Math.log(1 + (a.user_ratings_total ?? 0));
-        const scoreB = (b.rating ?? 0) * Math.log(1 + (b.user_ratings_total ?? 0));
+        const scoreA = (a.instagram_score ?? 0) * 100 + (a.rating ?? 0) / 10 - (a.difficulty ?? 0);
+        const scoreB = (b.instagram_score ?? 0) * 100 + (b.rating ?? 0) / 10 - (b.difficulty ?? 0);
         return scoreB - scoreA;
       });
-    } else if (filter === "best-rated") {
-      list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    } else {
+      // Lugares: rating real de Google
+      list.sort((a, b) => {
+        const scoreA = (a.rating ?? 0) * 10 + (a.user_ratings_total ?? 0) / 1000;
+        const scoreB = (b.rating ?? 0) * 10 + (b.user_ratings_total ?? 0) / 1000;
+        return scoreB - scoreA;
+      });
     }
     return list;
   })();
@@ -167,12 +173,12 @@ export function InspireModal({
           </div>
 
           {/* Tabs principales: Fotos trendy / Lugares que visitar */}
-          <div className="mt-3 flex gap-1 px-4">
+          <div className="mt-3 flex gap-2 px-4 pb-1">
             <button
               onClick={() => setTab("photos")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition active:scale-95 ${
                 tab === "photos"
-                  ? "bg-fuchsia-500 text-white"
+                  ? "bg-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/25"
                   : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
             >
@@ -185,9 +191,9 @@ export function InspireModal({
             </button>
             <button
               onClick={() => setTab("places")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95 ${
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-sm font-bold transition active:scale-95 ${
                 tab === "places"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
                   : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
             >
@@ -198,27 +204,6 @@ export function InspireModal({
                 </span>
               )}
             </button>
-          </div>
-
-          {/* Sub-filtros pill */}
-          <div className="mt-2 flex gap-2 overflow-x-auto px-4 pb-1" style={{ scrollbarWidth: "none" }}>
-            {([
-              { id: "trending" as Filter, label: "🔥 Tendencias" },
-              { id: "best-rated" as Filter, label: "⭐ Mejor valoradas" },
-              { id: "all" as Filter, label: "Todas" },
-            ]).map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition active:scale-95 ${
-                  filter === f.id
-                    ? "bg-white/20 text-white"
-                    : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -407,8 +392,21 @@ function ImageCollage({
   if (images.length === 0) {
     const gradient = CATEGORY_GRADIENTS[category ?? ""] ?? "from-zinc-700 to-zinc-900";
     return (
-      <div className={`flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br ${gradient}`}>
-        <span className="text-6xl opacity-80">{emoji ?? "📍"}</span>
+      <div className={`relative flex aspect-[4/3] w-full flex-col items-center justify-center bg-gradient-to-br ${gradient} p-6 text-center`}>
+        {/* Icono pequeño */}
+        {emoji && (
+          <span className="text-3xl opacity-70">{emoji}</span>
+        )}
+        {/* Título del lugar */}
+        {title && (
+          <p className="mt-2 line-clamp-2 text-sm font-bold text-white/90">
+            {title}
+          </p>
+        )}
+        {/* Indicador de que falta foto */}
+        <p className="mt-1 text-[10px] text-white/40">
+          Sincronizando foto…
+        </p>
       </div>
     );
   }
@@ -566,8 +564,14 @@ function PlaceDetailSheet({
               ))}
             </div>
           ) : (
-            <div className={`flex aspect-[4/3] w-full items-center justify-center bg-gradient-to-br ${CATEGORY_GRADIENTS[inspiration.category ?? ""] ?? "from-zinc-800 to-zinc-900"}`}>
-              <span className="text-7xl opacity-80">{inspiration.emoji ?? "📍"}</span>
+            <div className={`relative flex aspect-[4/3] w-full flex-col items-center justify-center bg-gradient-to-br ${CATEGORY_GRADIENTS[inspiration.category ?? ""] ?? "from-zinc-800 to-zinc-900"} p-6 text-center`}>
+              {inspiration.emoji && (
+                <span className="text-3xl opacity-70">{inspiration.emoji}</span>
+              )}
+              <p className="mt-2 line-clamp-2 text-sm font-bold text-white/90">
+                {inspiration.title}
+              </p>
+              <p className="mt-1 text-[10px] text-white/40">Sincronizando foto…</p>
             </div>
           )}
 

@@ -213,7 +213,7 @@ export const CURATED_SPOTS_RIO: CuratedSpot[] = [
     lat: -22.9486,
     lng: -43.1566,
     search_query: "Pão de Açúcar Sugarloaf Mountain Rio de Janeiro",
-    emoji: "🍞",
+    emoji: "⛰️",
     photo_concepts: [
       {
         title: "Mirador con la bahía de fondo",
