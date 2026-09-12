@@ -38,7 +38,7 @@ export function ItineraryTabsV2({
   return (
     <div className="space-y-4">
       {/* Toggle de vistas — solo texto, sin iconos */}
-      <div className="flex gap-1 rounded-xl bg-stone-100 p-1 dark:bg-stone-800/50">
+      <div className="flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-800">
         {TABS.map((t) => {
           const isActive = tab === t.id;
           return (
@@ -50,14 +50,14 @@ export function ItineraryTabsV2({
               }}
               className={`relative flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? "text-stone-900 dark:text-stone-50"
-                  : "text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
               }`}
             >
               {isActive && (
                 <motion.span
                   layoutId="activeTabIndicator"
-                  className="absolute inset-0 rounded-lg bg-white shadow-sm dark:bg-stone-900"
+                  className="absolute inset-0 rounded-lg bg-white shadow-sm dark:bg-zinc-800"
                   transition={{ type: "spring", stiffness: 400, damping: 32 }}
                 />
               )}
@@ -97,14 +97,14 @@ export function ItineraryTabsV2({
             return (
               <div key={day} className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                     {new Intl.DateTimeFormat("es-ES", {
                       weekday: "long",
                       day: "numeric",
                       month: "short",
                     }).format(new Date(day + "T00:00"))}
                   </span>
-                  <div className="h-px flex-1 bg-stone-100 dark:bg-stone-800" />
+                  <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
                 </div>
                 <div className="space-y-3">
                   {dayActivities.map((a) => (

@@ -61,8 +61,8 @@ export function DayChipsV2({
             transition={{ type: "spring", stiffness: 500, damping: 14, mass: 0.6 }}
             className={`relative flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg border ${
               isActive
-                ? "border-stone-900 bg-stone-900 text-white dark:border-white dark:bg-white dark:text-stone-900"
-                : "border-stone-200 bg-white text-stone-600 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400"
+                ? "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900"
+                : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
             }`}
           >
             {isToday && !isActive && (

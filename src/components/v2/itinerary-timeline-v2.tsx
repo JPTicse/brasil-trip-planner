@@ -87,7 +87,7 @@ export function ItineraryTimelineV2({
   if (days.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-stone-400 dark:text-stone-500">
+        <p className="text-sm text-zinc-400 dark:text-zinc-500">
           No hay actividades con fechas todavía.
         </p>
       </div>
@@ -100,14 +100,14 @@ export function ItineraryTimelineV2({
 
       {dayActivities.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-sm text-stone-400 dark:text-stone-500">
+          <p className="text-sm text-zinc-400 dark:text-zinc-500">
             No hay planes para este día.
           </p>
         </div>
       ) : (
         <div className="relative pl-1">
           {/* Línea vertical fina */}
-          <div className="absolute bottom-2 left-[5px] top-2 w-px bg-stone-200 dark:bg-stone-800" />
+          <div className="absolute bottom-2 left-[5px] top-2 w-px bg-zinc-200 dark:bg-zinc-800" />
 
           <motion.div
             key={selectedDay}
@@ -169,21 +169,21 @@ function TimelineItemV2({
       {/* Hora + punto (sin emoji, sin color de tipo) */}
       <div className="relative z-10 flex w-10 shrink-0 flex-col items-center">
         <div
-          className={`mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-white dark:ring-stone-950 ${
-            isNext ? "bg-emerald-500" : "bg-stone-300 dark:bg-stone-600"
+          className={`mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-white dark:ring-zinc-950 ${
+            isNext ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-600"
           }`}
         />
-        <span className="mt-1.5 text-xs font-medium text-stone-600 dark:text-stone-400">
+        <span className="mt-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
           {activity.start_time ? formatTime(activity.start_time) : "—"}
         </span>
       </div>
 
       {/* Card minimalista: sin sombra, borde sutil */}
       <div
-        className={`relative mb-1 flex-1 overflow-hidden rounded-xl border bg-white transition active:scale-[0.99] dark:bg-stone-900 ${
+        className={`relative mb-1 flex-1 overflow-hidden rounded-xl border bg-white transition active:scale-[0.99] dark:bg-zinc-900 ${
           isNext
             ? "border-emerald-500"
-            : "border-stone-200 dark:border-stone-800"
+            : "border-zinc-200 dark:border-zinc-800"
         } ${isPastActivity ? "opacity-40" : ""}`}
       >
         {isNext && (
@@ -206,7 +206,7 @@ function TimelineItemV2({
 
         <div className="p-3">
           <div className="flex items-start justify-between gap-2">
-            <h4 className="line-clamp-1 text-sm font-semibold text-stone-900 dark:text-stone-50">
+            <h4 className="line-clamp-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
               {activity.title}
             </h4>
             {isCreator && (
@@ -215,7 +215,7 @@ function TimelineItemV2({
                 <DeleteActivityButton
                   activity={activity}
                   tripId={tripId}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-stone-400 transition hover:bg-red-500 hover:text-white active:scale-90 dark:text-stone-500"
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-zinc-400 transition hover:bg-red-500 hover:text-white active:scale-90 dark:text-zinc-500"
                 >
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
@@ -225,19 +225,19 @@ function TimelineItemV2({
             )}
           </div>
 
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="font-medium">{ACTIVITY_TYPE_LABELS[activity.type]}</span>
             {activity.location && (
               <span className="flex items-center gap-0.5">
-                <span className="text-stone-300 dark:text-stone-600">·</span>
+                <span className="text-zinc-300 dark:text-zinc-600">·</span>
                 <span className="max-w-[140px] truncate">{activity.location}</span>
               </span>
             )}
             {activity.cost !== null && activity.cost > 0 && (
-              <span className="text-stone-300 dark:text-stone-600">·</span>
+              <span className="text-zinc-300 dark:text-zinc-600">·</span>
             )}
             {activity.cost !== null && activity.cost > 0 && (
-              <span className="font-medium text-stone-700 dark:text-stone-300">
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
                 {formatCurrency(activity.cost, activity.currency)}
               </span>
             )}
@@ -250,7 +250,7 @@ function TimelineItemV2({
                 return (
                   <div
                     key={p.id}
-                    className="relative flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-white bg-stone-200 text-[8px] font-bold text-stone-600 dark:border-stone-900 dark:bg-stone-700 dark:text-stone-200"
+                    className="relative flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-white bg-zinc-200 text-[8px] font-bold text-zinc-600 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-200"
                     style={{ zIndex: 3 - i }}
                     title={name}
                   >
@@ -264,7 +264,7 @@ function TimelineItemV2({
                 );
               })}
               {remaining > 0 && (
-                <div className="z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-stone-300 text-[8px] font-bold text-stone-600 dark:border-stone-900 dark:bg-stone-600 dark:text-stone-200">
+                <div className="z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-zinc-300 text-[8px] font-bold text-zinc-600 dark:border-zinc-900 dark:bg-zinc-600 dark:text-zinc-200">
                   +{remaining}
                 </div>
               )}

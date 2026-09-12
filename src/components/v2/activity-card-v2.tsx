@@ -6,14 +6,24 @@ import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 
-// Colored dot per type — "free" uses teal to distinguish from the emerald accent
+// Colores originales por tipo (coinciden con v1).
 const TYPE_DOT: Record<ActivityType, string> = {
   visit: "bg-blue-500",
   tour: "bg-violet-500",
   meal: "bg-orange-500",
   event: "bg-rose-500",
-  free: "bg-teal-500",
+  free: "bg-emerald-500",
   transport: "bg-zinc-500",
+};
+
+// Acento de borde izquierdo por tipo para destacar el color.
+const TYPE_BORDER: Record<ActivityType, string> = {
+  visit: "border-l-blue-500",
+  tour: "border-l-violet-500",
+  meal: "border-l-orange-500",
+  event: "border-l-rose-500",
+  free: "border-l-emerald-500",
+  transport: "border-l-zinc-500",
 };
 
 function getInitials(name: string) {
@@ -37,7 +47,7 @@ export function ActivityCardV2({
   const remaining = Math.max(0, participants.length - 3);
 
   const card = (
-    <div className="group relative aspect-[16/9] overflow-hidden rounded-xl border border-stone-200 transition active:scale-[0.98] dark:border-stone-800">
+    <div className={`group relative aspect-[16/9] overflow-hidden rounded-xl border border-zinc-200 border-l-2 ${TYPE_BORDER[activity.type]} transition active:scale-[0.98] dark:border-zinc-800`}>
       {activity.image_url ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -50,14 +60,14 @@ export function ActivityCardV2({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         </>
       ) : (
-        <div className="h-full w-full bg-stone-100 dark:bg-stone-800" />
+        <div className="h-full w-full bg-zinc-100 dark:bg-zinc-800" />
       )}
 
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         {/* Arriba: tipo y acciones */}
         <div className="flex items-start justify-between">
           <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-white/80">
-            <span className={`h-1.5 w-1.5 rounded-full ${TYPE_DOT[activity.type]}`} />
+            <span className={`h-2 w-2 rounded-full ${TYPE_DOT[activity.type]}`} />
             {ACTIVITY_TYPE_LABELS[activity.type]}
           </span>
           {isCreator && (
@@ -77,26 +87,26 @@ export function ActivityCardV2({
         </div>
 
         {/* Abajo: info */}
-        <div className={activity.image_url ? "text-white" : "text-stone-900 dark:text-stone-100"}>
+        <div className={activity.image_url ? "text-white" : "text-zinc-900 dark:text-zinc-100"}>
           <h4 className="line-clamp-1 text-base font-semibold leading-tight">
             {activity.title}
           </h4>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs opacity-80">
             <span>{formatDateShort(activity.date)}</span>
             {(activity.start_time || activity.end_time) && (
-              <span className="text-stone-300 dark:text-stone-600">
+              <span className="text-zinc-300 dark:text-zinc-600">
                 · {formatTime(activity.start_time)}
                 {activity.end_time && ` – ${formatTime(activity.end_time)}`}
               </span>
             )}
             {activity.location && (
-              <span className="text-stone-300 dark:text-stone-600">·</span>
+              <span className="text-zinc-300 dark:text-zinc-600">·</span>
             )}
             {activity.location && (
               <span className="max-w-[140px] truncate">{activity.location}</span>
             )}
             {activity.cost !== null && activity.cost > 0 && (
-              <span className="text-stone-300 dark:text-stone-600">·</span>
+              <span className="text-zinc-300 dark:text-zinc-600">·</span>
             )}
             {activity.cost !== null && activity.cost > 0 && (
               <span className="font-medium">{formatCurrency(activity.cost, activity.currency)}</span>
@@ -110,7 +120,7 @@ export function ActivityCardV2({
                 return (
                   <div
                     key={p.id}
-                    className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white bg-stone-200 text-[9px] font-bold text-stone-600 dark:border-stone-900 dark:bg-stone-700 dark:text-stone-200"
+                    className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white bg-zinc-200 text-[9px] font-bold text-zinc-600 dark:border-zinc-900 dark:bg-zinc-700 dark:text-zinc-200"
                     style={{ zIndex: 3 - i }}
                     title={name}
                   >
@@ -124,7 +134,7 @@ export function ActivityCardV2({
                 );
               })}
               {remaining > 0 && (
-                <div className="z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-stone-300 text-[9px] font-bold text-stone-600 dark:border-stone-900 dark:bg-stone-600 dark:text-stone-200">
+                <div className="z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-zinc-300 text-[9px] font-bold text-zinc-600 dark:border-zinc-900 dark:bg-zinc-600 dark:text-zinc-200">
                   +{remaining}
                 </div>
               )}
