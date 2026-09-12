@@ -30,14 +30,15 @@ function getFillPercent(day: string, activities: Activity[]): number {
 
 /**
  * Determina qué efecto de agua usar según el número del día:
- * - Múltiplo de 3 → efecto 3 (burbujas)
- * - Múltiplo de 2 (no de 3) → efecto 2 (bloques)
- * - Resto → efecto 1 (onda suave)
+ * - Días 1, 4, 7, 10... (dayNum % 3 === 1) → efecto 1 (onda suave)
+ * - Días 2, 5, 8, 11... (dayNum % 3 === 2) → efecto 2 (bloques)
+ * - Días 3, 6, 9, 12... (dayNum % 3 === 0) → efecto 3 (burbujas)
  */
 function getEffectForDay(dayNum: number): 1 | 2 | 3 {
-  if (dayNum % 3 === 0) return 3;
-  if (dayNum % 2 === 0) return 2;
-  return 1;
+  const mod = dayNum % 3;
+  if (mod === 1) return 1;
+  if (mod === 2) return 2;
+  return 3;
 }
 
 /**
@@ -45,9 +46,9 @@ function getEffectForDay(dayNum: number): 1 | 2 | 3 {
  * de actividades están agendadas por día.
  *
  * Cada día usa un efecto distinto para comparar:
- * - Efecto 1: onda suave (días no múltiplos de 2 ni 3)
- * - Efecto 2: bloques escalonados (días múltiplos de 2)
- * - Efecto 3: burbujas (días múltiplos de 3)
+ * - Efecto 1: onda suave (días 1, 4, 7, 10...)
+ * - Efecto 2: bloques escalonados (días 2, 5, 8, 11...)
+ * - Efecto 3: burbujas (días 3, 6, 9, 12...)
  */
 export function DayChipsV2({
   days,
