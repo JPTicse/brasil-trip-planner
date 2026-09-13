@@ -4,6 +4,7 @@
 import type { CuratedSpot } from "@/lib/photo-types";
 import { getCuratedSpotsForCity } from "@/lib/curated-spots";
 import { isTourismBusiness } from "@/lib/tourism-filter";
+import { getSpotImageUrls } from "@/lib/spot-images";
 import type { Inspiration } from "@/lib/types";
 
 type GPlaceResult = google.maps.places.PlaceResult;
@@ -116,15 +117,28 @@ function getDetails(
   });
 }
 
-function placeToInspiration(place: GPlaceResult, curatedSpot?: CuratedSpot): Inspiration {
+function placeToInspiration(place: GPlaceResult, curatedSpot?: CuratedSpot, cityHint?: string): Inspiration {
   const types = place.types ?? [];
   const suggestedType = curatedSpot?.type ?? typeToActivity(types);
-  const imageUrls: string[] = [];
-  if (place.photos) {
+
+  // Preferir imágenes curadas (reales y fiables). Google Places fotos como fallback.
+  // Si no hay nada, usar Unsplash con el nombre del destino como último recurso.
+  let imageUrls: string[] = [];
+  if (curatedSpot) {
+    imageUrls = getSpotImageUrls(curatedSpot, cityHint);
+  }
+  if (imageUrls.length === 0 && place.photos) {
     for (const photo of place.photos) {
       imageUrls.push(photo.getUrl({ maxWidth: 800 }));
       if (imageUrls.length >= 10) break;
     }
+  }
+  if (imageUrls.length === 0 && cityHint) {
+    const safeCity = encodeURIComponent(cityHint.toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim());
+    imageUrls = [
+      `https://source.unsplash.com/800x600/?${safeCity}&sig=0`,
+      `https://source.unsplash.com/800x600/?${safeCity},landmark&sig=1`,
+    ];
   }
   const location = place.geometry?.location;
   const lat = location?.lat();
@@ -164,15 +178,16 @@ function placeToInspiration(place: GPlaceResult, curatedSpot?: CuratedSpot): Ins
   } as Inspiration;
 }
 
-function curatedToInspiration(spot: CuratedSpot): Inspiration {
+function curatedToInspiration(spot: CuratedSpot, cityHint?: string): Inspiration {
+  const imageUrls = getSpotImageUrls(spot, cityHint);
   return {
     id: `curated-${spot.name}`,
     place_id: `curated-${spot.name}`,
     trip_id: "",
     title: spot.name,
     address: spot.address,
-    image_url: null,
-    image_urls: [],
+    image_url: imageUrls[0] ?? null,
+    image_urls: imageUrls,
     description: spot.description,
     viral_trend: spot.viral_trend ?? null,
     category: spot.category,
@@ -267,22 +282,22 @@ export async function fetchInspirationsClient(
 
             if (found && found.place_id) {
               if (isTourismBusiness(found.name ?? "", found.types ?? [])) {
-                return curatedToInspiration(spot);
+                return curatedToInspiration(spot, destination);
               }
 
               const detailed = await getDetails(service, found.place_id);
               if (detailed) {
                 if (isTourismBusiness(detailed.name ?? "", detailed.types ?? [])) {
-                  return curatedToInspiration(spot);
+                  return curatedToInspiration(spot, destination);
                 }
-                const insp = placeToInspiration(detailed, spot);
+                const insp = placeToInspiration(detailed, spot, destination);
                 if (insp) {
                   insp.title = spot.name;
                   return insp;
                 }
               }
 
-              const basicInsp = placeToInspiration(found, spot);
+              const basicInsp = placeToInspiration(found, spot, destination);
               if (basicInsp) {
                 basicInsp.title = spot.name;
                 return basicInsp;
@@ -291,7 +306,7 @@ export async function fetchInspirationsClient(
           } catch {
             // fallback al spot curado sin enriquecer
           }
-          return curatedToInspiration(spot);
+          return curatedToInspiration(spot, destination);
         }),
       );
 
@@ -351,7 +366,7 @@ export async function fetchInspirationsClient(
     for (const place of batchResults) {
       if (place && place.place_id) {
         if (isTourismBusiness(place.name ?? "", place.types ?? [])) continue;
-        const insp = placeToInspiration(place);
+        const insp = placeToInspiration(place, undefined, destination);
         if (insp.image_urls.length > 0) {
           // Solo añadir si no está ya en curated (mismo place_id)
           if (!resultsById.has(insp.place_id)) {

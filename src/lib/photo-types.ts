@@ -47,6 +47,8 @@ export type CuratedSpot = {
   difficulty?: number;
   // NUEVO: mejor hora del día
   best_time?: string;
+  // NUEVO: URLs de imágenes reales del lugar (primaria, no depende de Google)
+  image_urls?: string[];
   address: string;
   lat: number;
   lng: number;
