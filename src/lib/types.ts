@@ -207,6 +207,10 @@ export type PhotoConcept = {
   instagram_score: number;
   camera_tip?: string | null;
   format?: string | null;
+  // NUEVO: URLs de imágenes de referencia que muestran la pose
+  reference_image_urls?: string[];
+  // NUEVO: URL de la página fuente
+  reference_source_urls?: string[];
 };
 
 export type Inspiration = {

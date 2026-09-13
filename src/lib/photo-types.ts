@@ -20,6 +20,10 @@ export type PhotoConcept = {
   format?: string;
   // Nota de seguridad si aplica
   safety_note?: string;
+  // NUEVO: URLs de imágenes de referencia que muestran la pose (Google CSE)
+  reference_image_urls?: string[];
+  // NUEVO: URL de la página fuente donde aparece cada imagen
+  reference_source_urls?: string[];
 };
 
 export type CuratedSpot = {

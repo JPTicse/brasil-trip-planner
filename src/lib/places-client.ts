@@ -5,6 +5,7 @@ import type { CuratedSpot } from "@/lib/photo-types";
 import { getCuratedSpotsForCity } from "@/lib/curated-spots";
 import { isTourismBusiness } from "@/lib/tourism-filter";
 import { getSpotImageUrls } from "@/lib/spot-images";
+import { searchSpotPoseImages } from "@/lib/image-search";
 import type { Inspiration } from "@/lib/types";
 
 type GPlaceResult = google.maps.places.PlaceResult;
@@ -317,6 +318,34 @@ export async function fetchInspirationsClient(
       if (i + batchSize < curatedSpots.length) {
         await sleep(300);
       }
+    }
+
+    // --- STEP 1.5: Buscar imágenes de referencia de poses con Google CSE ---
+    // Para cada spot con photo_concepts, buscar imágenes reales que muestren la pose.
+    // Esto se hace en paralelo para todos los spots, sin bloquear el flujo principal.
+    const cseKey = process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY;
+    if (cseKey) {
+      const poseSearchPromises = curatedSpots.map(async (spot) => {
+        if (!spot.photo_concepts || spot.photo_concepts.length === 0) return;
+        try {
+          const refs = await searchSpotPoseImages(spot, destination);
+          // Actualizar el Inspiration correspondiente con las referencias
+          const inspId = `curated-${spot.name}`;
+          const insp = resultsById.get(inspId);
+          if (insp && insp.photo_concepts) {
+            for (const [idxStr, images] of Object.entries(refs)) {
+              const idx = parseInt(idxStr, 10);
+              if (insp.photo_concepts[idx]) {
+                insp.photo_concepts[idx].reference_image_urls = images.map((r) => r.url);
+                insp.photo_concepts[idx].reference_source_urls = images.map((r) => r.source_url);
+              }
+            }
+          }
+        } catch {
+          // ignorar errores de búsqueda de poses
+        }
+      });
+      await Promise.allSettled(poseSearchPromises);
     }
   }
 
