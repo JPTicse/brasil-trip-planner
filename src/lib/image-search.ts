@@ -40,7 +40,9 @@ export async function searchPoseImages(
   query: string,
   count = 4,
 ): Promise<ImageReference[]> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY;
+  const apiKey =
+    process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const cseId = process.env.NEXT_PUBLIC_GOOGLE_CSE_ID;
 
   if (!apiKey || !cseId) {
@@ -113,7 +115,9 @@ export async function searchSpotPoseImages(
   const result: Record<number, ImageReference[]> = {};
   if (!spot.photo_concepts || spot.photo_concepts.length === 0) return result;
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY;
+  const apiKey =
+    process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) return result;
 
   // Buscar en paralelo (máx 4 imágenes por concepto)

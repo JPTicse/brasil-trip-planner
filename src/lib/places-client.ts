@@ -323,7 +323,9 @@ export async function fetchInspirationsClient(
     // --- STEP 1.5: Buscar imágenes de referencia de poses con Google CSE ---
     // Para cada spot con photo_concepts, buscar imágenes reales que muestren la pose.
     // Esto se hace en paralelo para todos los spots, sin bloquear el flujo principal.
-    const cseKey = process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY;
+    const cseKey =
+      process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (cseKey) {
       const poseSearchPromises = curatedSpots.map(async (spot) => {
         if (!spot.photo_concepts || spot.photo_concepts.length === 0) return;
