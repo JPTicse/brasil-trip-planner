@@ -195,7 +195,7 @@ export function InspireModal({
                   : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
             >
-              📸 Fotos trendy
+              📸 Foto poses trendy
               {trendySpots.length > 0 && (
                 <span className={`rounded-full px-1.5 text-[10px] ${tab === "photos" ? "bg-white/20" : "bg-white/10"}`}>
                   {trendySpots.length}
@@ -232,12 +232,12 @@ export function InspireModal({
                 <div className="mb-3 text-4xl">{tab === "photos" ? "📸" : "📍"}</div>
                 <p className="text-sm font-medium text-white/80">
                   {tab === "photos"
-                    ? "No hay fotos trending aún"
+                    ? "No hay foto poses trending aún"
                     : "No hay lugares aún"}
                 </p>
                 <p className="mt-1 text-xs text-white/50">
                   {tab === "photos"
-                    ? "Busca inspiraciones para ver fotos que puedes replicar"
+                    ? "Busca inspiraciones para ver poses que puedes replicar"
                     : `Busca lugares que visitar en ${tripDestination}`}
                 </p>
               </div>
@@ -421,13 +421,11 @@ function ImageCollage({
   category?: string | null;
   title?: string;
 }) {
-  // Proxy external images through /api/image-proxy to avoid hotlinking/CORS.
-  // Google Places URLs work fine directly, no need to proxy.
+  // Solo proxyar Flickr (tiene hotlinking bloqueado).
+  // Wikimedia, Unsplash, Google: funcionan directas en el navegador.
   const needsProxy = (url: string) => {
     if (url.startsWith("/api/") || url.startsWith("data:")) return false;
-    if (url.includes("googleusercontent.com")) return false;
-    if (url.includes("maps.googleapis.com")) return false;
-    return true;
+    return url.includes("staticflickr.com");
   };
   const proxiedImages = sourceImages.map((url) =>
     needsProxy(url) ? `/api/image-proxy?url=${encodeURIComponent(url)}` : url,
@@ -629,8 +627,7 @@ function PlaceDetailSheet({
             >
               {finalImages.map((src, i) => {
                 const needsProxy = !src.startsWith("/api/") && !src.startsWith("data:")
-                  && !src.includes("googleusercontent.com")
-                  && !src.includes("maps.googleapis.com");
+                  && src.includes("staticflickr.com");
                 const proxiedSrc = needsProxy
                   ? `/api/image-proxy?url=${encodeURIComponent(src)}`
                   : src;
@@ -753,8 +750,7 @@ function PlaceDetailSheet({
                             {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
                               const sourceUrl = concept.reference_source_urls?.[ri];
                               const needsProxy = !imgUrl.startsWith("/api/") && !imgUrl.startsWith("data:")
-                                && !imgUrl.includes("googleusercontent.com")
-                                && !imgUrl.includes("maps.googleapis.com");
+                                && imgUrl.includes("staticflickr.com");
                               const proxiedUrl = needsProxy
                                 ? `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`
                                 : imgUrl;

@@ -222,35 +222,33 @@ export async function GET(request: NextRequest) {
     // Boolean OR para términos de personas + nombre del lugar
     openverseQuery = `(people|tourist|person|crowd|traveler) ${query}`;
     pexelsQuery = `tourist posing ${query}`;
-    wikiQuery = `${query} person tourist`;
   } else {
     // PLACE: buscar fotos del lugar (paisaje, arquitectura)
     openverseQuery = query;
     pexelsQuery = query;
-    wikiQuery = query;
   }
 
-  // Buscar en paralelo en todas las fuentes
-  const [ovFlickr, ovAll, pexelsResults, wikiResults] = await Promise.all([
+  // Buscar en paralelo en Openverse (Flickr + Wikimedia via aggregator) y Pexels
+  // No llamamos Wikimedia directamente: Openverse ya lo agrega y las URLs directas
+  // de Wikimedia a menudo devuelven 400/404.
+  const [ovFlickr, ovAll, pexelsResults] = await Promise.all([
     // Para poses: priorizar Flickr (tiene más fotos de usuarios con personas)
     searchOpenverse(openverseQuery, count, {
       peopleFocus: isPose,
       source: isPose ? "flickr" : undefined,
     }),
-    // Openverse sin filtro de source (todos los sources)
+    // Openverse sin filtro de source (todos los sources incluido Wikimedia)
     searchOpenverse(openverseQuery, count, { peopleFocus: isPose }),
     // Pexels (si hay API key)
     searchPexels(pexelsQuery, count),
-    // Wikimedia
-    searchWikimedia(wikiQuery, count),
   ]);
 
   // Combinar resultados, deduplicar por URL
-  // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Openverse all > Wikimedia
+  // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Openverse all
   const seen = new Set<string>();
   const combined: ImageResult[] = [];
 
-  const allResults = [...pexelsResults, ...ovFlickr, ...ovAll, ...wikiResults];
+  const allResults = [...pexelsResults, ...ovFlickr, ...ovAll];
 
   for (const r of allResults) {
     if (seen.has(r.url)) continue;
@@ -261,11 +259,8 @@ export async function GET(request: NextRequest) {
 
   // Si no hay suficientes y es pose, intentar query más simple (solo nombre del lugar)
   if (combined.length < count && isPose) {
-    const [fallbackOv, fallbackWiki] = await Promise.all([
-      searchOpenverse(query, count - combined.length, { source: "flickr" }),
-      searchWikimedia(query, count - combined.length),
-    ]);
-    for (const r of [...fallbackOv, ...fallbackWiki]) {
+    const fallbackOv = await searchOpenverse(query, count - combined.length, { source: "flickr" });
+    for (const r of fallbackOv) {
       if (seen.has(r.url)) continue;
       seen.add(r.url);
       combined.push(r);
