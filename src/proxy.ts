@@ -15,6 +15,6 @@ export const config = {
      * - api (API routes)
      * - svg, png, jpg, jpeg, gif, webp, ico (image files)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

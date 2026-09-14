@@ -81,7 +81,7 @@ function findPlace(
   return new Promise((resolve) => {
     const request: google.maps.places.FindPlaceFromQueryRequest = {
       query,
-      fields: ["place_id", "name", "formatted_address", "photos", "rating", "user_ratings_total", "types", "price_level", "opening_hours", "website", "editorial_summary"],
+      fields: ["place_id", "name", "formatted_address", "photos", "rating", "user_ratings_total", "types", "price_level", "opening_hours"],
     };
     if (location) {
       request.locationBias = location;
