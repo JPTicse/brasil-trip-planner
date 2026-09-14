@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
   const type = searchParams.get("type") ?? "place"; // "place" o "pose"
-  const count = Math.min(Number(searchParams.get("count") ?? "5"), 10);
+  const count = Math.min(Number(searchParams.get("count") ?? "5"), 15);
 
   if (!query) {
     return NextResponse.json({ results: [], cached: false });

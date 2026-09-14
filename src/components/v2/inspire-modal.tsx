@@ -721,14 +721,14 @@ function PlaceDetailSheet({
                             })}
                           </div>
                           <p className="mt-1 text-[10px] text-white/30">
-                            🖼️ Referencias reales · toca para ver la fuente
+                            🖼️ Referencias de pose · toca para ver la fuente
                           </p>
                         </>
                       ) : (
                         <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                           <span className="text-lg">🖼️</span>
                           <p className="text-[11px] text-white/40">
-                            Buscando fotos de esta pose…
+                            Sin fotos de referencia para esta pose
                           </p>
                         </div>
                       )}

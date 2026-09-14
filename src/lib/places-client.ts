@@ -321,6 +321,10 @@ export async function fetchInspirationsClient(
   const curatedSpots = getCuratedSpotsForCity(destination);
   const resultsById = new Map<string, Inspiration>();
 
+  // Deduplicación global: ninguna URL debe repetirse entre spots
+  const usedPlaceUrls = new Set<string>();
+  const usedPoseUrls = new Set<string>();
+
   // --- STEP 1: Enriquecer spots curados con Google Places ---
   if (curatedSpots.length > 0) {
     const batchSize = 5;
@@ -364,24 +368,33 @@ export async function fetchInspirationsClient(
           }
 
           // Validar solo fotos de Google Places (pueden expirar).
-          // Las del server-side API ya vienen de APIs reales, no necesitan validación.
           let validImages = insp.image_urls;
           if (insp.image_urls.length > 0) {
             validImages = await filterValidImages(insp.image_urls);
           }
-          if (validImages.length === 0) {
+          // Si no hay suficientes fotos del lugar, buscar via server-side
+          if (validImages.length < 5) {
             try {
               const serverResults = await searchImagesServerSide(
                 `${spot.name_en ?? spot.name} ${destination}`,
                 "place",
-                5,
+                10,
               );
-              // Confiar en los resultados del server-side, no validar
-              validImages = serverResults.map((r) => r.url);
+              // Combinar con las que ya tenemos, deduplicando
+              const newUrls = serverResults
+                .map((r) => r.url)
+                .filter((url) => !validImages.includes(url) && !usedPlaceUrls.has(url));
+              validImages = [...validImages, ...newUrls];
             } catch {
-              validImages = [];
+              // sin imágenes adicionales
             }
           }
+          // Deduplicar contra otros spots y registrar
+          validImages = validImages.filter((url) => {
+            if (usedPlaceUrls.has(url)) return false;
+            usedPlaceUrls.add(url);
+            return true;
+          });
           insp.image_urls = validImages;
           insp.image_url = validImages[0] ?? null;
 
@@ -398,9 +411,8 @@ export async function fetchInspirationsClient(
       }
     }
 
-    // --- STEP 1.5: Buscar imágenes de referencia de poses ---
-    // Una sola búsqueda por spot (no por concepto) para evitar cuellos de botella.
-    // Los resultados se asignan al primer concepto; los demás muestran la guía de texto.
+    // --- STEP 1.5: Buscar imágenes de referencia de poses para TODOS los conceptos ---
+    // Las fotos de pose van SOLO a reference_image_urls, nunca a image_urls de la card.
     const poseSearchPromises = curatedSpots.map(async (spot) => {
       if (!spot.photo_concepts?.length) return;
       try {
@@ -409,19 +421,30 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        const concept = spot.photo_concepts[0];
-        const query = `${spot.name_en ?? spot.name} ${concept.title} ${destination}`;
-        const results = await searchImagesServerSide(query, "pose", 3);
-        if (results.length === 0) return;
+        // Buscar poses para cada concepto en paralelo (2 fotos por concepto)
+        const poseSearches = spot.photo_concepts.map(async (concept, i) => {
+          const query = `${spot.name_en ?? spot.name} ${concept.title} ${destination}`;
+          const results = await searchImagesServerSide(query, "pose", 3);
+          // Deduplicar contra poses ya asignadas a otros conceptos/spots
+          const uniqueResults = results.filter((r) => {
+            if (usedPoseUrls.has(r.url)) return false;
+            usedPoseUrls.add(r.url);
+            return true;
+          });
+          if (uniqueResults.length > 0) {
+            return [i, uniqueResults] as const;
+          }
+          return null;
+        });
 
-        // Confiar en los resultados del server-side, no validar
-        concept.reference_image_urls = results.map((r) => r.url);
-        concept.reference_source_urls = results.map((r) => r.source_url);
-
-        // Si la card no tiene fotos, usar la primera referencia
-        if (inspiration.image_urls.length === 0) {
-          inspiration.image_urls = results.map((r) => r.url);
-          inspiration.image_url = results[0].url;
+        const settled = await Promise.allSettled(poseSearches);
+        for (const s of settled) {
+          if (s.status !== "fulfilled" || s.value === null) continue;
+          const [idx, uniqueResults] = s.value;
+          const concept = inspiration.photo_concepts[idx];
+          if (!concept) continue;
+          concept.reference_image_urls = uniqueResults.map((r) => r.url);
+          concept.reference_source_urls = uniqueResults.map((r) => r.source_url);
         }
       } catch {
         return;
@@ -482,18 +505,27 @@ export async function fetchInspirationsClient(
         if (validImages.length > 0) {
           validImages = await filterValidImages(validImages);
         }
-        if (validImages.length === 0) {
+        if (validImages.length < 5) {
           try {
             const serverResults = await searchImagesServerSide(
               `${place.name ?? ""} ${destination}`,
               "place",
-              5,
+              8,
             );
-            validImages = serverResults.map((r) => r.url);
+            const newUrls = serverResults
+              .map((r) => r.url)
+              .filter((url) => !validImages.includes(url) && !usedPlaceUrls.has(url));
+            validImages = [...validImages, ...newUrls];
           } catch {
-            validImages = [];
+            // sin imágenes adicionales
           }
         }
+        // Deduplicar contra otros spots
+        validImages = validImages.filter((url) => {
+          if (usedPlaceUrls.has(url)) return false;
+          usedPlaceUrls.add(url);
+          return true;
+        });
         insp.image_urls = validImages;
         insp.image_url = validImages[0] ?? null;
         if (validImages.length > 0) {
