@@ -62,24 +62,13 @@ function findFixedImages(name: string): string[] | null {
   return null;
 }
 
-function buildUnsplashUrls(keywords: string[], count = 2): string[] {
-  const safeKeywords = keywords.map((k) => encodeURIComponent(k)).join(",");
-  const urls: string[] = [];
-  for (let i = 0; i < count; i++) {
-    // Usamos sig para obtener imágenes distintas por keyword + índice
-    urls.push(`https://source.unsplash.com/800x600/?${safeKeywords}&sig=${i}`);
-  }
-  return urls;
-}
-
 /**
  * Devuelve URLs de imágenes reales para un spot curado.
  * Orden de preferencia:
  * 1. image_urls explícitos en el spot
  * 2. Imágenes fijas de landmarks icónicos
- * 3. Unsplash Source con keywords del nombre + categoría + ciudad
  */
-export function getSpotImageUrls(spot: CuratedSpot, cityHint?: string): string[] {
+export function getSpotImageUrls(spot: CuratedSpot, _cityHint?: string): string[] {
   if (spot.image_urls && spot.image_urls.length > 0) {
     return spot.image_urls;
   }
@@ -89,14 +78,7 @@ export function getSpotImageUrls(spot: CuratedSpot, cityHint?: string): string[]
     return fixed;
   }
 
-  const keywords = [spot.name, spot.name_en, spot.category, cityHint]
-    .filter(Boolean)
-    .map((k) => k!.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim())
-    .filter((k) => k.length > 0);
-
-  // Evitar keywords muy genéricas solas
-  const uniqueKeywords = Array.from(new Set(keywords)).slice(0, 4);
-  return buildUnsplashUrls(uniqueKeywords, 2);
+  return [];
 }
 
 /**

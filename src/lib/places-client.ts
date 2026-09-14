@@ -122,24 +122,15 @@ function placeToInspiration(place: GPlaceResult, curatedSpot?: CuratedSpot, city
   const types = place.types ?? [];
   const suggestedType = curatedSpot?.type ?? typeToActivity(types);
 
-  // Preferir imágenes curadas (reales y fiables). Google Places fotos como fallback.
-  // Si no hay nada, usar Unsplash con el nombre del destino como último recurso.
   let imageUrls: string[] = [];
-  if (curatedSpot) {
-    imageUrls = getSpotImageUrls(curatedSpot, cityHint);
-  }
-  if (imageUrls.length === 0 && place.photos) {
+  if (place.photos) {
     for (const photo of place.photos) {
       imageUrls.push(photo.getUrl({ maxWidth: 800 }));
       if (imageUrls.length >= 10) break;
     }
   }
-  if (imageUrls.length === 0 && cityHint) {
-    const safeCity = encodeURIComponent(cityHint.toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim());
-    imageUrls = [
-      `https://source.unsplash.com/800x600/?${safeCity}&sig=0`,
-      `https://source.unsplash.com/800x600/?${safeCity},landmark&sig=1`,
-    ];
+  if (imageUrls.length === 0 && curatedSpot) {
+    imageUrls = getSpotImageUrls(curatedSpot, cityHint);
   }
   const location = place.geometry?.location;
   const lat = location?.lat();
@@ -327,24 +318,25 @@ export async function fetchInspirationsClient(
       process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (cseKey) {
-      const poseSearchPromises = curatedSpots.map(async (spot) => {
-        if (!spot.photo_concepts || spot.photo_concepts.length === 0) return;
+      const poseSearchPromises = curatedSpots.slice(0, 10).map(async (spot) => {
+        if (!spot.photo_concepts?.length) return;
         try {
           const refs = await searchSpotPoseImages(spot, destination);
-          // Actualizar el Inspiration correspondiente con las referencias
-          const inspId = `curated-${spot.name}`;
-          const insp = resultsById.get(inspId);
-          if (insp && insp.photo_concepts) {
-            for (const [idxStr, images] of Object.entries(refs)) {
-              const idx = parseInt(idxStr, 10);
-              if (insp.photo_concepts[idx]) {
-                insp.photo_concepts[idx].reference_image_urls = images.map((r) => r.url);
-                insp.photo_concepts[idx].reference_source_urls = images.map((r) => r.source_url);
-              }
-            }
+          const inspiration = Array.from(resultsById.values()).find(
+            (item) => item.title.toLocaleLowerCase() === spot.name.toLocaleLowerCase(),
+          );
+          if (!inspiration) return;
+
+          for (const [idxStr, images] of Object.entries(refs)) {
+            const concept = inspiration.photo_concepts[Number(idxStr)];
+            if (!concept || images.length === 0) continue;
+            concept.reference_image_urls = images.map((image) => image.url);
+            concept.reference_source_urls = images.map((image) => image.source_url);
+            inspiration.image_urls = images.map((image) => image.url);
+            inspiration.image_url = images[0].url;
           }
         } catch {
-          // ignorar errores de búsqueda de poses
+          return;
         }
       });
       await Promise.allSettled(poseSearchPromises);

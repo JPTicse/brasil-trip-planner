@@ -121,7 +121,7 @@ export async function searchSpotPoseImages(
   if (!apiKey) return result;
 
   // Buscar en paralelo (máx 4 imágenes por concepto)
-  const concepts = spot.photo_concepts;
+  const concepts = spot.photo_concepts.slice(0, 1);
   const searches = concepts.map((concept, i) =>
     searchPoseImages(buildPoseQuery(spot, concept.title, cityHint), 4).then(
       (refs) => [i, refs] as const,

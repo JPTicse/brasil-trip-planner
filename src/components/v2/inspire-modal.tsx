@@ -55,6 +55,7 @@ export function InspireModal({
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Inspiration | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRefreshRef = useRef(false);
 
   // Actualizar cuando cambian las inspiraciones del servidor
   useEffect(() => {
@@ -129,6 +130,18 @@ export function InspireModal({
       setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      open &&
+      !autoRefreshRef.current &&
+      localInspirations.length > 0 &&
+      localInspirations.every((item) => !item.image_url && !item.image_urls?.length)
+    ) {
+      autoRefreshRef.current = true;
+      void handleRefresh();
+    }
+  }, [open, localInspirations]);
 
   if (!open) return null;
 
