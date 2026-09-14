@@ -679,42 +679,49 @@ function PlaceDetailSheet({
                       </span>
                     </div>
 
-                    {/* Imágenes de referencia de la pose (Google CSE) */}
-                    {concept.reference_image_urls && concept.reference_image_urls.length > 0 && (
-                      <div className="mt-3">
-                        <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-fuchsia-300/70">
-                          🖼️ Referencias reales de esta pose
-                        </p>
-                        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-                          {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
-                            const sourceUrl = concept.reference_source_urls?.[ri];
-                            return (
-                              <a
-                                key={ri}
-                                href={sourceUrl ?? "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="relative shrink-0 overflow-hidden rounded-xl border border-white/10"
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={imgUrl}
-                                  alt={`Referencia ${ri + 1}: ${concept.title}`}
-                                  className="h-32 w-32 object-cover transition hover:scale-105"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    (e.currentTarget.parentElement as HTMLElement).style.display = "none";
-                                  }}
-                                />
-                              </a>
-                            );
-                          })}
+                    {/* Imagen de referencia de la pose — prominentemente al inicio */}
+                    <div className="mt-3">
+                      {concept.reference_image_urls && concept.reference_image_urls.length > 0 ? (
+                        <>
+                          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                            {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
+                              const sourceUrl = concept.reference_source_urls?.[ri];
+                              return (
+                                <a
+                                  key={ri}
+                                  href={sourceUrl ?? "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="relative shrink-0 overflow-hidden rounded-xl border border-fuchsia-500/30"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={imgUrl}
+                                    alt={`Referencia ${ri + 1}: ${concept.title}`}
+                                    className="h-40 w-40 object-cover transition hover:scale-105"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      const el = e.currentTarget.parentElement as HTMLElement;
+                                      if (el) el.style.display = "none";
+                                    }}
+                                  />
+                                </a>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-1 text-[10px] text-white/30">
+                            🖼️ Referencias reales · toca para ver la fuente
+                          </p>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                          <span className="text-lg">🖼️</span>
+                          <p className="text-[11px] text-white/40">
+                            Buscando fotos de esta pose…
+                          </p>
                         </div>
-                        <p className="mt-1 text-[10px] text-white/30">
-                          Imágenes de Google · toca para ver la fuente
-                        </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* Detalles de la guía */}
                     <div className="mt-3 space-y-2.5">

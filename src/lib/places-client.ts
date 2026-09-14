@@ -6,7 +6,7 @@ import { getCuratedSpotsForCity } from "@/lib/curated-spots";
 import { isTourismBusiness } from "@/lib/tourism-filter";
 import { getSpotImageUrls } from "@/lib/spot-images";
 import { searchSpotPoseImages } from "@/lib/image-search";
-import { getSpotImagesFromWikimedia, getPoseImagesFromWikimedia, searchWikimediaImages } from "@/lib/wikimedia-images";
+import { getSpotImagesFromWikimedia, getPoseImagesFromWikimedia, searchWikimediaImages, getAllPoseImagesFromWikimedia, filterValidImages } from "@/lib/wikimedia-images";
 import type { Inspiration } from "@/lib/types";
 
 type GPlaceResult = google.maps.places.PlaceResult;
@@ -349,14 +349,14 @@ export async function fetchInspirationsClient(
       }
     }
 
-    // --- STEP 1.5: Buscar imágenes de referencia de poses ---
+    // --- STEP 1.5: Buscar imágenes de referencia de poses para TODOS los conceptos ---
     // Primero Google CSE, luego Wikimedia Commons como fallback.
     const cseKey =
       process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     const cseId = process.env.NEXT_PUBLIC_GOOGLE_CSE_ID;
 
-    const poseSearchPromises = curatedSpots.slice(0, 10).map(async (spot) => {
+    const poseSearchPromises = curatedSpots.map(async (spot) => {
       if (!spot.photo_concepts?.length) return;
       try {
         const inspiration = Array.from(resultsById.values()).find(
@@ -364,8 +364,9 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        // Intentar Google CSE primero
         let poseRefs: Record<number, { url: string; source_url: string }[]> = {};
+
+        // Intentar Google CSE primero para todos los conceptos
         if (cseKey && cseId) {
           const refs = await searchSpotPoseImages(spot, destination);
           for (const [idx, images] of Object.entries(refs)) {
@@ -373,19 +374,25 @@ export async function fetchInspirationsClient(
           }
         }
 
-        // Fallback: Wikimedia Commons para el primer concepto
-        if (Object.keys(poseRefs).length === 0) {
-          const concept = spot.photo_concepts[0];
-          const wikiResult = await getPoseImagesFromWikimedia(spot, concept.title, destination, 4);
-          if (wikiResult.urls.length > 0) {
-            poseRefs[0] = wikiResult.urls.map((url, i) => ({
-              url,
-              source_url: wikiResult.sources[i] ?? "",
-            }));
+        // Fallback: Wikimedia Commons para TODOS los conceptos
+        const missingConcepts = spot.photo_concepts
+          .map((_, i) => i)
+          .filter((i) => !poseRefs[i] || poseRefs[i].length === 0);
+
+        if (missingConcepts.length > 0) {
+          const wikiRefs = await getAllPoseImagesFromWikimedia(spot, destination, 3);
+          for (const [idxStr, result] of Object.entries(wikiRefs)) {
+            const idx = Number(idxStr);
+            if (!poseRefs[idx] || poseRefs[idx].length === 0) {
+              poseRefs[idx] = result.urls.map((url, i) => ({
+                url,
+                source_url: result.sources[i] ?? "",
+              }));
+            }
           }
         }
 
-        // Aplicar referencias encontradas
+        // Aplicar referencias encontradas a cada concepto
         for (const [idxStr, images] of Object.entries(poseRefs)) {
           const concept = inspiration.photo_concepts[Number(idxStr)];
           if (!concept || images.length === 0) continue;
