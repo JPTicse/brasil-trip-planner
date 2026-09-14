@@ -386,8 +386,10 @@ export async function fetchInspirationsClient(
           // Si no hay suficientes fotos del lugar, buscar via server-side
           if (validImages.length < 5) {
             try {
+              // Usar nombre en portugués (mejor para Openverse/Wikimedia en Brasil)
+              const placeQuery = `${spot.name} ${destination}`;
               const serverResults = await searchImagesServerSide(
-                `${spot.name_en ?? spot.name} ${destination}`,
+                placeQuery,
                 "place",
                 10,
               );
@@ -433,21 +435,31 @@ export async function fetchInspirationsClient(
         if (!inspiration) return;
 
         // Buscar poses para cada concepto en paralelo (3 fotos por concepto)
-        // Fallback progresivo: query específica → query simple → solo spot
+        // Fallback progresivo: query específica → query con personas → solo spot
         const poseSearches = spot.photo_concepts.map(async (concept, i) => {
+          // Usar nombre en portugués (funciona mejor en Openverse para Brasil)
+          // y nombre en inglés como alternativo
           const spotName = spot.name_en ?? spot.name;
-          // Intentar queries progresivas hasta encontrar resultados
+          const spotNamePt = spot.name;
+          // Queries progresivas: específica → con términos de personas → fallback
           const queries = [
-            `${spotName} ${concept.title} ${destination}`,
+            // Query específica con concepto + términos de personas (boolean OR)
+            `${spotNamePt} ${concept.title}`,
+            // Query con nombre en inglés + concepto
             `${spotName} ${concept.title}`,
-            `${spotName} person tourist ${destination}`,
-            `${spotName} ${destination}`,
+            // Query con términos de personas en OR (boolean query de Openverse)
+            `${spotNamePt} (tourist | turista | pessoas | people | visitor)`,
+            // Query más amplia con nombre en inglés + personas
+            `${spotName} (tourist | people | person | visitor)`,
+            // Fallback: solo el nombre del spot
+            spotNamePt,
           ];
           for (const query of queries) {
             const results = await searchImagesServerSide(query, "pose", 3);
-            // Deduplicar contra poses ya asignadas a otros conceptos/spots
+            // Deduplicar contra poses ya asignadas y contra fotos de lugar
             const uniqueResults = results.filter((r) => {
               if (usedPoseUrls.has(r.url)) return false;
+              if (usedPlaceUrls.has(r.url)) return false; // cross-dedup
               usedPoseUrls.add(r.url);
               return true;
             });

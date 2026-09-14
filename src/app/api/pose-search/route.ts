@@ -15,14 +15,33 @@ type ImageResult = {
 /**
  * Busca imágenes en Openverse (Creative Commons, Flickr, Wikimedia, etc.).
  * No requiere API key. 100% gratis.
+ *
+ * Usa boolean queries de Elasticsearch:
+ *   | = OR, + = AND (URL-encoded %2B), - = NOT, "" = exact phrase
+ * Filtros: category=photograph, source=flickr, aspect_ratio=tall
  */
-async function searchOpenverse(query: string, count: number): Promise<ImageResult[]> {
+async function searchOpenverse(
+  query: string,
+  count: number,
+  options: { peopleFocus?: boolean; source?: string } = {},
+): Promise<ImageResult[]> {
   try {
     const url = new URL("https://api.openverse.org/v1/images/");
     url.searchParams.set("q", query);
-    url.searchParams.set("page_size", String(count));
+    url.searchParams.set("page_size", String(Math.min(count, 20)));
     url.searchParams.set("license_type", "all");
     url.searchParams.set("mature", "false");
+    url.searchParams.set("category", "photograph");
+    url.searchParams.set("filter_dead", "true");
+
+    if (options.source) {
+      url.searchParams.set("source", options.source);
+    }
+
+    // Para poses: preferir fotos portrait (más likely de contener personas)
+    if (options.peopleFocus) {
+      url.searchParams.set("aspect_ratio", "tall,square");
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
@@ -49,6 +68,57 @@ async function searchOpenverse(query: string, count: number): Promise<ImageResul
         license: r.license ?? "unknown",
         width: r.width ?? 800,
         height: r.height ?? 600,
+      });
+    }
+
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Busca imágenes en Pexels (gratis, requiere API key opcional).
+ * Si no hay key, se salta silenciosamente.
+ */
+async function searchPexels(query: string, count: number): Promise<ImageResult[]> {
+  const apiKey = process.env.PEXELS_API_KEY;
+  if (!apiKey) return [];
+
+  try {
+    const url = new URL("https://api.pexels.com/v1/search");
+    url.searchParams.set("query", query);
+    url.searchParams.set("per_page", String(Math.min(count, 80)));
+    url.searchParams.set("locale", "en-US");
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: apiKey,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const results: ImageResult[] = [];
+
+    for (const photo of (data.photos ?? []) as any[]) {
+      if (!photo?.src?.large) continue;
+      results.push({
+        url: photo.src.large,
+        source_url: photo.url ?? "",
+        source_name: "pexels",
+        license: "pexels",
+        width: photo.width ?? 800,
+        height: photo.height ?? 600,
       });
     }
 
@@ -120,64 +190,86 @@ async function searchWikimedia(query: string, count: number): Promise<ImageResul
 /**
  * GET /api/pose-search?q=...&type=place|pose&count=...
  *
- * Busca imágenes reales usando Openverse + Wikimedia.
- * Server-side: sin CORS, sin hotlinking, sin exponer keys.
- * 100% gratis: Openverse no requiere key, Wikimedia no requiere key.
+ * type=place: busca fotos del LUGAR (paisajes, arquitectura, sin foco en personas)
+ * type=pose: busca fotos de PERSONAS en poses (turistas, viajeros, gente posando)
+ *
+ * Fuentes (100% gratis):
+ * - Openverse: sin key, boolean queries, category=photograph
+ * - Pexels: opcional con PEXELS_API_KEY (gratis, 200 req/hr)
+ * - Wikimedia: sin key
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
-  const type = searchParams.get("type") ?? "place"; // "place" o "pose"
+  const type = searchParams.get("type") ?? "place";
   const count = Math.min(Number(searchParams.get("count") ?? "5"), 15);
 
   if (!query) {
     return NextResponse.json({ results: [], cached: false });
   }
 
-  // Construir múltiples queries para maximizar resultados
-  const queries: string[] = [query];
+  const isPose = type === "pose";
 
-  if (type === "pose") {
-    // Para poses: añadir términos que favorezcan fotos con personas
-    queries.push(`${query} person tourist`);
-    queries.push(`${query} people photo`);
+  // Construir queries optimizadas según el tipo
+  // Openverse usa Elasticsearch simple_query_string:
+  //   | = OR, + = AND (%2B), - = NOT, "" = exact phrase
+  let openverseQuery: string;
+  let pexelsQuery: string;
+  let wikiQuery: string;
+
+  if (isPose) {
+    // POSE: buscar fotos con personas en el lugar
+    // Boolean OR para términos de personas + nombre del lugar
+    openverseQuery = `(people|tourist|person|crowd|traveler) ${query}`;
+    pexelsQuery = `tourist posing ${query}`;
+    wikiQuery = `${query} person tourist`;
   } else {
-    // Para lugares: queries más amplias
-    queries.push(`${query} photo`);
-    queries.push(`${query} travel`);
+    // PLACE: buscar fotos del lugar (paisaje, arquitectura)
+    openverseQuery = query;
+    pexelsQuery = query;
+    wikiQuery = query;
   }
 
-  // Buscar en paralelo en ambas fuentes con la primera query
-  const [openverseResults, wikiResults] = await Promise.all([
-    searchOpenverse(queries[0], count),
-    searchWikimedia(queries[0], count),
+  // Buscar en paralelo en todas las fuentes
+  const [ovFlickr, ovAll, pexelsResults, wikiResults] = await Promise.all([
+    // Para poses: priorizar Flickr (tiene más fotos de usuarios con personas)
+    searchOpenverse(openverseQuery, count, {
+      peopleFocus: isPose,
+      source: isPose ? "flickr" : undefined,
+    }),
+    // Openverse sin filtro de source (todos los sources)
+    searchOpenverse(openverseQuery, count, { peopleFocus: isPose }),
+    // Pexels (si hay API key)
+    searchPexels(pexelsQuery, count),
+    // Wikimedia
+    searchWikimedia(wikiQuery, count),
   ]);
 
   // Combinar resultados, deduplicar por URL
+  // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Openverse all > Wikimedia
   const seen = new Set<string>();
   const combined: ImageResult[] = [];
 
-  for (const r of [...openverseResults, ...wikiResults]) {
+  const allResults = [...pexelsResults, ...ovFlickr, ...ovAll, ...wikiResults];
+
+  for (const r of allResults) {
     if (seen.has(r.url)) continue;
     seen.add(r.url);
     combined.push(r);
     if (combined.length >= count) break;
   }
 
-  // Si no hay suficientes, intentar con queries alternativas
-  if (combined.length < count) {
-    for (const altQuery of queries.slice(1)) {
+  // Si no hay suficientes y es pose, intentar query más simple (solo nombre del lugar)
+  if (combined.length < count && isPose) {
+    const [fallbackOv, fallbackWiki] = await Promise.all([
+      searchOpenverse(query, count - combined.length, { source: "flickr" }),
+      searchWikimedia(query, count - combined.length),
+    ]);
+    for (const r of [...fallbackOv, ...fallbackWiki]) {
+      if (seen.has(r.url)) continue;
+      seen.add(r.url);
+      combined.push(r);
       if (combined.length >= count) break;
-      const [altOv, altWiki] = await Promise.all([
-        searchOpenverse(altQuery, count - combined.length),
-        searchWikimedia(altQuery, count - combined.length),
-      ]);
-      for (const r of [...altOv, ...altWiki]) {
-        if (seen.has(r.url)) continue;
-        seen.add(r.url);
-        combined.push(r);
-        if (combined.length >= count) break;
-      }
     }
   }
 

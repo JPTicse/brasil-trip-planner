@@ -260,6 +260,7 @@ export function InspireModal({
                   key={insp.id}
                   inspiration={insp}
                   index={i}
+                  tab={tab}
                   onClick={() => setSelected(insp)}
                 />
               ))}
@@ -272,6 +273,7 @@ export function InspireModal({
           {selected && (
             <PlaceDetailSheet
               inspiration={selected}
+              tab={tab}
               tripId={tripId}
               tripDestination={tripDestination}
               tripStartDate={tripStartDate}
@@ -291,20 +293,37 @@ export function InspireModal({
 function CollageCard({
   inspiration,
   index,
+  tab,
   onClick,
 }: {
   inspiration: Inspiration;
   index: number;
+  tab: Tab;
   onClick: () => void;
 }) {
   const type = inspiration.suggested_type;
   const typeEmoji = TYPE_EMOJI[type];
   const spotEmoji = inspiration.emoji ?? typeEmoji;
-  const images = inspiration.image_urls?.length > 0
-    ? inspiration.image_urls
-    : inspiration.image_url
-      ? [inspiration.image_url]
-      : [];
+
+  // Fotos trendy: mostrar referencias de pose (personas)
+  // Lugares: mostrar fotos del lugar
+  const images = tab === "photos"
+    ? (inspiration.photo_concepts?.flatMap((c) => c.reference_image_urls ?? []) ?? [])
+        .filter((url, idx, arr) => arr.indexOf(url) === idx) // dedup dentro del spot
+    : (inspiration.image_urls?.length > 0
+      ? inspiration.image_urls
+      : inspiration.image_url
+        ? [inspiration.image_url]
+        : []);
+
+  // Fallback: si no hay referencias de pose, usar fotos del lugar
+  const finalImages = images.length > 0
+    ? images
+    : (inspiration.image_urls?.length > 0
+      ? inspiration.image_urls
+      : inspiration.image_url
+        ? [inspiration.image_url]
+        : []);
 
   return (
     <motion.button
@@ -316,7 +335,7 @@ function CollageCard({
     >
       {/* Collage de imágenes */}
       <ImageCollage
-        images={images}
+        images={finalImages}
         emoji={inspiration.emoji}
         category={inspiration.category}
         title={inspiration.title}
@@ -402,11 +421,18 @@ function ImageCollage({
   category?: string | null;
   title?: string;
 }) {
-  const [images, setImages] = useState(sourceImages);
+  // Proxy external images through /api/image-proxy to avoid hotlinking/CORS
+  const proxiedImages = sourceImages.map((url) =>
+    url.startsWith("/api/") || url.startsWith("data:")
+      ? url
+      : `/api/image-proxy?url=${encodeURIComponent(url)}`,
+  );
+  const [images, setImages] = useState(proxiedImages);
 
   const sourceKey = sourceImages.join("|");
   useEffect(() => {
-    setImages(sourceImages);
+    setImages(proxiedImages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceKey]);
 
   const removeBrokenImage = (url: string) => {
@@ -503,6 +529,7 @@ function ImageCollage({
 
 function PlaceDetailSheet({
   inspiration,
+  tab,
   tripId,
   tripDestination,
   tripStartDate,
@@ -510,6 +537,7 @@ function PlaceDetailSheet({
   onClose,
 }: {
   inspiration: Inspiration;
+  tab: Tab;
   tripId: string;
   tripDestination: string;
   tripStartDate?: string;
@@ -521,11 +549,25 @@ function PlaceDetailSheet({
   const type = inspiration.suggested_type;
   const emoji = TYPE_EMOJI[type];
 
-  const images = inspiration.image_urls?.length > 0
-    ? inspiration.image_urls
-    : inspiration.image_url
-      ? [inspiration.image_url]
-      : [];
+  // Fotos trendy: galería superior muestra referencias de pose (personas)
+  // Lugares: galería superior muestra fotos del lugar
+  const images = tab === "photos"
+    ? (inspiration.photo_concepts?.flatMap((c) => c.reference_image_urls ?? []) ?? [])
+        .filter((url, idx, arr) => arr.indexOf(url) === idx)
+    : (inspiration.image_urls?.length > 0
+      ? inspiration.image_urls
+      : inspiration.image_url
+        ? [inspiration.image_url]
+        : []);
+
+  // Fallback: si no hay referencias de pose, usar fotos del lugar
+  const finalImages = images.length > 0
+    ? images
+    : (inspiration.image_urls?.length > 0
+      ? inspiration.image_urls
+      : inspiration.image_url
+        ? [inspiration.image_url]
+        : []);
 
   return createPortal(
     <motion.div
@@ -570,7 +612,7 @@ function PlaceDetailSheet({
         {/* Contenido scrollable */}
         <div className="min-h-0 flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
           {/* Galería swipeable (scroll-snap nativo, sin dependencias) */}
-          {images.length > 0 ? (
+          {finalImages.length > 0 ? (
             <div
               className="flex aspect-[4/3] w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
               style={{ scrollbarWidth: "none" }}
@@ -580,12 +622,17 @@ function PlaceDetailSheet({
                 setGalleryIndex(Math.round(scrollLeft / width));
               }}
             >
-              {images.map((src, i) => (
+              {finalImages.map((src, i) => {
+                const proxiedSrc = src.startsWith("/api/") || src.startsWith("data:")
+                  ? src
+                  : `/api/image-proxy?url=${encodeURIComponent(src)}`;
+                return (
                 <div key={i} className="h-full w-full shrink-0 snap-start">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt={inspiration.title} className="h-full w-full object-cover" />
+                  <img src={proxiedSrc} alt={inspiration.title} className="h-full w-full object-cover" loading="eager" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className={`relative flex aspect-[4/3] w-full flex-col items-center justify-center bg-gradient-to-br ${CATEGORY_GRADIENTS[inspiration.category ?? ""] ?? "from-zinc-800 to-zinc-900"} p-6 text-center`}>
@@ -600,9 +647,9 @@ function PlaceDetailSheet({
           )}
 
           {/* Indicadores de galería (dots) */}
-          {images.length > 1 && (
+          {finalImages.length > 1 && (
             <div className="flex justify-center gap-1.5 py-2">
-              {images.map((_, i) => (
+              {finalImages.map((_, i) => (
                 <div
                   key={i}
                   className={`h-1.5 rounded-full transition-all ${
@@ -697,6 +744,9 @@ function PlaceDetailSheet({
                           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
                             {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
                               const sourceUrl = concept.reference_source_urls?.[ri];
+                              const proxiedUrl = imgUrl.startsWith("/api/") || imgUrl.startsWith("data:")
+                                ? imgUrl
+                                : `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`;
                               return (
                                 <a
                                   key={ri}
@@ -707,7 +757,7 @@ function PlaceDetailSheet({
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
-                                    src={imgUrl}
+                                    src={proxiedUrl}
                                     alt={`Referencia ${ri + 1}: ${concept.title}`}
                                     className="h-40 w-40 object-cover transition hover:scale-105"
                                     loading="eager"
