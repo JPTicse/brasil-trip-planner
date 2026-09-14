@@ -5,13 +5,47 @@ import type { CuratedSpot } from "@/lib/photo-types";
 import { getCuratedSpotsForCity } from "@/lib/curated-spots";
 import { isTourismBusiness } from "@/lib/tourism-filter";
 import { getSpotImageUrls } from "@/lib/spot-images";
-import { searchSpotPoseImages } from "@/lib/image-search";
-import { getSpotImagesFromWikimedia, searchWikimediaImages, filterValidImages } from "@/lib/wikimedia-images";
+import { filterValidImages } from "@/lib/wikimedia-images";
 import type { Inspiration } from "@/lib/types";
 
 type GPlaceResult = google.maps.places.PlaceResult;
 
 type ActivityType = "visit" | "tour" | "meal" | "event" | "free" | "transport";
+
+type ServerImageResult = {
+  url: string;
+  source_url: string;
+  source_name: string;
+  license: string;
+  width: number;
+  height: number;
+};
+
+/**
+ * Llama a nuestra API route server-side para buscar imágenes.
+ * Usa Openverse + Wikimedia, 100% gratis, sin keys expuestas.
+ */
+async function searchImagesServerSide(
+  query: string,
+  type: "place" | "pose",
+  count = 5,
+): Promise<ServerImageResult[]> {
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      type,
+      count: String(count),
+    });
+    const res = await fetch(`/api/pose-search?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results ?? [];
+  } catch {
+    return [];
+  }
+}
 
 const GOOGLE_TYPES_TO_ACTIVITY: Record<string, ActivityType> = {
   tourist_attraction: "visit",
@@ -131,10 +165,12 @@ async function fillImages(
     const fixed = getSpotImageUrls(curatedSpot, cityHint);
     if (fixed.length > 0) return fixed;
   }
-  // 3. Buscar en Wikimedia Commons (fotos reales del lugar)
+  // 3. Buscar via server-side API (Openverse + Wikimedia)
   if (curatedSpot) {
-    const wikiImages = await getSpotImagesFromWikimedia(curatedSpot, cityHint, 3);
-    if (wikiImages.length > 0) return wikiImages;
+    const query = `${curatedSpot.name_en ?? curatedSpot.name} ${cityHint ?? ""}`;
+    const results = await searchImagesServerSide(query, "place", 3);
+    const urls = results.map((r) => r.url);
+    if (urls.length > 0) return urls;
   }
   return [];
 }
@@ -326,9 +362,12 @@ export async function fetchInspirationsClient(
           let validImages = await filterValidImages(insp.image_urls);
           if (validImages.length === 0) {
             try {
-              validImages = await filterValidImages(
-                await getSpotImagesFromWikimedia(spot, destination, 5),
+              const serverResults = await searchImagesServerSide(
+                `${spot.name_en ?? spot.name} ${destination}`,
+                "place",
+                5,
               );
+              validImages = await filterValidImages(serverResults.map((r) => r.url));
             } catch {
               validImages = [];
             }
@@ -350,12 +389,7 @@ export async function fetchInspirationsClient(
     }
 
     // --- STEP 1.5: Buscar imágenes de referencia de poses para TODOS los conceptos ---
-    // Primero Google CSE, luego Wikimedia Commons como fallback.
-    const cseKey =
-      process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    const cseId = process.env.NEXT_PUBLIC_GOOGLE_CSE_ID;
-
+    // Usa nuestra API route server-side (Openverse + Wikimedia), 100% gratis.
     const poseSearchPromises = curatedSpots.map(async (spot) => {
       if (!spot.photo_concepts?.length) return;
       try {
@@ -364,30 +398,30 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        let poseRefs: Record<number, { url: string; source_url: string }[]> = {};
-
-        // Intentar Google CSE primero para todos los conceptos
-        if (cseKey && cseId) {
-          const refs = await searchSpotPoseImages(spot, destination);
-          for (const [idx, images] of Object.entries(refs)) {
-            poseRefs[Number(idx)] = images.map((r) => ({ url: r.url, source_url: r.source_url }));
+        // Buscar fotos de cada concepto via server-side API
+        const poseSearches = spot.photo_concepts.map(async (concept, i) => {
+          const query = `${spot.name_en ?? spot.name} ${concept.title} ${destination}`;
+          const results = await searchImagesServerSide(query, "pose", 3);
+          const validUrls = await filterValidImages(results.map((r) => r.url));
+          const validResults = results.filter((r) => validUrls.includes(r.url));
+          if (validResults.length > 0) {
+            return [i, validResults] as const;
           }
-        }
+          return null;
+        });
 
-        // Aplicar solo referencias que el navegador puede cargar.
-        // Wikimedia no se usa aquí porque sus resultados suelen mostrar el lugar, no la pose.
-        for (const [idxStr, images] of Object.entries(poseRefs)) {
-          const concept = inspiration.photo_concepts[Number(idxStr)];
-          if (!concept || images.length === 0) continue;
-          const validUrls = await filterValidImages(images.map((img) => img.url));
-          const validImages = images.filter((img) => validUrls.includes(img.url));
-          if (validImages.length === 0) continue;
-          concept.reference_image_urls = validImages.map((img) => img.url);
-          concept.reference_source_urls = validImages.map((img) => img.source_url);
+        const settled = await Promise.allSettled(poseSearches);
+        for (const s of settled) {
+          if (s.status !== "fulfilled" || s.value === null) continue;
+          const [idx, validResults] = s.value;
+          const concept = inspiration.photo_concepts[idx];
+          if (!concept) continue;
+          concept.reference_image_urls = validResults.map((r) => r.url);
+          concept.reference_source_urls = validResults.map((r) => r.source_url);
           // Si la card no tiene fotos, usar la primera referencia como imagen principal
           if (inspiration.image_urls.length === 0) {
-            inspiration.image_urls = validImages.map((img) => img.url);
-            inspiration.image_url = validImages[0].url;
+            inspiration.image_urls = validResults.map((r) => r.url);
+            inspiration.image_url = validResults[0].url;
           }
         }
       } catch {
@@ -444,12 +478,15 @@ export async function fetchInspirationsClient(
       if (place && place.place_id) {
         if (isTourismBusiness(place.name ?? "", place.types ?? [])) continue;
         const insp = placeToInspiration(place, undefined, destination);
-        // Si no tiene foto de Google, buscar en Wikimedia
         let validImages = await filterValidImages(insp.image_urls);
         if (validImages.length === 0) {
           try {
-            const wikiImages = await searchWikimediaImages(place.name ?? "", 5);
-            validImages = await filterValidImages(wikiImages.map((img) => img.thumb_url));
+            const serverResults = await searchImagesServerSide(
+              `${place.name ?? ""} ${destination}`,
+              "place",
+              5,
+            );
+            validImages = await filterValidImages(serverResults.map((r) => r.url));
           } catch {
             validImages = [];
           }
