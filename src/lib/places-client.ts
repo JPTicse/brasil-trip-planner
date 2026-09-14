@@ -86,6 +86,17 @@ function priceLevelToCost(level: number | null): number | null {
   return map[level] ?? null;
 }
 
+/** Normaliza un nombre para comparar duplicados: minúsculas, sin acentos, sin espacios extra */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function loadGoogleMaps(): Promise<void> {
   const win = window as any;
   if (win.google?.maps?.places) return Promise.resolve();
@@ -421,18 +432,28 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        // Buscar poses para cada concepto en paralelo (2 fotos por concepto)
+        // Buscar poses para cada concepto en paralelo (3 fotos por concepto)
+        // Fallback progresivo: query específica → query simple → solo spot
         const poseSearches = spot.photo_concepts.map(async (concept, i) => {
-          const query = `${spot.name_en ?? spot.name} ${concept.title} ${destination}`;
-          const results = await searchImagesServerSide(query, "pose", 3);
-          // Deduplicar contra poses ya asignadas a otros conceptos/spots
-          const uniqueResults = results.filter((r) => {
-            if (usedPoseUrls.has(r.url)) return false;
-            usedPoseUrls.add(r.url);
-            return true;
-          });
-          if (uniqueResults.length > 0) {
-            return [i, uniqueResults] as const;
+          const spotName = spot.name_en ?? spot.name;
+          // Intentar queries progresivas hasta encontrar resultados
+          const queries = [
+            `${spotName} ${concept.title} ${destination}`,
+            `${spotName} ${concept.title}`,
+            `${spotName} person tourist ${destination}`,
+            `${spotName} ${destination}`,
+          ];
+          for (const query of queries) {
+            const results = await searchImagesServerSide(query, "pose", 3);
+            // Deduplicar contra poses ya asignadas a otros conceptos/spots
+            const uniqueResults = results.filter((r) => {
+              if (usedPoseUrls.has(r.url)) return false;
+              usedPoseUrls.add(r.url);
+              return true;
+            });
+            if (uniqueResults.length > 0) {
+              return [i, uniqueResults] as const;
+            }
           }
           return null;
         });
@@ -499,6 +520,12 @@ export async function fetchInspirationsClient(
     for (const place of batchResults) {
       if (place && place.place_id) {
         if (isTourismBusiness(place.name ?? "", place.types ?? [])) continue;
+        // Deduplicar contra spots curados por nombre normalizado
+        const placeNameNorm = normalizeName(place.name ?? "");
+        const isDuplicateOfCurated = curatedSpots.some(
+          (s) => normalizeName(s.name) === placeNameNorm || normalizeName(s.name_en ?? s.name) === placeNameNorm,
+        );
+        if (isDuplicateOfCurated) continue;
         const insp = placeToInspiration(place, undefined, destination);
         // Validar solo fotos de Google Places; server-side se confía
         let validImages = insp.image_urls;
