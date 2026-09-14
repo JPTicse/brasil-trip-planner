@@ -404,9 +404,10 @@ function ImageCollage({
 }) {
   const [images, setImages] = useState(sourceImages);
 
+  const sourceKey = sourceImages.join("|");
   useEffect(() => {
     setImages(sourceImages);
-  }, [sourceImages]);
+  }, [sourceKey]);
 
   const removeBrokenImage = (url: string) => {
     setImages((current) => current.filter((image) => image !== url));
