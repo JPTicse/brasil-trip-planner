@@ -24,7 +24,7 @@ const validationCache = new Map<string, boolean>();
  * Valida si una URL de imagen realmente carga (HEAD request).
  * Cacha el resultado para no repetir.
  */
-export async function validateImageUrl(url: string, timeoutMs = 8000): Promise<boolean> {
+export async function validateImageUrl(url: string, timeoutMs = 3000): Promise<boolean> {
   if (validationCache.has(url)) {
     return validationCache.get(url)!;
   }

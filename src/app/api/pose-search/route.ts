@@ -24,10 +24,16 @@ async function searchOpenverse(query: string, count: number): Promise<ImageResul
     url.searchParams.set("license_type", "all");
     url.searchParams.set("mature", "false");
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
     const res = await fetch(url.toString(), {
       headers: { Accept: "application/json" },
       cache: "no-store",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!res.ok) return [];
 
@@ -70,10 +76,16 @@ async function searchWikimedia(query: string, count: number): Promise<ImageResul
     url.searchParams.set("iiprop", "url|mime|size");
     url.searchParams.set("iiurlwidth", "800");
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
     const res = await fetch(url.toString(), {
       headers: { Accept: "application/json" },
       cache: "no-store",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!res.ok) return [];
 

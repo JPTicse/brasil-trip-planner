@@ -36,9 +36,13 @@ async function searchImagesServerSide(
       type,
       count: String(count),
     });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(`/api/pose-search?${params.toString()}`, {
       cache: "no-store",
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!res.ok) return [];
     const data = await res.json();
     return data.results ?? [];
@@ -359,7 +363,12 @@ export async function fetchInspirationsClient(
             insp = curatedToInspiration(spot, destination);
           }
 
-          let validImages = await filterValidImages(insp.image_urls);
+          // Validar solo fotos de Google Places (pueden expirar).
+          // Las del server-side API ya vienen de APIs reales, no necesitan validación.
+          let validImages = insp.image_urls;
+          if (insp.image_urls.length > 0) {
+            validImages = await filterValidImages(insp.image_urls);
+          }
           if (validImages.length === 0) {
             try {
               const serverResults = await searchImagesServerSide(
@@ -367,7 +376,8 @@ export async function fetchInspirationsClient(
                 "place",
                 5,
               );
-              validImages = await filterValidImages(serverResults.map((r) => r.url));
+              // Confiar en los resultados del server-side, no validar
+              validImages = serverResults.map((r) => r.url);
             } catch {
               validImages = [];
             }
@@ -388,8 +398,9 @@ export async function fetchInspirationsClient(
       }
     }
 
-    // --- STEP 1.5: Buscar imágenes de referencia de poses para TODOS los conceptos ---
-    // Usa nuestra API route server-side (Openverse + Wikimedia), 100% gratis.
+    // --- STEP 1.5: Buscar imágenes de referencia de poses ---
+    // Una sola búsqueda por spot (no por concepto) para evitar cuellos de botella.
+    // Los resultados se asignan al primer concepto; los demás muestran la guía de texto.
     const poseSearchPromises = curatedSpots.map(async (spot) => {
       if (!spot.photo_concepts?.length) return;
       try {
@@ -398,31 +409,19 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        // Buscar fotos de cada concepto via server-side API
-        const poseSearches = spot.photo_concepts.map(async (concept, i) => {
-          const query = `${spot.name_en ?? spot.name} ${concept.title} ${destination}`;
-          const results = await searchImagesServerSide(query, "pose", 3);
-          const validUrls = await filterValidImages(results.map((r) => r.url));
-          const validResults = results.filter((r) => validUrls.includes(r.url));
-          if (validResults.length > 0) {
-            return [i, validResults] as const;
-          }
-          return null;
-        });
+        const concept = spot.photo_concepts[0];
+        const query = `${spot.name_en ?? spot.name} ${concept.title} ${destination}`;
+        const results = await searchImagesServerSide(query, "pose", 3);
+        if (results.length === 0) return;
 
-        const settled = await Promise.allSettled(poseSearches);
-        for (const s of settled) {
-          if (s.status !== "fulfilled" || s.value === null) continue;
-          const [idx, validResults] = s.value;
-          const concept = inspiration.photo_concepts[idx];
-          if (!concept) continue;
-          concept.reference_image_urls = validResults.map((r) => r.url);
-          concept.reference_source_urls = validResults.map((r) => r.source_url);
-          // Si la card no tiene fotos, usar la primera referencia como imagen principal
-          if (inspiration.image_urls.length === 0) {
-            inspiration.image_urls = validResults.map((r) => r.url);
-            inspiration.image_url = validResults[0].url;
-          }
+        // Confiar en los resultados del server-side, no validar
+        concept.reference_image_urls = results.map((r) => r.url);
+        concept.reference_source_urls = results.map((r) => r.source_url);
+
+        // Si la card no tiene fotos, usar la primera referencia
+        if (inspiration.image_urls.length === 0) {
+          inspiration.image_urls = results.map((r) => r.url);
+          inspiration.image_url = results[0].url;
         }
       } catch {
         return;
@@ -465,8 +464,8 @@ export async function fetchInspirationsClient(
     }),
   );
 
-  // Limitamos a los más prometedores para no saturar getDetails
-  const textPlaceIds = Array.from(textResults.keys()).slice(0, maxResults * 2);
+  // Limitamos a los más prometedores para no saturar getDetails ni la API de imágenes
+  const textPlaceIds = Array.from(textResults.keys()).slice(0, 15);
 
   for (let i = 0; i < textPlaceIds.length; i += 5) {
     const batch = textPlaceIds.slice(i, i + 5);
@@ -478,7 +477,11 @@ export async function fetchInspirationsClient(
       if (place && place.place_id) {
         if (isTourismBusiness(place.name ?? "", place.types ?? [])) continue;
         const insp = placeToInspiration(place, undefined, destination);
-        let validImages = await filterValidImages(insp.image_urls);
+        // Validar solo fotos de Google Places; server-side se confía
+        let validImages = insp.image_urls;
+        if (validImages.length > 0) {
+          validImages = await filterValidImages(validImages);
+        }
         if (validImages.length === 0) {
           try {
             const serverResults = await searchImagesServerSide(
@@ -486,7 +489,7 @@ export async function fetchInspirationsClient(
               "place",
               5,
             );
-            validImages = await filterValidImages(serverResults.map((r) => r.url));
+            validImages = serverResults.map((r) => r.url);
           } catch {
             validImages = [];
           }
