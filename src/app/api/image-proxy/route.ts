@@ -16,12 +16,9 @@ const ALLOWED_DOMAINS = [
   "farm8.staticflickr.com",
   "farm9.staticflickr.com",
   "upload.wikimedia.org",
+  "thumb.wikimedia.org",
   "commons.wikimedia.org",
   "images.pexels.com",
-  "lh3.googleusercontent.com",
-  "lh4.googleusercontent.com",
-  "lh5.googleusercontent.com",
-  "lh6.googleusercontent.com",
 ];
 
 function isAllowedUrl(urlStr: string): boolean {

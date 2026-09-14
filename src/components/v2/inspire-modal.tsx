@@ -421,11 +421,16 @@ function ImageCollage({
   category?: string | null;
   title?: string;
 }) {
-  // Proxy external images through /api/image-proxy to avoid hotlinking/CORS
+  // Proxy external images through /api/image-proxy to avoid hotlinking/CORS.
+  // Google Places URLs work fine directly, no need to proxy.
+  const needsProxy = (url: string) => {
+    if (url.startsWith("/api/") || url.startsWith("data:")) return false;
+    if (url.includes("googleusercontent.com")) return false;
+    if (url.includes("maps.googleapis.com")) return false;
+    return true;
+  };
   const proxiedImages = sourceImages.map((url) =>
-    url.startsWith("/api/") || url.startsWith("data:")
-      ? url
-      : `/api/image-proxy?url=${encodeURIComponent(url)}`,
+    needsProxy(url) ? `/api/image-proxy?url=${encodeURIComponent(url)}` : url,
   );
   const [images, setImages] = useState(proxiedImages);
 
@@ -623,9 +628,12 @@ function PlaceDetailSheet({
               }}
             >
               {finalImages.map((src, i) => {
-                const proxiedSrc = src.startsWith("/api/") || src.startsWith("data:")
-                  ? src
-                  : `/api/image-proxy?url=${encodeURIComponent(src)}`;
+                const needsProxy = !src.startsWith("/api/") && !src.startsWith("data:")
+                  && !src.includes("googleusercontent.com")
+                  && !src.includes("maps.googleapis.com");
+                const proxiedSrc = needsProxy
+                  ? `/api/image-proxy?url=${encodeURIComponent(src)}`
+                  : src;
                 return (
                 <div key={i} className="h-full w-full shrink-0 snap-start">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -744,9 +752,12 @@ function PlaceDetailSheet({
                           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
                             {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
                               const sourceUrl = concept.reference_source_urls?.[ri];
-                              const proxiedUrl = imgUrl.startsWith("/api/") || imgUrl.startsWith("data:")
-                                ? imgUrl
-                                : `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`;
+                              const needsProxy = !imgUrl.startsWith("/api/") && !imgUrl.startsWith("data:")
+                                && !imgUrl.includes("googleusercontent.com")
+                                && !imgUrl.includes("maps.googleapis.com");
+                              const proxiedUrl = needsProxy
+                                ? `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`
+                                : imgUrl;
                               return (
                                 <a
                                   key={ri}
