@@ -6,6 +6,7 @@ import { getCuratedSpotsForCity } from "@/lib/curated-spots";
 import { isTourismBusiness } from "@/lib/tourism-filter";
 import { getSpotImageUrls } from "@/lib/spot-images";
 import { searchSpotPoseImages } from "@/lib/image-search";
+import { getSpotImagesFromWikimedia, getPoseImagesFromWikimedia, searchWikimediaImages } from "@/lib/wikimedia-images";
 import type { Inspiration } from "@/lib/types";
 
 type GPlaceResult = google.maps.places.PlaceResult;
@@ -116,6 +117,26 @@ function getDetails(
       },
     );
   });
+}
+
+async function fillImages(
+  imageUrls: string[],
+  curatedSpot: CuratedSpot | undefined,
+  cityHint: string | undefined,
+): Promise<string[]> {
+  // 1. Si ya hay fotos de Google Places, usarlas
+  if (imageUrls.length > 0) return imageUrls;
+  // 2. Si hay imágenes fijas curadas, usarlas
+  if (curatedSpot) {
+    const fixed = getSpotImageUrls(curatedSpot, cityHint);
+    if (fixed.length > 0) return fixed;
+  }
+  // 3. Buscar en Wikimedia Commons (fotos reales del lugar)
+  if (curatedSpot) {
+    const wikiImages = await getSpotImagesFromWikimedia(curatedSpot, cityHint, 3);
+    if (wikiImages.length > 0) return wikiImages;
+  }
+  return [];
 }
 
 function placeToInspiration(place: GPlaceResult, curatedSpot?: CuratedSpot, cityHint?: string): Inspiration {
@@ -268,37 +289,54 @@ export async function fetchInspirationsClient(
       const batch = curatedSpots.slice(i, i + batchSize);
       const batchResults = await Promise.all(
         batch.map(async (spot): Promise<Inspiration> => {
+          let insp: Inspiration | null = null;
           try {
             const location = new google.maps.LatLng(spot.lat, spot.lng);
             const found = await findPlace(service, spot.search_query, location);
 
             if (found && found.place_id) {
               if (isTourismBusiness(found.name ?? "", found.types ?? [])) {
-                return curatedToInspiration(spot, destination);
-              }
-
-              const detailed = await getDetails(service, found.place_id);
-              if (detailed) {
-                if (isTourismBusiness(detailed.name ?? "", detailed.types ?? [])) {
-                  return curatedToInspiration(spot, destination);
+                insp = curatedToInspiration(spot, destination);
+              } else {
+                const detailed = await getDetails(service, found.place_id);
+                if (detailed) {
+                  if (isTourismBusiness(detailed.name ?? "", detailed.types ?? [])) {
+                    insp = curatedToInspiration(spot, destination);
+                  } else {
+                    insp = placeToInspiration(detailed, spot, destination);
+                    if (insp) insp.title = spot.name;
+                  }
                 }
-                const insp = placeToInspiration(detailed, spot, destination);
-                if (insp) {
-                  insp.title = spot.name;
-                  return insp;
+                if (!insp) {
+                  const basicInsp = placeToInspiration(found, spot, destination);
+                  if (basicInsp) {
+                    basicInsp.title = spot.name;
+                    insp = basicInsp;
+                  }
                 }
-              }
-
-              const basicInsp = placeToInspiration(found, spot, destination);
-              if (basicInsp) {
-                basicInsp.title = spot.name;
-                return basicInsp;
               }
             }
           } catch {
             // fallback al spot curado sin enriquecer
           }
-          return curatedToInspiration(spot, destination);
+          if (!insp) {
+            insp = curatedToInspiration(spot, destination);
+          }
+
+          // Si no tiene fotos de Google Places ni fijas, buscar en Wikimedia
+          if (insp.image_urls.length === 0) {
+            try {
+              const wikiImages = await getSpotImagesFromWikimedia(spot, destination, 3);
+              if (wikiImages.length > 0) {
+                insp.image_urls = wikiImages;
+                insp.image_url = wikiImages[0];
+              }
+            } catch {
+              // sin imágenes
+            }
+          }
+
+          return insp;
         }),
       );
 
@@ -311,36 +349,59 @@ export async function fetchInspirationsClient(
       }
     }
 
-    // --- STEP 1.5: Buscar imágenes de referencia de poses con Google CSE ---
-    // Para cada spot con photo_concepts, buscar imágenes reales que muestren la pose.
-    // Esto se hace en paralelo para todos los spots, sin bloquear el flujo principal.
+    // --- STEP 1.5: Buscar imágenes de referencia de poses ---
+    // Primero Google CSE, luego Wikimedia Commons como fallback.
     const cseKey =
       process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY ??
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (cseKey) {
-      const poseSearchPromises = curatedSpots.slice(0, 10).map(async (spot) => {
-        if (!spot.photo_concepts?.length) return;
-        try {
-          const refs = await searchSpotPoseImages(spot, destination);
-          const inspiration = Array.from(resultsById.values()).find(
-            (item) => item.title.toLocaleLowerCase() === spot.name.toLocaleLowerCase(),
-          );
-          if (!inspiration) return;
+    const cseId = process.env.NEXT_PUBLIC_GOOGLE_CSE_ID;
 
-          for (const [idxStr, images] of Object.entries(refs)) {
-            const concept = inspiration.photo_concepts[Number(idxStr)];
-            if (!concept || images.length === 0) continue;
-            concept.reference_image_urls = images.map((image) => image.url);
-            concept.reference_source_urls = images.map((image) => image.source_url);
-            inspiration.image_urls = images.map((image) => image.url);
+    const poseSearchPromises = curatedSpots.slice(0, 10).map(async (spot) => {
+      if (!spot.photo_concepts?.length) return;
+      try {
+        const inspiration = Array.from(resultsById.values()).find(
+          (item) => item.title.toLocaleLowerCase() === spot.name.toLocaleLowerCase(),
+        );
+        if (!inspiration) return;
+
+        // Intentar Google CSE primero
+        let poseRefs: Record<number, { url: string; source_url: string }[]> = {};
+        if (cseKey && cseId) {
+          const refs = await searchSpotPoseImages(spot, destination);
+          for (const [idx, images] of Object.entries(refs)) {
+            poseRefs[Number(idx)] = images.map((r) => ({ url: r.url, source_url: r.source_url }));
+          }
+        }
+
+        // Fallback: Wikimedia Commons para el primer concepto
+        if (Object.keys(poseRefs).length === 0) {
+          const concept = spot.photo_concepts[0];
+          const wikiResult = await getPoseImagesFromWikimedia(spot, concept.title, destination, 4);
+          if (wikiResult.urls.length > 0) {
+            poseRefs[0] = wikiResult.urls.map((url, i) => ({
+              url,
+              source_url: wikiResult.sources[i] ?? "",
+            }));
+          }
+        }
+
+        // Aplicar referencias encontradas
+        for (const [idxStr, images] of Object.entries(poseRefs)) {
+          const concept = inspiration.photo_concepts[Number(idxStr)];
+          if (!concept || images.length === 0) continue;
+          concept.reference_image_urls = images.map((img) => img.url);
+          concept.reference_source_urls = images.map((img) => img.source_url);
+          // Si la card no tiene fotos, usar la primera referencia como imagen principal
+          if (inspiration.image_urls.length === 0) {
+            inspiration.image_urls = images.map((img) => img.url);
             inspiration.image_url = images[0].url;
           }
-        } catch {
-          return;
         }
-      });
-      await Promise.allSettled(poseSearchPromises);
-    }
+      } catch {
+        return;
+      }
+    });
+    await Promise.allSettled(poseSearchPromises);
   }
 
   // --- STEP 2: Buscar lugares adicionales en Google Maps (datos fiables para tab "Lugares") ---
@@ -390,8 +451,19 @@ export async function fetchInspirationsClient(
       if (place && place.place_id) {
         if (isTourismBusiness(place.name ?? "", place.types ?? [])) continue;
         const insp = placeToInspiration(place, undefined, destination);
+        // Si no tiene foto de Google, buscar en Wikimedia
+        if (insp.image_urls.length === 0) {
+          try {
+            const wikiImages = await searchWikimediaImages(place.name ?? "", 2);
+            if (wikiImages.length > 0) {
+              insp.image_urls = wikiImages.map((img) => img.thumb_url);
+              insp.image_url = wikiImages[0].thumb_url;
+            }
+          } catch {
+            // sin imágenes
+          }
+        }
         if (insp.image_urls.length > 0) {
-          // Solo añadir si no está ya en curated (mismo place_id)
           if (!resultsById.has(insp.place_id)) {
             resultsById.set(insp.place_id, insp);
           }
