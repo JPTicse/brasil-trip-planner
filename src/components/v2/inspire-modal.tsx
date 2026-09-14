@@ -392,7 +392,7 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 };
 
 function ImageCollage({
-  images,
+  images: sourceImages,
   emoji,
   category,
   title,
@@ -402,6 +402,16 @@ function ImageCollage({
   category?: string | null;
   title?: string;
 }) {
+  const [images, setImages] = useState(sourceImages);
+
+  useEffect(() => {
+    setImages(sourceImages);
+  }, [sourceImages]);
+
+  const removeBrokenImage = (url: string) => {
+    setImages((current) => current.filter((image) => image !== url));
+  };
+
   if (images.length === 0) {
     const gradient = CATEGORY_GRADIENTS[category ?? ""] ?? "from-zinc-700 to-zinc-900";
     return (
@@ -429,7 +439,7 @@ function ImageCollage({
     return (
       <div className="aspect-[4/3] w-full overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[0]} alt="" className="h-full w-full object-cover" loading="eager" />
+        <img src={images[0]} alt="" className="h-full w-full object-cover" loading="eager" onError={() => removeBrokenImage(images[0])} />
       </div>
     );
   }
@@ -441,7 +451,7 @@ function ImageCollage({
         {images.slice(0, 2).map((src, i) => (
           <div key={i} className="overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="" className="h-full w-full object-cover" loading="eager" />
+            <img src={src} alt="" className="h-full w-full object-cover" loading="eager" onError={() => removeBrokenImage(src)} />
           </div>
         ))}
       </div>
@@ -454,12 +464,12 @@ function ImageCollage({
       <div className="grid aspect-[4/3] grid-cols-3 grid-rows-2 gap-0.5">
         <div className="col-span-2 row-span-2 overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={images[0]} alt="" className="h-full w-full object-cover" loading="eager" />
+          <img src={images[0]} alt="" className="h-full w-full object-cover" loading="eager" onError={() => removeBrokenImage(images[0])} />
         </div>
         {images.slice(1, 3).map((src, i) => (
           <div key={i} className="overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="" className="h-full w-full object-cover" loading="eager" />
+            <img src={src} alt="" className="h-full w-full object-cover" loading="eager" onError={() => removeBrokenImage(src)} />
           </div>
         ))}
       </div>
@@ -471,12 +481,12 @@ function ImageCollage({
     <div className="grid aspect-[4/3] grid-cols-3 grid-rows-3 gap-0.5">
       <div className="col-span-2 row-span-3 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[0]} alt="" className="h-full w-full object-cover" loading="eager" />
+        <img src={images[0]} alt="" className="h-full w-full object-cover" loading="eager" onError={() => removeBrokenImage(images[0])} />
       </div>
       {images.slice(1, 4).map((src, i) => (
         <div key={i} className="relative overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt="" className="h-full w-full object-cover" loading="eager" />
+          <img src={src} alt="" className="h-full w-full object-cover" loading="eager" onError={() => removeBrokenImage(src)} />
           {i === 2 && images.length > 4 && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <span className="text-lg font-bold text-white">+{images.length - 4}</span>

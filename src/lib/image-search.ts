@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import type { CuratedSpot } from "@/lib/photo-types";
+import type { CuratedSpot, PhotoConcept } from "@/lib/photo-types";
 
 // --- Tipos para resultados de búsqueda de imágenes ---
 
@@ -75,7 +75,7 @@ export async function searchPoseImages(
     return items
       .filter((item) => item.link && item.image?.contextLink)
       .map((item) => ({
-        url: item.link,
+        url: item.image?.thumbnailLink ?? item.link,
         source_url: item.image!.contextLink,
         source_title: item.title,
         width: item.image?.width ?? 800,
@@ -91,17 +91,10 @@ export async function searchPoseImages(
 /**
  * Construye queries específicas para buscar fotos que muestren una pose/concepto.
  */
-export function buildPoseQuery(spot: CuratedSpot, conceptTitle: string, cityHint?: string): string {
-  const parts: string[] = [];
-  // Nombre del spot (priorizar name_en si existe para más resultados en inglés)
-  parts.push(spot.name_en ?? spot.name);
-  // Título del concepto (describe la pose/trend)
-  parts.push(conceptTitle.toLowerCase());
-  // Ciudad como contexto
-  if (cityHint) parts.push(cityHint);
-  // Sufijo para favorecer fotos con personas
-  parts.push("photo pose");
-  return parts.join(" ");
+export function buildPoseQuery(spot: CuratedSpot, concept: PhotoConcept, cityHint?: string): string {
+  const place = spot.name_en ?? spot.name;
+  const location = cityHint ? ` ${cityHint}` : "";
+  return `"${place}"${location} tourist ${concept.title} ${concept.pose} instagram pose photo`;
 }
 
 /**
@@ -123,7 +116,7 @@ export async function searchSpotPoseImages(
   // Buscar en paralelo (máx 4 imágenes por concepto)
   const concepts = spot.photo_concepts;
   const searches = concepts.map((concept, i) =>
-    searchPoseImages(buildPoseQuery(spot, concept.title, cityHint), 4).then(
+    searchPoseImages(buildPoseQuery(spot, concept, cityHint), 4).then(
       (refs) => [i, refs] as const,
     ),
   );

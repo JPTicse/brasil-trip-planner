@@ -24,28 +24,32 @@ const validationCache = new Map<string, boolean>();
  * Valida si una URL de imagen realmente carga (HEAD request).
  * Cacha el resultado para no repetir.
  */
-export async function validateImageUrl(url: string, timeoutMs = 5000): Promise<boolean> {
+export async function validateImageUrl(url: string, timeoutMs = 8000): Promise<boolean> {
   if (validationCache.has(url)) {
     return validationCache.get(url)!;
   }
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, {
-      method: "HEAD",
-      signal: controller.signal,
-      mode: "no-cors",
-    });
-    clearTimeout(timeout);
-    // En mode no-cors, opaque response = 0, pero significa que cargó
-    const valid = res.type === "opaque" || res.ok;
-    validationCache.set(url, valid);
-    return valid;
-  } catch {
-    validationCache.set(url, false);
-    return false;
-  }
+  const valid = await new Promise<boolean>((resolve) => {
+    const image = new Image();
+    const timeout = window.setTimeout(() => {
+      image.src = "";
+      resolve(false);
+    }, timeoutMs);
+
+    image.onload = () => {
+      window.clearTimeout(timeout);
+      resolve(image.naturalWidth >= 200 && image.naturalHeight >= 150);
+    };
+    image.onerror = () => {
+      window.clearTimeout(timeout);
+      resolve(false);
+    };
+    image.referrerPolicy = "no-referrer";
+    image.src = url;
+  });
+
+  validationCache.set(url, valid);
+  return valid;
 }
 
 /**
