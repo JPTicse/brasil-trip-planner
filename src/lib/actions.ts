@@ -390,9 +390,12 @@ export async function saveInspirations(formData: FormData) {
     expires_at: expiresAt,
   }));
 
+  // Delete-then-insert: limpia URLs rotas cacheadas que ya no existen
+  // El upsert anterior dejaba filas huérfanas con place_id diferente y URLs rotas
+  await supabase.from("inspirations").delete().eq("trip_id", tripId);
   const { error: upsertError } = await supabase
     .from("inspirations")
-    .upsert(rows, { onConflict: "trip_id,place_id" })
+    .insert(rows)
     .select();
 
   if (upsertError) {

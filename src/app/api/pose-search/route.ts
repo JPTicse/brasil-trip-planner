@@ -60,9 +60,10 @@ async function searchOpenverse(
     const results: ImageResult[] = [];
 
     for (const r of (data.results ?? []) as any[]) {
-      // Usar thumbnail (hosteado por Openverse, diseñado para hotlinking)
-      // en vez de url directo al provider (Flickr/Wikimedia pueden bloquear hotlinking)
-      const imgUrl = r.thumbnail ?? r.url;
+      // Usar SOLO thumbnail (hosteado por Openverse, diseñado para hotlinking)
+      // Si no hay thumbnail, skip — los URLs directos de providers (Wikimedia/Flickr)
+      // suelen estar rotos o bloquean hotlinking
+      const imgUrl = r.thumbnail;
       if (!imgUrl) continue;
       results.push({
         url: imgUrl,
@@ -84,7 +85,7 @@ async function searchOpenverse(
  * Busca imágenes en Pexels (gratis, requiere API key opcional).
  * Si no hay key, se salta silenciosamente.
  */
-async function searchPexels(query: string, count: number): Promise<ImageResult[]> {
+async function searchPexels(query: string, count: number, peopleFocus = false): Promise<ImageResult[]> {
   const apiKey = process.env.PEXELS_API_KEY;
   if (!apiKey) return [];
 
@@ -93,6 +94,10 @@ async function searchPexels(query: string, count: number): Promise<ImageResult[]
     url.searchParams.set("query", query);
     url.searchParams.set("per_page", String(Math.min(count, 80)));
     url.searchParams.set("locale", "en-US");
+    // Para poses: orientación portrait (las fotos de personas suelen ser verticales)
+    if (peopleFocus) {
+      url.searchParams.set("orientation", "portrait");
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
@@ -114,9 +119,11 @@ async function searchPexels(query: string, count: number): Promise<ImageResult[]
     const results: ImageResult[] = [];
 
     for (const photo of (data.photos ?? []) as any[]) {
-      if (!photo?.src?.large) continue;
+      // Para poses: usar portrait (800x1200); para places: large (940x650)
+      const imgUrl = peopleFocus ? (photo.src?.portrait ?? photo.src?.large) : (photo.src?.large ?? photo.src?.portrait);
+      if (!imgUrl) continue;
       results.push({
-        url: photo.src.large,
+        url: imgUrl,
         source_url: photo.url ?? "",
         source_name: "pexels",
         license: "pexels",
@@ -235,7 +242,7 @@ export async function GET(request: NextRequest) {
   // IMPORTANTE: Openverse anónimo tiene rate limit de 1 req/sec.
   // Hacemos los requests Openverse SECUENCIALMENTE (no paralelos) para evitar 429.
   // Pexels sí va en paralelo con el segundo request Openverse.
-  const pexelsPromise = searchPexels(pexelsQuery, count);
+  const pexelsPromise = searchPexels(pexelsQuery, count, isPose);
 
   // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
   const ovFlickr = await searchOpenverse(openverseQuery, count, {

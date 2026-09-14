@@ -18,6 +18,9 @@ const ALLOWED_DOMAINS = [
   "images.unsplash.com",
   "images.pexels.com",
   "api.openverse.org",
+  "upload.wikimedia.org",
+  "thumb.wikimedia.org",
+  "commons.wikimedia.org",
 ];
 
 function isAllowedUrl(urlStr: string): boolean {
