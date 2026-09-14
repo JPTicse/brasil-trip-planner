@@ -61,7 +61,7 @@ function loadGoogleMaps(): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&language=es&callback=__gmInit`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&language=es&callback=__gmInit&loading=async`;
     script.async = true;
     script.defer = true;
 
