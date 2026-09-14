@@ -435,31 +435,21 @@ export async function fetchInspirationsClient(
         if (!inspiration) return;
 
         // Buscar poses para cada concepto en paralelo (3 fotos por concepto)
-        // Fallback progresivo: query específica → query con personas → solo spot
+        // Queries simples: solo el nombre del lugar (la API route añade términos de personas)
+        // NO incluir concept.title (es español, muy específico, devuelve 0 resultados)
+        // NO incluir términos de personas aquí (la route ya los añade → double-wrapping)
         const poseSearches = spot.photo_concepts.map(async (concept, i) => {
-          // Usar nombre en portugués (funciona mejor en Openverse para Brasil)
-          // y nombre en inglés como alternativo
-          const spotName = spot.name_en ?? spot.name;
           const spotNamePt = spot.name;
-          // Queries progresivas: específica → con términos de personas → fallback
-          const queries = [
-            // Query específica con concepto + términos de personas (boolean OR)
-            `${spotNamePt} ${concept.title}`,
-            // Query con nombre en inglés + concepto
-            `${spotName} ${concept.title}`,
-            // Query con términos de personas en OR (boolean query de Openverse)
-            `${spotNamePt} (tourist | turista | pessoas | people | visitor)`,
-            // Query más amplia con nombre en inglés + personas
-            `${spotName} (tourist | people | person | visitor)`,
-            // Fallback: solo el nombre del spot
-            spotNamePt,
-          ];
+          const spotNameEn = spot.name_en ?? spot.name;
+          // Solo 2 queries: portugués (mejor para Brasil) e inglés (mejor para Flickr global)
+          const queries = [spotNamePt, spotNameEn];
           for (const query of queries) {
             const results = await searchImagesServerSide(query, "pose", 3);
-            // Deduplicar contra poses ya asignadas y contra fotos de lugar
+            // Deduplicar contra poses ya asignadas a otros conceptos/spots
+            // NO filtrar contra usedPlaceUrls: las fotos del lugar pueden servir
+            // como referencia de pose (muestra el lugar, framing, contexto)
             const uniqueResults = results.filter((r) => {
               if (usedPoseUrls.has(r.url)) return false;
-              if (usedPlaceUrls.has(r.url)) return false; // cross-dedup
               usedPoseUrls.add(r.url);
               return true;
             });

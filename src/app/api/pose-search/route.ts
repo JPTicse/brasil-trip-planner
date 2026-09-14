@@ -60,9 +60,12 @@ async function searchOpenverse(
     const results: ImageResult[] = [];
 
     for (const r of (data.results ?? []) as any[]) {
-      if (!r.url) continue;
+      // Usar thumbnail (hosteado por Openverse, diseñado para hotlinking)
+      // en vez de url directo al provider (Flickr/Wikimedia pueden bloquear hotlinking)
+      const imgUrl = r.thumbnail ?? r.url;
+      if (!imgUrl) continue;
       results.push({
-        url: r.url,
+        url: imgUrl,
         source_url: r.foreign_landing_url ?? "",
         source_name: r.source ?? r.provider ?? "openverse",
         license: r.license ?? "unknown",
@@ -228,19 +231,23 @@ export async function GET(request: NextRequest) {
     pexelsQuery = query;
   }
 
-  // Buscar en paralelo en Openverse (Flickr + Wikimedia via aggregator) y Pexels
-  // No llamamos Wikimedia directamente: Openverse ya lo agrega y las URLs directas
-  // de Wikimedia a menudo devuelven 400/404.
-  const [ovFlickr, ovAll, pexelsResults] = await Promise.all([
-    // Para poses: priorizar Flickr (tiene más fotos de usuarios con personas)
-    searchOpenverse(openverseQuery, count, {
-      peopleFocus: isPose,
-      source: isPose ? "flickr" : undefined,
-    }),
-    // Openverse sin filtro de source (todos los sources incluido Wikimedia)
+  // Buscar en Openverse y Pexels.
+  // IMPORTANTE: Openverse anónimo tiene rate limit de 1 req/sec.
+  // Hacemos los requests Openverse SECUENCIALMENTE (no paralelos) para evitar 429.
+  // Pexels sí va en paralelo con el segundo request Openverse.
+  const pexelsPromise = searchPexels(pexelsQuery, count);
+
+  // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
+  const ovFlickr = await searchOpenverse(openverseQuery, count, {
+    peopleFocus: isPose,
+    source: isPose ? "flickr" : undefined,
+  });
+
+  // Segundo request Openverse: sin filtro de source (incluye Wikimedia via aggregator)
+  // Va en paralelo con Pexels (que ya está corriendo)
+  const [ovAll, pexelsResults] = await Promise.all([
     searchOpenverse(openverseQuery, count, { peopleFocus: isPose }),
-    // Pexels (si hay API key)
-    searchPexels(pexelsQuery, count),
+    pexelsPromise,
   ]);
 
   // Combinar resultados, deduplicar por URL

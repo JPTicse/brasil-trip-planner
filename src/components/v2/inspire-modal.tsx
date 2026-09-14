@@ -421,11 +421,13 @@ function ImageCollage({
   category?: string | null;
   title?: string;
 }) {
-  // Solo proxyar Flickr (tiene hotlinking bloqueado).
-  // Wikimedia, Unsplash, Google: funcionan directas en el navegador.
+  // Proxy external images through /api/image-proxy to avoid hotlinking/CORS.
+  // Solo proxyar Flickr y Openverse thumbnails. Google y Wikimedia funcionan directas.
   const needsProxy = (url: string) => {
     if (url.startsWith("/api/") || url.startsWith("data:")) return false;
-    return url.includes("staticflickr.com");
+    if (url.includes("googleusercontent.com")) return false;
+    if (url.includes("maps.googleapis.com")) return false;
+    return true;
   };
   const proxiedImages = sourceImages.map((url) =>
     needsProxy(url) ? `/api/image-proxy?url=${encodeURIComponent(url)}` : url,
@@ -627,7 +629,8 @@ function PlaceDetailSheet({
             >
               {finalImages.map((src, i) => {
                 const needsProxy = !src.startsWith("/api/") && !src.startsWith("data:")
-                  && src.includes("staticflickr.com");
+                  && !src.includes("googleusercontent.com")
+                  && !src.includes("maps.googleapis.com");
                 const proxiedSrc = needsProxy
                   ? `/api/image-proxy?url=${encodeURIComponent(src)}`
                   : src;
@@ -750,7 +753,8 @@ function PlaceDetailSheet({
                             {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
                               const sourceUrl = concept.reference_source_urls?.[ri];
                               const needsProxy = !imgUrl.startsWith("/api/") && !imgUrl.startsWith("data:")
-                                && imgUrl.includes("staticflickr.com");
+                                && !imgUrl.includes("googleusercontent.com")
+                                && !imgUrl.includes("maps.googleapis.com");
                               const proxiedUrl = needsProxy
                                 ? `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`
                                 : imgUrl;

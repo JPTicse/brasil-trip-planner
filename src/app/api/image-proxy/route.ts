@@ -17,6 +17,7 @@ const ALLOWED_DOMAINS = [
   "farm9.staticflickr.com",
   "images.unsplash.com",
   "images.pexels.com",
+  "api.openverse.org",
 ];
 
 function isAllowedUrl(urlStr: string): boolean {
