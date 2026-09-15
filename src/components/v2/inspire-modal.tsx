@@ -740,10 +740,19 @@ function PlaceDetailSheet({
                       <h4 className="text-base font-bold text-white">
                         {ci + 1}. {concept.title}
                       </h4>
-                      <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-2 py-0.5 text-[11px] font-bold text-white">
-                        📸 {concept.instagram_score}/10
-                      </span>
+                      {concept.instagram_score != null && (
+                        <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-2 py-0.5 text-[11px] font-bold text-white">
+                          📸 {concept.instagram_score}/10
+                        </span>
+                      )}
                     </div>
+
+                    {/* Descripción de la foto (para concepts generados dinámicamente desde alt text) */}
+                    {concept.description && (
+                      <p className="mt-1.5 text-sm leading-relaxed text-white/70">
+                        {concept.description}
+                      </p>
+                    )}
 
                     {/* Imagen de referencia de la pose — prominentemente al inicio */}
                     <div className="mt-3">
@@ -798,40 +807,48 @@ function PlaceDetailSheet({
                     {/* Detalles de la guía */}
                     <div className="mt-3 space-y-2.5">
                       {/* Pose */}
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-sm">🧍</span>
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Pose</p>
-                          <p className="text-sm text-white/80">{concept.pose}</p>
+                      {concept.pose && (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-sm">🧍</span>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Pose</p>
+                            <p className="text-sm text-white/80">{concept.pose}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Ángulo de cámara */}
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-sm">📷</span>
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Cámara</p>
-                          <p className="text-sm text-white/80">{concept.camera_angle}</p>
+                      {concept.camera_angle && (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-sm">📷</span>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Cámara</p>
+                            <p className="text-sm text-white/80">{concept.camera_angle}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Mejor momento */}
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-sm">🕐</span>
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Mejor momento</p>
-                          <p className="text-sm text-white/80">{concept.best_time}</p>
+                      {concept.best_time && (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-sm">🕐</span>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Mejor momento</p>
+                            <p className="text-sm text-white/80">{concept.best_time}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Ropa */}
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-sm">👕</span>
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Ropa</p>
-                          <p className="text-sm text-white/80">{concept.clothing}</p>
+                      {concept.clothing && (
+                        <div className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-sm">👕</span>
+                          <div>
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-white/40">Ropa</p>
+                            <p className="text-sm text-white/80">{concept.clothing}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Tip de equipo */}
                       {concept.camera_tip && (

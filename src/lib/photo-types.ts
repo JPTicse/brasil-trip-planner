@@ -5,15 +5,15 @@ export type PhotoConcept = {
   // Título corto de la foto (ej: "Silueta al atardecer")
   title: string;
   // Descripción de la pose exacta
-  pose: string;
+  pose?: string;
   // Ángulo/posición de cámara (ej: "Cámara baja, a la altura de la cintura")
-  camera_angle: string;
+  camera_angle?: string;
   // Mejor momento del día (ej: "Atardecer", "Blue hour", "Mañana temprano")
-  best_time: string;
+  best_time?: string;
   // Ropa sugerida
-  clothing: string;
+  clothing?: string;
   // Score de Instagram (1-10)
-  instagram_score: number;
+  instagram_score?: number;
   // Tip de equipo (ej: "iPhone 2x zoom", "Action 4 POV", "Gran angular")
   camera_tip?: string;
   // Formato de foto (ej: "Vertical 4:5", "Horizontal", "Cuadrada")
@@ -24,6 +24,8 @@ export type PhotoConcept = {
   reference_image_urls?: string[];
   // NUEVO: URL de la página fuente donde aparece cada imagen
   reference_source_urls?: string[];
+  // NUEVO: descripción generada desde el alt text de la foto encontrada
+  description?: string;
 };
 
 export type CuratedSpot = {

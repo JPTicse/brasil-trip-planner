@@ -94,7 +94,7 @@ export async function searchPoseImages(
 export function buildPoseQuery(spot: CuratedSpot, concept: PhotoConcept, cityHint?: string): string {
   const place = spot.name_en ?? spot.name;
   const location = cityHint ? ` ${cityHint}` : "";
-  return `"${place}"${location} tourist ${concept.title} ${concept.pose} instagram pose photo`;
+  return `"${place}"${location} tourist ${concept.title} ${concept.pose ?? ""} instagram pose photo`;
 }
 
 /**

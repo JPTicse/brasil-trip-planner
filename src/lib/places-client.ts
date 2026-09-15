@@ -19,6 +19,7 @@ type ServerImageResult = {
   license: string;
   width: number;
   height: number;
+  alt?: string;
 };
 
 /**
@@ -424,8 +425,10 @@ export async function fetchInspirationsClient(
       }
     }
 
-    // --- STEP 1.5: Buscar imágenes de referencia de poses para TODOS los conceptos ---
-    // Las fotos de pose van SOLO a reference_image_urls, nunca a image_urls de la card.
+    // --- STEP 1.5: Buscar fotos de personas en el lugar → generar concepts desde las fotos ---
+    // ENFOQUE INVERTIDO: buscar fotos primero, luego generar el detalle desde el alt text
+    // NO: definir pose en español → buscar foto que coincida (nunca funciona)
+    // SÍ: buscar fotos de personas → usar alt text como descripción de la pose
     const poseSearchPromises = curatedSpots.map(async (spot) => {
       if (!spot.photo_concepts?.length) return;
       try {
@@ -434,41 +437,38 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        // Buscar poses para cada concepto en paralelo (3 fotos por concepto)
-        // Queries simples: solo el nombre del lugar (la API route añade términos de personas)
-        // NO incluir concept.title (es español, muy específico, devuelve 0 resultados)
-        // NO incluir términos de personas aquí (la route ya los añade → double-wrapping)
-        const poseSearches = spot.photo_concepts.map(async (concept, i) => {
-          const spotNamePt = spot.name;
-          const spotNameEn = spot.name_en ?? spot.name;
-          // Solo 2 queries: portugués (mejor para Brasil) e inglés (mejor para Flickr global)
-          const queries = [spotNamePt, spotNameEn];
-          for (const query of queries) {
-            const results = await searchImagesServerSide(query, "pose", 3);
-            // Deduplicar contra poses ya asignadas a otros conceptos/spots
-            // NO filtrar contra usedPlaceUrls: las fotos del lugar pueden servir
-            // como referencia de pose (muestra el lugar, framing, contexto)
-            const uniqueResults = results.filter((r) => {
-              if (usedPoseUrls.has(r.url)) return false;
-              usedPoseUrls.add(r.url);
-              return true;
-            });
-            if (uniqueResults.length > 0) {
-              return [i, uniqueResults] as const;
-            }
-          }
-          return null;
-        });
+        // Buscar fotos de personas en el lugar (una sola búsqueda por spot, no por concept)
+        // Query: "tourist posing [spot name]" → Pexels devuelve fotos con alt descriptivo
+        const spotNamePt = spot.name;
+        const spotNameEn = spot.name_en ?? spot.name;
+        const queries = [spotNamePt, spotNameEn];
 
-        const settled = await Promise.allSettled(poseSearches);
-        for (const s of settled) {
-          if (s.status !== "fulfilled" || s.value === null) continue;
-          const [idx, uniqueResults] = s.value;
-          const concept = inspiration.photo_concepts[idx];
-          if (!concept) continue;
-          concept.reference_image_urls = uniqueResults.map((r) => r.url);
-          concept.reference_source_urls = uniqueResults.map((r) => r.source_url);
+        let allPoseResults: { url: string; source_url: string; alt?: string }[] = [];
+        for (const query of queries) {
+          const results = await searchImagesServerSide(query, "pose", 10);
+          // Deduplicar dentro del pool de poses
+          const uniqueResults = results.filter((r) => {
+            if (usedPoseUrls.has(r.url)) return false;
+            usedPoseUrls.add(r.url);
+            return true;
+          });
+          allPoseResults.push(...uniqueResults.map((r) => ({ url: r.url, source_url: r.source_url, alt: r.alt })));
+          if (allPoseResults.length >= 6) break; // suficiente con 6 fotos
         }
+
+        if (allPoseResults.length === 0) return; // fallback: mantener concepts curados sin imágenes
+
+        // GENERAR concepts dinámicamente desde las fotos encontradas
+        // Cada foto se convierte en un concept con su alt text como título
+        const dynamicConcepts = allPoseResults.slice(0, 6).map((photo) => ({
+          title: photo.alt || `Pose en ${spot.name}`,
+          description: photo.alt || "",
+          reference_image_urls: [photo.url],
+          reference_source_urls: [photo.source_url],
+        }));
+
+        // Reemplazar los concepts curados con los dinámicos
+        inspiration.photo_concepts = dynamicConcepts;
       } catch {
         return;
       }

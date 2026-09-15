@@ -200,17 +200,19 @@ export type Currency = (typeof CURRENCIES)[number];
 
 export type PhotoConcept = {
   title: string;
-  pose: string;
-  camera_angle: string;
-  best_time: string;
-  clothing: string;
-  instagram_score: number;
+  pose?: string;
+  camera_angle?: string;
+  best_time?: string;
+  clothing?: string;
+  instagram_score?: number;
   camera_tip?: string | null;
   format?: string | null;
   // NUEVO: URLs de imágenes de referencia que muestran la pose
   reference_image_urls?: string[];
   // NUEVO: URL de la página fuente
   reference_source_urls?: string[];
+  // NUEVO: descripción generada desde el alt text de la foto encontrada
+  description?: string;
 };
 
 export type Inspiration = {

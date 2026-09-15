@@ -10,6 +10,7 @@ type ImageResult = {
   license: string;
   width: number;
   height: number;
+  alt?: string; // descripción de la foto (alt text de Pexels, title de Openverse)
 };
 
 /**
@@ -72,6 +73,7 @@ async function searchOpenverse(
         license: r.license ?? "unknown",
         width: r.width ?? 800,
         height: r.height ?? 600,
+        alt: r.title ?? "", // título de la foto en Openverse
       });
     }
 
@@ -129,6 +131,7 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
         license: "pexels",
         width: photo.width ?? 800,
         height: photo.height ?? 600,
+        alt: photo.alt ?? "", // descripción de la foto generada por Pexels
       });
     }
 
@@ -229,9 +232,11 @@ export async function GET(request: NextRequest) {
 
   if (isPose) {
     // POSE: buscar fotos con personas en el lugar
-    // Boolean OR para términos de personas + nombre del lugar
-    openverseQuery = `(people|tourist|person|crowd|traveler) ${query}`;
+    // Pexels: "tourist posing [lugar]" — devuelve fotos de personas con alt text descriptivo
     pexelsQuery = `tourist posing ${query}`;
+    // Openverse: sin prefijo booleano (people|tourist) porque devuelve 0 resultados
+    // Openverse no tiene fotos tagged con "people/tourist" — mejor buscar solo el lugar
+    openverseQuery = query;
   } else {
     // PLACE: buscar fotos del lugar (paisaje, arquitectura)
     openverseQuery = query;
