@@ -11,6 +11,8 @@ import { getDaysBetween } from "@/lib/format";
 
 const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+const isRealPoseImageUrl = (url: string) => !url.includes("image.pollinations.ai");
+
 const TYPE_DOT: Record<ActivityType, string> = {
   visit: "bg-blue-500",
   tour: "bg-violet-500",
@@ -76,7 +78,9 @@ export function InspireModal({
 
   // Dividir: spots con photo_concepts (fotos trendy) vs todos (lugares)
   const trendySpots = localInspirations.filter((inspiration) =>
-    inspiration.photo_concepts?.some((concept) => concept.reference_image_urls?.length),
+    inspiration.photo_concepts?.some((concept) =>
+      concept.reference_image_urls?.some(isRealPoseImageUrl),
+    ),
   );
   const allSpots = localInspirations;
 
@@ -136,8 +140,10 @@ export function InspireModal({
   useEffect(() => {
     // Auto-refresh si: no hay imágenes de lugar, O si los photo_concepts no tienen reference_image_urls
     // (datos cacheados antiguos sin fotos de pose reales → tab "photos" estaría vacío)
-    const hasPoseImages = localInspirations.some(
-      (item) => item.photo_concepts?.some((c) => c.reference_image_urls && c.reference_image_urls.length > 0),
+    const hasPoseImages = localInspirations.some((item) =>
+      item.photo_concepts?.some((concept) =>
+        concept.reference_image_urls?.some(isRealPoseImageUrl),
+      ),
     );
     const hasNoPlaceImages = localInspirations.every(
       (item) => !item.image_url && !item.image_urls?.length,
@@ -315,6 +321,7 @@ function CollageCard({
   // Lugares: mostrar fotos del lugar
   const images = tab === "photos"
     ? (inspiration.photo_concepts?.flatMap((c) => c.reference_image_urls ?? []) ?? [])
+        .filter(isRealPoseImageUrl)
         .filter((url, idx, arr) => arr.indexOf(url) === idx) // dedup dentro del spot
     : (inspiration.image_urls?.length > 0
       ? inspiration.image_urls
@@ -568,6 +575,7 @@ function PlaceDetailSheet({
   // Lugares: galería superior muestra fotos del lugar
   const images = tab === "photos"
     ? (inspiration.photo_concepts?.flatMap((c) => c.reference_image_urls ?? []) ?? [])
+        .filter(isRealPoseImageUrl)
         .filter((url, idx, arr) => arr.indexOf(url) === idx)
     : (inspiration.image_urls?.length > 0
       ? inspiration.image_urls
@@ -770,10 +778,10 @@ function PlaceDetailSheet({
 
                     {/* Imagen de referencia de la pose — prominentemente al inicio */}
                     <div className="mt-3">
-                      {concept.reference_image_urls && concept.reference_image_urls.length > 0 ? (
+                      {concept.reference_image_urls?.some(isRealPoseImageUrl) ? (
                         <>
                           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-                            {concept.reference_image_urls.slice(0, 4).map((imgUrl, ri) => {
+                            {concept.reference_image_urls.filter(isRealPoseImageUrl).slice(0, 4).map((imgUrl, ri) => {
                               const sourceUrl = concept.reference_source_urls?.[ri];
                               const needsProxy = !imgUrl.startsWith("/api/") && !imgUrl.startsWith("data:")
                                 && !imgUrl.includes("googleusercontent.com")

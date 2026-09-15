@@ -440,5 +440,17 @@ export async function getInspirations(tripId: string): Promise<Inspiration[]> {
   // Si la tabla no existe aún, devolver vacío (se crea desde el dashboard)
   if (error) return [];
 
-  return (data ?? []) as Inspiration[];
+  return ((data ?? []) as Inspiration[]).map((inspiration) => ({
+    ...inspiration,
+    photo_concepts: inspiration.photo_concepts?.map((concept) => {
+      const references = (concept.reference_image_urls ?? [])
+        .map((url, index) => ({ url, source: concept.reference_source_urls?.[index] }))
+        .filter(({ url }) => !url.includes("image.pollinations.ai"));
+      return {
+        ...concept,
+        reference_image_urls: references.map(({ url }) => url),
+        reference_source_urls: references.map(({ source }) => source ?? ""),
+      };
+    }),
+  }));
 }
