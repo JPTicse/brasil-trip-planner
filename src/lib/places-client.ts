@@ -437,11 +437,17 @@ export async function fetchInspirationsClient(
         );
         if (!inspiration) return;
 
-        // Buscar fotos de personas en el lugar (una sola búsqueda por spot, no por concept)
-        // Query: "tourist posing [spot name]" → Pexels devuelve fotos con alt descriptivo
-        const spotNamePt = spot.name;
+        // Estrategia de queries para Pexels (indexa en inglés):
+        // 1. "[name_en] people" — turistas/multitudes en el landmark
+        // 2. "woman posing [destination]" — mujeres posando en la ciudad
+        // 3. "man posing [destination]" — hombres posando en la ciudad
+        // NO usar "tourist posing [monument]" — devuelve monumentos vacíos
         const spotNameEn = spot.name_en ?? spot.name;
-        const queries = [spotNamePt, spotNameEn];
+        const queries = [
+          `${spotNameEn} people`,
+          `woman posing ${destination}`,
+          `man posing ${destination}`,
+        ];
 
         let allPoseResults: { url: string; source_url: string; alt?: string }[] = [];
         for (const query of queries) {
@@ -454,6 +460,25 @@ export async function fetchInspirationsClient(
           });
           allPoseResults.push(...uniqueResults.map((r) => ({ url: r.url, source_url: r.source_url, alt: r.alt })));
           if (allPoseResults.length >= 6) break; // suficiente con 6 fotos
+        }
+
+        // Fallback: Pollinations AI genera imágenes de personas en poses si Pexels no devuelve suficiente
+        if (allPoseResults.length < 3) {
+          const spotNameEn2 = spot.name_en ?? spot.name;
+          const posePrompts = (spot.photo_concepts ?? []).slice(0, 3).map((c) =>
+            `tourist posing with arms open at ${spotNameEn2} ${destination}, realistic photograph, golden hour, high quality, photorealistic`
+          );
+          for (const prompt of posePrompts) {
+            const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=1200&nologo=true&model=flux`;
+            if (usedPoseUrls.has(pollinationsUrl)) continue;
+            usedPoseUrls.add(pollinationsUrl);
+            allPoseResults.push({
+              url: pollinationsUrl,
+              source_url: "https://pollinations.ai",
+              alt: `Pose generada por IA en ${spot.name}`,
+            });
+            if (allPoseResults.length >= 6) break;
+          }
         }
 
         if (allPoseResults.length === 0) return; // fallback: mantener concepts curados sin imágenes

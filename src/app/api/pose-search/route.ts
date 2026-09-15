@@ -120,10 +120,20 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
     const data = await res.json();
     const results: ImageResult[] = [];
 
+    // Términos que indican que la foto tiene personas (no solo paisaje/monumento)
+    const PEOPLE_TERMS = /\b(person|people|woman|man|tourist|posing|crowd|selfie|smiling|standing|wearing|portrait)\b/i;
+
     for (const photo of (data.photos ?? []) as any[]) {
       // Para poses: usar portrait (800x1200); para places: large (940x650)
       const imgUrl = peopleFocus ? (photo.src?.portrait ?? photo.src?.large) : (photo.src?.large ?? photo.src?.portrait);
       if (!imgUrl) continue;
+
+      const alt = photo.alt ?? "";
+
+      // Para poses: filtrar fotos que no mencionan personas en el alt text
+      // Esto evita que fotos de monumentos vacíos aparezcan como referencias de pose
+      if (peopleFocus && alt && !PEOPLE_TERMS.test(alt)) continue;
+
       results.push({
         url: imgUrl,
         source_url: photo.url ?? "",
@@ -131,7 +141,7 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
         license: "pexels",
         width: photo.width ?? 800,
         height: photo.height ?? 600,
-        alt: photo.alt ?? "", // descripción de la foto generada por Pexels
+        alt: alt, // descripción de la foto generada por Pexels
       });
     }
 
@@ -232,11 +242,13 @@ export async function GET(request: NextRequest) {
 
   if (isPose) {
     // POSE: buscar fotos con personas en el lugar
-    // Pexels: "tourist posing [lugar]" — devuelve fotos de personas con alt text descriptivo
-    pexelsQuery = `tourist posing ${query}`;
-    // Openverse: sin prefijo booleano (people|tourist) porque devuelve 0 resultados
-    // Openverse no tiene fotos tagged con "people/tourist" — mejor buscar solo el lugar
-    openverseQuery = query;
+    // Pexels: "[name_en] people" — "people" es tag común en Pexels, devuelve fotos con personas
+    // NO usar "tourist posing" — demasiado específico, devuelve monumentos vacíos
+    // NO usar nombre en portugués — Pexels indexa en inglés
+    pexelsQuery = `${query} people`;
+    // Openverse: NO usar para poses — devuelve paisajes sin personas
+    // Openverse no tiene fotos tagged con "people/tourist"
+    openverseQuery = "";
   } else {
     // PLACE: buscar fotos del lugar (paisaje, arquitectura)
     openverseQuery = query;
@@ -249,18 +261,25 @@ export async function GET(request: NextRequest) {
   // Pexels sí va en paralelo con el segundo request Openverse.
   const pexelsPromise = searchPexels(pexelsQuery, count, isPose);
 
-  // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
-  const ovFlickr = await searchOpenverse(openverseQuery, count, {
-    peopleFocus: isPose,
-    source: isPose ? "flickr" : undefined,
-  });
+  let ovFlickr: ImageResult[] = [];
+  let ovAll: ImageResult[] = [];
 
-  // Segundo request Openverse: sin filtro de source (incluye Wikimedia via aggregator)
-  // Va en paralelo con Pexels (que ya está corriendo)
-  const [ovAll, pexelsResults] = await Promise.all([
-    searchOpenverse(openverseQuery, count, { peopleFocus: isPose }),
-    pexelsPromise,
-  ]);
+  if (openverseQuery) {
+    // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
+    ovFlickr = await searchOpenverse(openverseQuery, count, {
+      peopleFocus: isPose,
+      source: isPose ? "flickr" : undefined,
+    });
+
+    // Segundo request Openverse: sin filtro de source (incluye Wikimedia via aggregator)
+    // Va en paralelo con Pexels (que ya está corriendo)
+    [ovAll] = await Promise.all([
+      searchOpenverse(openverseQuery, count, { peopleFocus: isPose }),
+      pexelsPromise,
+    ]);
+  }
+
+  const pexelsResults = openverseQuery ? (await pexelsPromise) : (await pexelsPromise);
 
   // Combinar resultados, deduplicar por URL
   // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Openverse all
@@ -276,16 +295,9 @@ export async function GET(request: NextRequest) {
     if (combined.length >= count) break;
   }
 
-  // Si no hay suficientes y es pose, intentar query más simple (solo nombre del lugar)
-  if (combined.length < count && isPose) {
-    const fallbackOv = await searchOpenverse(query, count - combined.length, { source: "flickr" });
-    for (const r of fallbackOv) {
-      if (seen.has(r.url)) continue;
-      seen.add(r.url);
-      combined.push(r);
-      if (combined.length >= count) break;
-    }
-  }
+  // Si no hay suficientes resultados de Pexels, NO usar Openverse como fallback para poses
+  // (Openverse devuelve paisajes sin personas, que no sirven como referencias de pose)
+  // El fallback de Pollinations AI se maneja en places-client.ts
 
   return NextResponse.json({
     results: combined.slice(0, count),

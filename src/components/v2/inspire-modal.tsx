@@ -316,14 +316,18 @@ function CollageCard({
         ? [inspiration.image_url]
         : []);
 
-  // Fallback: si no hay referencias de pose, usar fotos del lugar
+  // Para tab "photos": NO hacer fallback a fotos del lugar
+  // Mejor mostrar placeholder que mezclar paisajes en el tab de poses
+  // Para tab "places": usar fotos del lugar como fallback
   const finalImages = images.length > 0
     ? images
-    : (inspiration.image_urls?.length > 0
-      ? inspiration.image_urls
-      : inspiration.image_url
-        ? [inspiration.image_url]
-        : []);
+    : (tab === "photos"
+      ? [] // sin fallback — mostrar placeholder
+      : (inspiration.image_urls?.length > 0
+        ? inspiration.image_urls
+        : inspiration.image_url
+          ? [inspiration.image_url]
+          : []));
 
   return (
     <motion.button
@@ -565,14 +569,18 @@ function PlaceDetailSheet({
         ? [inspiration.image_url]
         : []);
 
-  // Fallback: si no hay referencias de pose, usar fotos del lugar
+  // Para tab "photos": NO hacer fallback a fotos del lugar
+  // Mejor mostrar placeholder que mezclar paisajes en el tab de poses
+  // Para tab "places": usar fotos del lugar como fallback
   const finalImages = images.length > 0
     ? images
-    : (inspiration.image_urls?.length > 0
-      ? inspiration.image_urls
-      : inspiration.image_url
-        ? [inspiration.image_url]
-        : []);
+    : (tab === "photos"
+      ? [] // sin fallback — mostrar placeholder
+      : (inspiration.image_urls?.length > 0
+        ? inspiration.image_urls
+        : inspiration.image_url
+          ? [inspiration.image_url]
+          : []));
 
   return createPortal(
     <motion.div
