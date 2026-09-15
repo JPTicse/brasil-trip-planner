@@ -3,13 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { saveInspirations, createActivity } from "@/lib/actions";
-import { fetchInspirationsClient } from "@/lib/places-client";
+import { createActivity } from "@/lib/actions";
 import { toast } from "sonner";
 import { ACTIVITY_TYPE_LABELS, type ActivityType, type Inspiration } from "@/lib/types";
 import { getDaysBetween } from "@/lib/format";
-
-const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const isRealPoseImageUrl = (url: string) => !url.includes("image.pollinations.ai");
 
@@ -51,18 +48,11 @@ export function InspireModal({
   tripStartDate?: string;
   tripEndDate?: string;
 }) {
-  const [localInspirations, setLocalInspirations] = useState<Inspiration[]>(inspirations);
+  const localInspirations = inspirations;
   const [tab, setTab] = useState<Tab>("photos");
   const [filter, setFilter] = useState<Filter>("trending");
-  const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<Inspiration | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const autoRefreshRef = useRef(false);
-
-  // Actualizar cuando cambian las inspiraciones del servidor
-  useEffect(() => {
-    setLocalInspirations(inspirations);
-  }, [inspirations]);
 
   // Bloquear scroll del fondo cuando el detalle está abierto
   useEffect(() => {
@@ -81,6 +71,13 @@ export function InspireModal({
     inspiration.photo_concepts?.some((concept) =>
       concept.reference_image_urls?.some(isRealPoseImageUrl),
     ),
+  );
+  const poseReferenceCount = trendySpots.reduce(
+    (total, inspiration) =>
+      total +
+      (inspiration.photo_concepts ?? []).flatMap((concept) => concept.reference_image_urls ?? [])
+        .filter(isRealPoseImageUrl).length,
+    0,
   );
   const allSpots = localInspirations;
 
@@ -105,55 +102,8 @@ export function InspireModal({
         return scoreB - scoreA;
       });
     }
-    return list;
+    return list.slice(0, tab === "photos" ? 30 : 50);
   })();
-
-  const handleRefresh = async () => {
-    if (!GOOGLE_KEY) {
-      toast.error("Falta la clave de Google Maps");
-      return;
-    }
-    setRefreshing(true);
-    try {
-      const places = await fetchInspirationsClient(tripDestination, GOOGLE_KEY);
-      if (places.length === 0) {
-        toast.error("No se encontraron resultados para este destino");
-        return;
-      }
-
-      // Guardar en Supabase
-      const formData = new FormData();
-      formData.append("trip_id", tripId);
-      formData.append("places", JSON.stringify(places));
-      await saveInspirations(formData);
-
-      setLocalInspirations(places);
-      toast.success(`${places.length} inspiraciones encontradas ✓`);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Error al buscar inspiraciones";
-      toast.error(message);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    // Auto-refresh si: no hay imágenes de lugar, O si los photo_concepts no tienen reference_image_urls
-    // (datos cacheados antiguos sin fotos de pose reales → tab "photos" estaría vacío)
-    const hasPoseImages = localInspirations.some((item) =>
-      item.photo_concepts?.some((concept) =>
-        concept.reference_image_urls?.some(isRealPoseImageUrl),
-      ),
-    );
-    const hasNoPlaceImages = localInspirations.every(
-      (item) => !item.image_url && !item.image_urls?.length,
-    );
-    const needsRefresh = localInspirations.length > 0 && (hasNoPlaceImages || !hasPoseImages);
-    if (open && !autoRefreshRef.current && needsRefresh) {
-      autoRefreshRef.current = true;
-      void handleRefresh();
-    }
-  }, [open, localInspirations]);
 
   if (!open) return null;
 
@@ -172,29 +122,18 @@ export function InspireModal({
             <div className="flex items-center gap-2">
               <span className="text-xl">✨</span>
               <h2 className="text-lg font-bold text-white">Inspirar</h2>
-              <span className="text-xs text-white/50">{filtered.length} ideas</span>
+              <span className="text-xs text-white/50">
+                {tab === "photos" ? poseReferenceCount : filtered.length} ideas
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:bg-white/20 active:scale-95 disabled:opacity-50"
-              >
-                <svg className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M23 4v6h-6M1 20v-6h6" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {refreshing ? "Cargando..." : "Actualizar"}
-              </button>
-              <button
-                onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 active:scale-95"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 active:scale-95"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
 
           {/* Tabs principales: Fotos trendy / Lugares que visitar */}
@@ -208,9 +147,9 @@ export function InspireModal({
               }`}
             >
               📸 Foto poses trendy
-              {trendySpots.length > 0 && (
+              {poseReferenceCount > 0 && (
                 <span className={`rounded-full px-1.5 text-[10px] ${tab === "photos" ? "bg-white/20" : "bg-white/10"}`}>
-                  {trendySpots.length}
+                  {poseReferenceCount}
                 </span>
               )}
             </button>
@@ -249,21 +188,10 @@ export function InspireModal({
                 </p>
                 <p className="mt-1 text-xs text-white/50">
                   {tab === "photos"
-                    ? "Busca inspiraciones para ver poses que puedes replicar"
-                    : `Busca lugares que visitar en ${tripDestination}`}
+                    ? "El catálogo de poses está en preparación"
+                    : `El catálogo de ${tripDestination} está en preparación`}
                 </p>
               </div>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 active:scale-95 disabled:opacity-50"
-              >
-                <svg className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M23 4v6h-6M1 20v-6h6" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {refreshing ? "Cargando..." : "Buscar inspiraciones"}
-              </button>
             </div>
           ) : (
             <div className="space-y-4 px-4 pb-8 pt-3">

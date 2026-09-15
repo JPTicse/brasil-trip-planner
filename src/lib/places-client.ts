@@ -20,6 +20,11 @@ type ServerImageResult = {
   width: number;
   height: number;
   alt?: string;
+  pose?: string;
+  camera_angle?: string;
+  camera_tip?: string;
+  best_time?: string;
+  why_it_works?: string;
 };
 
 /**
@@ -452,7 +457,11 @@ export async function fetchInspirationsClient(
 
         inspiration.photo_concepts = uniqueResults.map((photo) => ({
           title: photo.alt || `Pose en ${spot.name}`,
-          description: photo.alt || "",
+          description: photo.why_it_works || photo.alt || "",
+          pose: photo.pose,
+          camera_angle: photo.camera_angle,
+          camera_tip: photo.camera_tip,
+          best_time: photo.best_time,
           reference_image_urls: [photo.url],
           reference_source_urls: [photo.source_url],
         }));

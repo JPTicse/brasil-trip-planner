@@ -11,6 +11,11 @@ type ImageResult = {
   width: number;
   height: number;
   alt?: string; // descripción de la foto (alt text de Pexels, title de Openverse)
+  pose?: string;
+  camera_angle?: string;
+  camera_tip?: string;
+  best_time?: string;
+  why_it_works?: string;
   analysis_url?: string;
 };
 
@@ -235,6 +240,11 @@ type VisionScore = {
   landmark_confidence: number;
   visual_quality: number;
   description: string;
+  pose_instruction: string;
+  camera_angle: string;
+  camera_tip: string;
+  best_time: string;
+  why_it_works: string;
 };
 
 function heuristicRank(candidates: ImageResult[], landmark: string, count: number): ImageResult[] {
@@ -306,6 +316,7 @@ async function rankPoseImages(
     "Set recommended_pose_reference to false for insects, gimmicks, people on or inside monuments, close-up hands, casual walking or sitting, crowds, dangerous access, or unclear compositions.",
     "Reject architecture-only photos, distant crowds, unrelated city photos, AI-generated images, and photos where either the person or landmark is unclear.",
     "person_prominence measures how clearly the posing person dominates the composition. pose_reproducibility measures how useful and intentional the pose is. landmark_confidence measures certainty that the requested landmark is visible. visual_quality measures sharpness and composition.",
+    "For valid references, write concise Spanish guidance: pose_instruction, camera_angle, camera_tip, best_time, and why_it_works. Base every detail on what is visible; do not invent hidden details.",
     "Return a JSON array only with every requested field and a short factual Spanish description of what is visibly happening.",
   ].join(" ");
 
@@ -338,6 +349,11 @@ async function rankPoseImages(
                   landmark_confidence: { type: "INTEGER" },
                   visual_quality: { type: "INTEGER" },
                   description: { type: "STRING" },
+                  pose_instruction: { type: "STRING" },
+                  camera_angle: { type: "STRING" },
+                  camera_tip: { type: "STRING" },
+                  best_time: { type: "STRING" },
+                  why_it_works: { type: "STRING" },
                 },
                 required: [
                   "index",
@@ -352,6 +368,11 @@ async function rankPoseImages(
                   "landmark_confidence",
                   "visual_quality",
                   "description",
+                  "pose_instruction",
+                  "camera_angle",
+                  "camera_tip",
+                  "best_time",
+                  "why_it_works",
                 ],
               },
             },
@@ -388,6 +409,11 @@ async function rankPoseImages(
       .map((item) => ({
         ...selected[item.index],
         alt: item.description || selected[item.index].alt,
+        pose: item.pose_instruction,
+        camera_angle: item.camera_angle,
+        camera_tip: item.camera_tip,
+        best_time: item.best_time,
+        why_it_works: item.why_it_works,
         analysis_url: undefined,
       }));
   } catch (error) {
