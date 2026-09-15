@@ -67,10 +67,10 @@ async function searchOpenverse(
     const results: ImageResult[] = [];
 
     for (const r of (data.results ?? []) as any[]) {
-      // Usar SOLO thumbnail (hosteado por Openverse, diseñado para hotlinking)
-      // Si no hay thumbnail, skip — los URLs directos de providers (Wikimedia/Flickr)
-      // suelen estar rotos o bloquean hotlinking
-      const imgUrl = r.thumbnail;
+      // Preferir URL directa del provider (Flickr: live.staticflickr.com — permanente vía CloudFront)
+      // sobre thumbnail de Openverse (Photon) cuya disponibilidad no está garantizada por ToS.
+      // Fallback a thumbnail si no hay URL directa.
+      const imgUrl = r.url ?? r.thumbnail;
       if (!imgUrl) continue;
       results.push({
         url: imgUrl,
@@ -80,7 +80,7 @@ async function searchOpenverse(
         width: r.width ?? 800,
         height: r.height ?? 600,
         alt: r.title ?? "", // título de la foto en Openverse
-        analysis_url: r.thumbnail,
+        analysis_url: r.thumbnail ?? r.url,
       });
     }
 
@@ -509,13 +509,14 @@ export async function GET(request: NextRequest) {
   // Openverse usa Elasticsearch simple_query_string:
   //   | = OR, + = AND (%2B), - = NOT, "" = exact phrase
   if (isPose) {
-    const [googleImages, pexelsWomen, pexelsMen, pexelsTourists, pexelsPeople, openverse] = await Promise.all([
+    const [googleImages, pexelsWomen, pexelsMen, pexelsTourists, pexelsPeople, openverse, wikimedia] = await Promise.all([
       searchGoogleImages(query, 10),
       searchPexels(`woman posing ${query}`, 20, true),
       searchPexels(`man posing ${query}`, 20, true),
       searchPexels(`tourist posing ${query}`, 20, true),
       searchPexels(`${query} people`, 20, true),
       searchOpenverse(query, 20, { peopleFocus: true, source: "flickr" }),
+      searchWikimedia(`${query} people posing`, 10),
     ]);
     const seen = new Set<string>();
     const candidates = Array.from(
@@ -527,6 +528,7 @@ export async function GET(request: NextRequest) {
           pexelsTourists.length,
           pexelsPeople.length,
           openverse.length,
+          wikimedia.length,
         ),
       },
       (_, index) => [
@@ -536,6 +538,7 @@ export async function GET(request: NextRequest) {
         pexelsTourists[index],
         pexelsPeople[index],
         openverse[index],
+        wikimedia[index],
       ],
     )
       .flat()
@@ -553,28 +556,30 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Buscar en Openverse y Pexels.
+  // Buscar en Openverse, Pexels y Wikimedia.
   // IMPORTANTE: Openverse anónimo tiene rate limit de 1 req/sec.
   // Hacemos los requests Openverse SECUENCIALMENTE (no paralelos) para evitar 429.
-  // Pexels sí va en paralelo con el segundo request Openverse.
+  // Pexels y Wikimedia sí van en paralelo con el segundo request Openverse.
   const pexelsPromise = searchPexels(query, count);
+  const wikimediaPromise = searchWikimedia(query, count);
 
   // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
   const ovFlickr = await searchOpenverse(query, count);
 
   // Segundo request Openverse: sin filtro de source (incluye Wikimedia via aggregator)
-  // Va en paralelo con Pexels (que ya está corriendo)
-  const [ovAll, pexelsResults] = await Promise.all([
+  // Va en paralelo con Pexels y Wikimedia (que ya están corriendo)
+  const [ovAll, pexelsResults, wikimediaResults] = await Promise.all([
     searchOpenverse(query, count),
     pexelsPromise,
+    wikimediaPromise,
   ]);
 
   // Combinar resultados, deduplicar por URL
-  // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Openverse all
+  // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Wikimedia > Openverse all
   const seen = new Set<string>();
   const combined: ImageResult[] = [];
 
-  const allResults = [...pexelsResults, ...ovFlickr, ...ovAll];
+  const allResults = [...pexelsResults, ...ovFlickr, ...wikimediaResults, ...ovAll];
 
   for (const result of allResults) {
     if (seen.has(result.url)) continue;
