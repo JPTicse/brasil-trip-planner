@@ -75,7 +75,9 @@ export function InspireModal({
   }, [selected]);
 
   // Dividir: spots con photo_concepts (fotos trendy) vs todos (lugares)
-  const trendySpots = localInspirations.filter((i) => i.photo_concepts && i.photo_concepts.length > 0);
+  const trendySpots = localInspirations.filter((inspiration) =>
+    inspiration.photo_concepts?.some((concept) => concept.reference_image_urls?.length),
+  );
   const allSpots = localInspirations;
 
   // Tab activa determina la lista base

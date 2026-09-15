@@ -21,7 +21,6 @@ const ALLOWED_DOMAINS = [
   "upload.wikimedia.org",
   "thumb.wikimedia.org",
   "commons.wikimedia.org",
-  "image.pollinations.ai",
 ];
 
 function isAllowedUrl(urlStr: string): boolean {

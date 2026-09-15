@@ -30,6 +30,7 @@ async function searchImagesServerSide(
   query: string,
   type: "place" | "pose",
   count = 5,
+  destination?: string,
 ): Promise<ServerImageResult[]> {
   try {
     const params = new URLSearchParams({
@@ -37,6 +38,7 @@ async function searchImagesServerSide(
       type,
       count: String(count),
     });
+    if (destination) params.set("destination", destination);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`/api/pose-search?${params.toString()}`, {
@@ -429,76 +431,38 @@ export async function fetchInspirationsClient(
     // ENFOQUE INVERTIDO: buscar fotos primero, luego generar el detalle desde el alt text
     // NO: definir pose en español → buscar foto que coincida (nunca funciona)
     // SÍ: buscar fotos de personas → usar alt text como descripción de la pose
-    const poseSearchPromises = curatedSpots.map(async (spot) => {
-      if (!spot.photo_concepts?.length) return;
+    const poseSpots = curatedSpots
+      .filter((spot) => spot.photo_concepts?.length)
+      .sort((a, b) => (b.instagram_score ?? 0) - (a.instagram_score ?? 0))
+      .slice(0, 12);
+    const processPoseSpot = async (spot: CuratedSpot) => {
       try {
         const inspiration = Array.from(resultsById.values()).find(
           (item) => item.title.toLocaleLowerCase() === spot.name.toLocaleLowerCase(),
         );
         if (!inspiration) return;
 
-        // Estrategia de queries para Pexels (indexa en inglés):
-        // 1. "[name_en] people" — turistas/multitudes en el landmark
-        // 2. "woman posing [destination]" — mujeres posando en la ciudad
-        // 3. "man posing [destination]" — hombres posando en la ciudad
-        // NO usar "tourist posing [monument]" — devuelve monumentos vacíos
         const spotNameEn = spot.name_en ?? spot.name;
-        const queries = [
-          `${spotNameEn} people`,
-          `woman posing ${destination}`,
-          `man posing ${destination}`,
-        ];
+        const results = await searchImagesServerSide(spotNameEn, "pose", 6, destination);
+        const uniqueResults = results.filter((result) => {
+          if (usedPoseUrls.has(result.url)) return false;
+          usedPoseUrls.add(result.url);
+          return true;
+        });
 
-        let allPoseResults: { url: string; source_url: string; alt?: string }[] = [];
-        for (const query of queries) {
-          const results = await searchImagesServerSide(query, "pose", 10);
-          // Deduplicar dentro del pool de poses
-          const uniqueResults = results.filter((r) => {
-            if (usedPoseUrls.has(r.url)) return false;
-            usedPoseUrls.add(r.url);
-            return true;
-          });
-          allPoseResults.push(...uniqueResults.map((r) => ({ url: r.url, source_url: r.source_url, alt: r.alt })));
-          if (allPoseResults.length >= 6) break; // suficiente con 6 fotos
-        }
-
-        // Fallback: Pollinations AI genera imágenes de personas en poses si Pexels no devuelve suficiente
-        if (allPoseResults.length < 3) {
-          const spotNameEn2 = spot.name_en ?? spot.name;
-          const posePrompts = (spot.photo_concepts ?? []).slice(0, 3).map((c) =>
-            `tourist posing with arms open at ${spotNameEn2} ${destination}, realistic photograph, golden hour, high quality, photorealistic`
-          );
-          for (const prompt of posePrompts) {
-            const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=1200&nologo=true&model=flux`;
-            if (usedPoseUrls.has(pollinationsUrl)) continue;
-            usedPoseUrls.add(pollinationsUrl);
-            allPoseResults.push({
-              url: pollinationsUrl,
-              source_url: "https://pollinations.ai",
-              alt: `Pose generada por IA en ${spot.name}`,
-            });
-            if (allPoseResults.length >= 6) break;
-          }
-        }
-
-        if (allPoseResults.length === 0) return; // fallback: mantener concepts curados sin imágenes
-
-        // GENERAR concepts dinámicamente desde las fotos encontradas
-        // Cada foto se convierte en un concept con su alt text como título
-        const dynamicConcepts = allPoseResults.slice(0, 6).map((photo) => ({
+        inspiration.photo_concepts = uniqueResults.map((photo) => ({
           title: photo.alt || `Pose en ${spot.name}`,
           description: photo.alt || "",
           reference_image_urls: [photo.url],
           reference_source_urls: [photo.source_url],
         }));
-
-        // Reemplazar los concepts curados con los dinámicos
-        inspiration.photo_concepts = dynamicConcepts;
       } catch {
         return;
       }
-    });
-    await Promise.allSettled(poseSearchPromises);
+    };
+    for (let index = 0; index < poseSpots.length; index += 3) {
+      await Promise.allSettled(poseSpots.slice(index, index + 3).map(processPoseSpot));
+    }
   }
 
   // --- STEP 2: Buscar lugares adicionales en Google Maps (datos fiables para tab "Lugares") ---

@@ -11,6 +11,7 @@ type ImageResult = {
   width: number;
   height: number;
   alt?: string; // descripción de la foto (alt text de Pexels, title de Openverse)
+  analysis_url?: string;
 };
 
 /**
@@ -74,6 +75,7 @@ async function searchOpenverse(
         width: r.width ?? 800,
         height: r.height ?? 600,
         alt: r.title ?? "", // título de la foto en Openverse
+        analysis_url: r.thumbnail,
       });
     }
 
@@ -150,6 +152,7 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
         width: photo.width ?? 800,
         height: photo.height ?? 600,
         alt: alt, // descripción de la foto generada por Pexels
+        analysis_url: photo.src?.medium ?? photo.src?.small ?? imgUrl,
       });
     }
 
@@ -158,6 +161,155 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
   } catch (err) {
     console.error(`[pose-search] Pexels fetch failed for query "${query}":`, err instanceof Error ? err.message : err);
     return [];
+  }
+}
+
+type VisionScore = {
+  index: number;
+  score: number;
+  person_visible: boolean;
+  deliberate_pose: boolean;
+  landmark_visible: boolean;
+  real_photo: boolean;
+  description: string;
+};
+
+function heuristicRank(candidates: ImageResult[], landmark: string, count: number): ImageResult[] {
+  const poseTerms = /\b(posing|pose|selfie|smiling|standing|sitting|leaning|arms?|portrait)\b/i;
+  const crowdTerms = /\b(crowd|crowds|onlookers|gathered|bustling)\b/i;
+  const personTerms = /\b(person|people|woman|women|man|men|tourist|tourists|traveler|traveller)\b/i;
+  const landmarkTerms = landmark.toLowerCase().split(/\s+/).filter((term) => term.length > 3);
+
+  return candidates
+    .map((candidate) => {
+      const alt = candidate.alt ?? "";
+      const matches = landmarkTerms.filter((term) => alt.toLowerCase().includes(term)).length;
+      const score =
+        (personTerms.test(alt) ? 30 : 0) +
+        (poseTerms.test(alt) ? 35 : 0) +
+        (crowdTerms.test(alt) ? -35 : 0) +
+        Math.min(matches * 10, 30) +
+        (candidate.height >= candidate.width ? 5 : 0);
+      return { candidate, score };
+    })
+    .filter(({ score }) => score >= 50)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map(({ candidate }) => candidate);
+}
+
+async function rankPoseImages(
+  candidates: ImageResult[],
+  landmark: string,
+  destination: string,
+  count: number,
+): Promise<ImageResult[]> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const fallback = () => heuristicRank(candidates, landmark, count);
+  if (!apiKey || candidates.length === 0) return fallback();
+
+  const selected = candidates.slice(0, 12);
+  const imageParts = await Promise.all(
+    selected.map(async (candidate, index) => {
+      try {
+        const response = await fetch(candidate.analysis_url ?? candidate.url, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(6000),
+        });
+        const mimeType = response.headers.get("content-type")?.split(";")[0] ?? "";
+        if (!response.ok || !mimeType.startsWith("image/")) return null;
+        const bytes = Buffer.from(await response.arrayBuffer());
+        if (bytes.length > 2_500_000) return null;
+        return [
+          { text: `IMAGE ${index}` },
+          { inlineData: { mimeType, data: bytes.toString("base64") } },
+        ];
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const parts = imageParts.flatMap((part) => part ?? []);
+  if (parts.length === 0) return fallback();
+
+  const prompt = [
+    `Evaluate these real internet photos as pose references for ${landmark}${destination ? ` in ${destination}` : ""}.`,
+    "Score each IMAGE from 0 to 100.",
+    "A valid result must be a real photograph, show one or a few people clearly, show a deliberate reproducible pose, and visibly match the requested landmark.",
+    "Reject architecture-only photos, distant crowds, unrelated city photos, AI-generated images, and photos where the person or landmark is unclear.",
+    "Return a JSON array only. Include index, score, person_visible, deliberate_pose, landmark_visible, real_photo, and a short factual Spanish description of what is visible.",
+  ].join(" ");
+
+  try {
+    const model = process.env.GEMINI_VISION_MODEL ?? "gemini-3.5-flash-lite";
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }, ...parts] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  index: { type: "INTEGER" },
+                  score: { type: "INTEGER" },
+                  person_visible: { type: "BOOLEAN" },
+                  deliberate_pose: { type: "BOOLEAN" },
+                  landmark_visible: { type: "BOOLEAN" },
+                  real_photo: { type: "BOOLEAN" },
+                  description: { type: "STRING" },
+                },
+                required: [
+                  "index",
+                  "score",
+                  "person_visible",
+                  "deliberate_pose",
+                  "landmark_visible",
+                  "real_photo",
+                  "description",
+                ],
+              },
+            },
+          },
+        }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(20000),
+      },
+    );
+    if (!response.ok) return fallback();
+
+    const payload = await response.json();
+    const text = payload.candidates?.[0]?.content?.parts?.find((part: { text?: string }) => part.text)?.text;
+    if (!text) return fallback();
+
+    const scores = JSON.parse(text) as VisionScore[];
+    return scores
+      .filter(
+        (item) =>
+          Number.isInteger(item.index) &&
+          item.index >= 0 &&
+          item.index < selected.length &&
+          item.score >= 65 &&
+          item.person_visible &&
+          item.deliberate_pose &&
+          item.landmark_visible &&
+          item.real_photo,
+      )
+      .sort((a, b) => b.score - a.score)
+      .slice(0, count)
+      .map((item) => ({
+        ...selected[item.index],
+        alt: item.description || selected[item.index].alt,
+        analysis_url: undefined,
+      }));
+  } catch {
+    return fallback();
   }
 }
 
@@ -242,53 +394,46 @@ export async function GET(request: NextRequest) {
   }
 
   const isPose = type === "pose";
+  const destination = searchParams.get("destination") ?? "";
 
   // Construir queries optimizadas según el tipo
   // Openverse usa Elasticsearch simple_query_string:
   //   | = OR, + = AND (%2B), - = NOT, "" = exact phrase
-  let openverseQuery: string;
-  let pexelsQuery: string;
-  let wikiQuery: string;
-
   if (isPose) {
-    // POSE: buscar fotos con personas en el lugar
-    // El cliente ya envía la query completa ("Christ the Redeemer people", "woman posing Rio de Janeiro", etc.)
-    // NO añadir "people" aquí — el cliente ya lo incluye
-    pexelsQuery = query;
-    // Openverse: NO usar para poses — devuelve paisajes sin personas
-    // Openverse no tiene fotos tagged con "people/tourist"
-    openverseQuery = "";
-  } else {
-    // PLACE: buscar fotos del lugar (paisaje, arquitectura)
-    openverseQuery = query;
-    pexelsQuery = query;
+    const [pexelsPeople, pexelsPoses, openverse] = await Promise.all([
+      searchPexels(`${query} people`, 20, true),
+      searchPexels(`tourist posing ${query}`, 20, true),
+      searchOpenverse(query, 20, { peopleFocus: true, source: "flickr" }),
+    ]);
+    const seen = new Set<string>();
+    const candidates = [...pexelsPeople, ...pexelsPoses, ...openverse].filter((candidate) => {
+      if (seen.has(candidate.url)) return false;
+      seen.add(candidate.url);
+      return true;
+    });
+    const results = await rankPoseImages(candidates, query, destination, count);
+    return NextResponse.json({
+      results: results.map((result) => ({ ...result, analysis_url: undefined })),
+      cached: false,
+      ranked_by_vision: Boolean(process.env.GEMINI_API_KEY),
+    });
   }
 
   // Buscar en Openverse y Pexels.
   // IMPORTANTE: Openverse anónimo tiene rate limit de 1 req/sec.
   // Hacemos los requests Openverse SECUENCIALMENTE (no paralelos) para evitar 429.
   // Pexels sí va en paralelo con el segundo request Openverse.
-  const pexelsPromise = searchPexels(pexelsQuery, count, isPose);
+  const pexelsPromise = searchPexels(query, count);
 
-  let ovFlickr: ImageResult[] = [];
-  let ovAll: ImageResult[] = [];
+  // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
+  const ovFlickr = await searchOpenverse(query, count);
 
-  if (openverseQuery) {
-    // Primer request Openverse: Flickr (para poses) o sin filtro (para places)
-    ovFlickr = await searchOpenverse(openverseQuery, count, {
-      peopleFocus: isPose,
-      source: isPose ? "flickr" : undefined,
-    });
-
-    // Segundo request Openverse: sin filtro de source (incluye Wikimedia via aggregator)
-    // Va en paralelo con Pexels (que ya está corriendo)
-    [ovAll] = await Promise.all([
-      searchOpenverse(openverseQuery, count, { peopleFocus: isPose }),
-      pexelsPromise,
-    ]);
-  }
-
-  const pexelsResults = openverseQuery ? (await pexelsPromise) : (await pexelsPromise);
+  // Segundo request Openverse: sin filtro de source (incluye Wikimedia via aggregator)
+  // Va en paralelo con Pexels (que ya está corriendo)
+  const [ovAll, pexelsResults] = await Promise.all([
+    searchOpenverse(query, count),
+    pexelsPromise,
+  ]);
 
   // Combinar resultados, deduplicar por URL
   // Orden de prioridad: Pexels (curated) > Flickr (Openverse) > Openverse all
@@ -297,16 +442,12 @@ export async function GET(request: NextRequest) {
 
   const allResults = [...pexelsResults, ...ovFlickr, ...ovAll];
 
-  for (const r of allResults) {
-    if (seen.has(r.url)) continue;
-    seen.add(r.url);
-    combined.push(r);
+  for (const result of allResults) {
+    if (seen.has(result.url)) continue;
+    seen.add(result.url);
+    combined.push({ ...result, analysis_url: undefined });
     if (combined.length >= count) break;
   }
-
-  // Si no hay suficientes resultados de Pexels, NO usar Openverse como fallback para poses
-  // (Openverse devuelve paisajes sin personas, que no sirven como referencias de pose)
-  // El fallback de Pollinations AI se maneja en places-client.ts
 
   return NextResponse.json({
     results: combined.slice(0, count),
