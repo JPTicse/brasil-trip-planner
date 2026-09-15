@@ -21,6 +21,10 @@ const ALLOWED_DOMAINS = [
   "upload.wikimedia.org",
   "thumb.wikimedia.org",
   "commons.wikimedia.org",
+  "encrypted-tbn0.gstatic.com",
+  "encrypted-tbn1.gstatic.com",
+  "encrypted-tbn2.gstatic.com",
+  "encrypted-tbn3.gstatic.com",
 ];
 
 function isAllowedUrl(urlStr: string): boolean {

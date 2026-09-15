@@ -40,7 +40,7 @@ async function searchImagesServerSide(
     });
     if (destination) params.set("destination", destination);
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
     const res = await fetch(`/api/pose-search?${params.toString()}`, {
       cache: "no-store",
       signal: controller.signal,
@@ -434,7 +434,7 @@ export async function fetchInspirationsClient(
     const poseSpots = curatedSpots
       .filter((spot) => spot.photo_concepts?.length)
       .sort((a, b) => (b.instagram_score ?? 0) - (a.instagram_score ?? 0))
-      .slice(0, 12);
+      .slice(0, 8);
     const processPoseSpot = async (spot: CuratedSpot) => {
       try {
         const inspiration = Array.from(resultsById.values()).find(
@@ -460,8 +460,8 @@ export async function fetchInspirationsClient(
         return;
       }
     };
-    for (let index = 0; index < poseSpots.length; index += 3) {
-      await Promise.allSettled(poseSpots.slice(index, index + 3).map(processPoseSpot));
+    for (let index = 0; index < poseSpots.length; index += 2) {
+      await Promise.allSettled(poseSpots.slice(index, index + 2).map(processPoseSpot));
     }
   }
 

@@ -164,6 +164,64 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
   }
 }
 
+async function searchGoogleImages(query: string, count: number): Promise<ImageResult[]> {
+  const apiKey =
+    process.env.GOOGLE_CSE_API_KEY ??
+    process.env.NEXT_PUBLIC_GOOGLE_CSE_API_KEY;
+  const cseId = process.env.GOOGLE_CSE_ID ?? process.env.NEXT_PUBLIC_GOOGLE_CSE_ID;
+  if (!apiKey || !cseId) return [];
+
+  try {
+    const url = new URL("https://www.googleapis.com/customsearch/v1");
+    url.searchParams.set("key", apiKey);
+    url.searchParams.set("cx", cseId);
+    url.searchParams.set("q", `"${query}" tourist posing travel photo`);
+    url.searchParams.set("searchType", "image");
+    url.searchParams.set("num", String(Math.min(count, 10)));
+    url.searchParams.set("safe", "active");
+    url.searchParams.set("imgType", "photo");
+    url.searchParams.set("imgSize", "large");
+
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      console.error(`[pose-search] Google CSE error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+
+    const payload = await response.json();
+    return (payload.items ?? [])
+      .filter((item: { image?: { thumbnailLink?: string; contextLink?: string } }) =>
+        Boolean(item.image?.thumbnailLink && item.image?.contextLink),
+      )
+      .map((item: {
+        title?: string;
+        displayLink?: string;
+        image: {
+          thumbnailLink: string;
+          contextLink: string;
+          width?: number;
+          height?: number;
+        };
+      }) => ({
+        url: item.image.thumbnailLink,
+        source_url: item.image.contextLink,
+        source_name: item.displayLink ?? "google",
+        license: "source",
+        width: item.image.width ?? 800,
+        height: item.image.height ?? 600,
+        alt: item.title ?? "",
+        analysis_url: item.image.thumbnailLink,
+      }));
+  } catch (error) {
+    console.error("[pose-search] Google CSE search failed:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 type VisionScore = {
   index: number;
   score: number;
@@ -171,6 +229,11 @@ type VisionScore = {
   deliberate_pose: boolean;
   landmark_visible: boolean;
   real_photo: boolean;
+  recommended_pose_reference: boolean;
+  person_prominence: number;
+  pose_reproducibility: number;
+  landmark_confidence: number;
+  visual_quality: number;
   description: string;
 };
 
@@ -206,7 +269,8 @@ async function rankPoseImages(
 ): Promise<ImageResult[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   const fallback = () => heuristicRank(candidates, landmark, count);
-  if (!apiKey || candidates.length === 0) return fallback();
+  if (!apiKey) return fallback();
+  if (candidates.length === 0) return [];
 
   const selected = candidates.slice(0, 12);
   const imageParts = await Promise.all(
@@ -231,14 +295,18 @@ async function rankPoseImages(
   );
 
   const parts = imageParts.flatMap((part) => part ?? []);
-  if (parts.length === 0) return fallback();
+  if (parts.length === 0) return [];
 
   const prompt = [
     `Evaluate these real internet photos as pose references for ${landmark}${destination ? ` in ${destination}` : ""}.`,
-    "Score each IMAGE from 0 to 100.",
-    "A valid result must be a real photograph, show one or a few people clearly, show a deliberate reproducible pose, and visibly match the requested landmark.",
-    "Reject architecture-only photos, distant crowds, unrelated city photos, AI-generated images, and photos where the person or landmark is unclear.",
-    "Return a JSON array only. Include index, score, person_visible, deliberate_pose, landmark_visible, real_photo, and a short factual Spanish description of what is visible.",
+    "Score each IMAGE from 0 to 100 and be extremely strict.",
+    "A valid reference must be a real photograph, show one person or a small group clearly as the main subject, show an intentional staged pose that another traveler can reproduce, and visibly show the requested landmark.",
+    "Walking, sightseeing, sitting casually, sports, vendors, distant silhouettes, ordinary beach scenes, benches, and crowds are not deliberate poses.",
+    "recommended_pose_reference must be true only for an attractive, safe, social-media-ready pose that a traveler could intentionally recreate from public visitor areas.",
+    "Set recommended_pose_reference to false for insects, gimmicks, people on or inside monuments, close-up hands, casual walking or sitting, crowds, dangerous access, or unclear compositions.",
+    "Reject architecture-only photos, distant crowds, unrelated city photos, AI-generated images, and photos where either the person or landmark is unclear.",
+    "person_prominence measures how clearly the posing person dominates the composition. pose_reproducibility measures how useful and intentional the pose is. landmark_confidence measures certainty that the requested landmark is visible. visual_quality measures sharpness and composition.",
+    "Return a JSON array only with every requested field and a short factual Spanish description of what is visibly happening.",
   ].join(" ");
 
   try {
@@ -251,6 +319,7 @@ async function rankPoseImages(
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }, ...parts] }],
           generationConfig: {
+            temperature: 0,
             responseMimeType: "application/json",
             responseSchema: {
               type: "ARRAY",
@@ -263,6 +332,11 @@ async function rankPoseImages(
                   deliberate_pose: { type: "BOOLEAN" },
                   landmark_visible: { type: "BOOLEAN" },
                   real_photo: { type: "BOOLEAN" },
+                  recommended_pose_reference: { type: "BOOLEAN" },
+                  person_prominence: { type: "INTEGER" },
+                  pose_reproducibility: { type: "INTEGER" },
+                  landmark_confidence: { type: "INTEGER" },
+                  visual_quality: { type: "INTEGER" },
                   description: { type: "STRING" },
                 },
                 required: [
@@ -272,6 +346,11 @@ async function rankPoseImages(
                   "deliberate_pose",
                   "landmark_visible",
                   "real_photo",
+                  "recommended_pose_reference",
+                  "person_prominence",
+                  "pose_reproducibility",
+                  "landmark_confidence",
+                  "visual_quality",
                   "description",
                 ],
               },
@@ -279,14 +358,17 @@ async function rankPoseImages(
           },
         }),
         cache: "no-store",
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(30000),
       },
     );
-    if (!response.ok) return fallback();
+    if (!response.ok) {
+      console.error(`[pose-search] Gemini vision error: ${response.status} ${response.statusText}`);
+      return [];
+    }
 
     const payload = await response.json();
     const text = payload.candidates?.[0]?.content?.parts?.find((part: { text?: string }) => part.text)?.text;
-    if (!text) return fallback();
+    if (!text) return [];
 
     const scores = JSON.parse(text) as VisionScore[];
     return scores
@@ -295,7 +377,7 @@ async function rankPoseImages(
           Number.isInteger(item.index) &&
           item.index >= 0 &&
           item.index < selected.length &&
-          item.score >= 65 &&
+          item.score >= 40 &&
           item.person_visible &&
           item.deliberate_pose &&
           item.landmark_visible &&
@@ -308,8 +390,9 @@ async function rankPoseImages(
         alt: item.description || selected[item.index].alt,
         analysis_url: undefined,
       }));
-  } catch {
-    return fallback();
+  } catch (error) {
+    console.error("[pose-search] Gemini vision ranking failed:", error instanceof Error ? error.message : error);
+    return [];
   }
 }
 
@@ -400,17 +483,42 @@ export async function GET(request: NextRequest) {
   // Openverse usa Elasticsearch simple_query_string:
   //   | = OR, + = AND (%2B), - = NOT, "" = exact phrase
   if (isPose) {
-    const [pexelsPeople, pexelsPoses, openverse] = await Promise.all([
-      searchPexels(`${query} people`, 20, true),
+    const [googleImages, pexelsWomen, pexelsMen, pexelsTourists, pexelsPeople, openverse] = await Promise.all([
+      searchGoogleImages(query, 10),
+      searchPexels(`woman posing ${query}`, 20, true),
+      searchPexels(`man posing ${query}`, 20, true),
       searchPexels(`tourist posing ${query}`, 20, true),
+      searchPexels(`${query} people`, 20, true),
       searchOpenverse(query, 20, { peopleFocus: true, source: "flickr" }),
     ]);
     const seen = new Set<string>();
-    const candidates = [...pexelsPeople, ...pexelsPoses, ...openverse].filter((candidate) => {
-      if (seen.has(candidate.url)) return false;
-      seen.add(candidate.url);
-      return true;
-    });
+    const candidates = Array.from(
+      {
+        length: Math.max(
+          googleImages.length,
+          pexelsWomen.length,
+          pexelsMen.length,
+          pexelsTourists.length,
+          pexelsPeople.length,
+          openverse.length,
+        ),
+      },
+      (_, index) => [
+        googleImages[index],
+        pexelsWomen[index],
+        pexelsMen[index],
+        pexelsTourists[index],
+        pexelsPeople[index],
+        openverse[index],
+      ],
+    )
+      .flat()
+      .filter((candidate): candidate is ImageResult => Boolean(candidate))
+      .filter((candidate) => {
+        if (seen.has(candidate.url)) return false;
+        seen.add(candidate.url);
+        return true;
+      });
     const results = await rankPoseImages(candidates, query, destination, count);
     return NextResponse.json({
       results: results.map((result) => ({ ...result, analysis_url: undefined })),
