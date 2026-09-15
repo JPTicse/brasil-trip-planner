@@ -89,7 +89,10 @@ async function searchOpenverse(
  */
 async function searchPexels(query: string, count: number, peopleFocus = false): Promise<ImageResult[]> {
   const apiKey = process.env.PEXELS_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    console.error("[pose-search] PEXELS_API_KEY no configurada");
+    return [];
+  }
 
   try {
     const url = new URL("https://api.pexels.com/v1/search");
@@ -102,7 +105,7 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     const res = await fetch(url.toString(), {
       headers: {
@@ -115,13 +118,18 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
 
     clearTimeout(timeout);
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`[pose-search] Pexels API error: ${res.status} ${res.statusText} for query: "${query}"`);
+      return [];
+    }
 
     const data = await res.json();
     const results: ImageResult[] = [];
 
     // Términos que indican que la foto tiene personas (no solo paisaje/monumento)
-    const PEOPLE_TERMS = /\b(person|people|woman|man|tourist|posing|crowd|selfie|smiling|standing|wearing|portrait)\b/i;
+    // Usar \b(person|people|woman|man|tourist|posing|crowd|selfie|smiling|standing|wearing|portrait)\b
+    // Nota: \btourist\b NO matchea "tourists" (plural) — usar \b(tourist|tourists)\b o simplemente tourist sin \b final
+    const PEOPLE_TERMS = /\b(person|people|woman|women|man|men|tourist|tourists|posing|crowd|crowds|selfie|smiling|standing|wearing|portrait)\b/i;
 
     for (const photo of (data.photos ?? []) as any[]) {
       // Para poses: usar portrait (800x1200); para places: large (940x650)
@@ -145,8 +153,10 @@ async function searchPexels(query: string, count: number, peopleFocus = false): 
       });
     }
 
+    console.log(`[pose-search] Pexels query "${query}" returned ${results.length} results (after people filter)`);
     return results;
-  } catch {
+  } catch (err) {
+    console.error(`[pose-search] Pexels fetch failed for query "${query}":`, err instanceof Error ? err.message : err);
     return [];
   }
 }
@@ -242,10 +252,9 @@ export async function GET(request: NextRequest) {
 
   if (isPose) {
     // POSE: buscar fotos con personas en el lugar
-    // Pexels: "[name_en] people" — "people" es tag común en Pexels, devuelve fotos con personas
-    // NO usar "tourist posing" — demasiado específico, devuelve monumentos vacíos
-    // NO usar nombre en portugués — Pexels indexa en inglés
-    pexelsQuery = `${query} people`;
+    // El cliente ya envía la query completa ("Christ the Redeemer people", "woman posing Rio de Janeiro", etc.)
+    // NO añadir "people" aquí — el cliente ya lo incluye
+    pexelsQuery = query;
     // Openverse: NO usar para poses — devuelve paisajes sin personas
     // Openverse no tiene fotos tagged con "people/tourist"
     openverseQuery = "";

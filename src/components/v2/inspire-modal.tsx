@@ -132,12 +132,16 @@ export function InspireModal({
   };
 
   useEffect(() => {
-    if (
-      open &&
-      !autoRefreshRef.current &&
-      localInspirations.length > 0 &&
-      localInspirations.every((item) => !item.image_url && !item.image_urls?.length)
-    ) {
+    // Auto-refresh si: no hay imágenes de lugar, O si los photo_concepts no tienen reference_image_urls
+    // (datos cacheados antiguos sin fotos de pose reales → tab "photos" estaría vacío)
+    const hasPoseImages = localInspirations.some(
+      (item) => item.photo_concepts?.some((c) => c.reference_image_urls && c.reference_image_urls.length > 0),
+    );
+    const hasNoPlaceImages = localInspirations.every(
+      (item) => !item.image_url && !item.image_urls?.length,
+    );
+    const needsRefresh = localInspirations.length > 0 && (hasNoPlaceImages || !hasPoseImages);
+    if (open && !autoRefreshRef.current && needsRefresh) {
       autoRefreshRef.current = true;
       void handleRefresh();
     }
