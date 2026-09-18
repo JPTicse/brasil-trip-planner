@@ -151,7 +151,12 @@ export async function getActivities(tripId: string): Promise<Activity[]> {
     .eq("trip_id", tripId)
     .order("date", { ascending: true })
     .order("start_time", { ascending: true, nullsFirst: false });
-  return (data ?? []) as Activity[];
+  return ((data ?? []) as Activity[]).map((activity) => ({
+    ...activity,
+    image_url: activity.image_url?.includes("maps.googleapis.com/maps/api/staticmap")
+      ? null
+      : activity.image_url,
+  }));
 }
 
 // --- Alojamientos ---

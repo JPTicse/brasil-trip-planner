@@ -149,14 +149,7 @@ function EditActivityFormInner({
     formData.set("currency", currency);
     formData.set("notes", notes);
 
-    let finalImage = imageUrl ?? "";
-    if (!finalImage && lat != null && lng != null) {
-      const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      if (key) {
-        finalImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=400x300&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${key}`;
-      }
-    }
-    formData.set("image_url", finalImage);
+    formData.set("image_url", imageUrl ?? "");
 
     setSubmitted(true);
     formAction(formData);
