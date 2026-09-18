@@ -115,7 +115,7 @@ export function ComingSoon({
                 name="content"
                 required
                 rows={4}
-                placeholder="Ej: Me gustaría poder reservar hoteles directamente desde la app, ver mapas, comparar precios..."
+                placeholder="Ej: Me gustaría poder reservar alojamientos directamente desde la app, ver mapas, comparar precios..."
                 className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </div>

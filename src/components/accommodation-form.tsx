@@ -19,10 +19,10 @@ export function AccommodationForm({
 
   return (
     <>
-      <FloatingActionButton onClick={() => setOpen(true)} label="Añadir hotel" />
+      <FloatingActionButton onClick={() => setOpen(true)} label="Añadir alojamiento" />
       <Modal open={open} onClose={() => setOpen(false)} zIndex={50}>
         <div className="flex shrink-0 items-center justify-between px-5 pb-2">
-          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Añadir hotel</h3>
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Añadir alojamiento</h3>
           <button
             onClick={() => setOpen(false)}
             className="flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -35,8 +35,8 @@ export function AccommodationForm({
         <form action={createAccommodation} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-6 pt-1">
           <input type="hidden" name="trip_id" value={tripId} />
 
-          <Field label="Nombre / Hotel *">
-            <TextInput name="name" required placeholder="Ej: Hotel Copacabana Palace" />
+          <Field label="Nombre del alojamiento *">
+            <TextInput name="name" required placeholder="Ej: Airbnb Copacabana" />
           </Field>
 
           <Field label="Dirección">

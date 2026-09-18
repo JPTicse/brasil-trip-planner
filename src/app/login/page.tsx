@@ -15,7 +15,7 @@ export default function LoginPage() {
             Brasil Trip Planner
           </h1>
           <p className="text-sm text-zinc-600">
-            Planifica tu viaje a Brasil con tus amigos. Itinerario, hoteles,
+            Planifica tu viaje a Brasil con tus amigos. Itinerario, alojamientos,
             transporte y gastos compartidos en un solo lugar.
           </p>
         </div>

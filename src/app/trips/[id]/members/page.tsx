@@ -87,7 +87,7 @@ export default async function MembersPage({
           <h3 className="text-sm font-semibold text-red-700 dark:text-red-400">Zona de peligro</h3>
           <p className="mt-1 text-xs text-red-600 dark:text-red-300">
             Eliminar el viaje borrará permanentemente todo el itinerario,
-            hoteles, transporte y gastos.
+            alojamientos, transporte y gastos.
           </p>
           <DeleteTripButton tripId={id} />
         </div>

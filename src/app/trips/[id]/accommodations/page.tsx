@@ -4,8 +4,9 @@ import { AccommodationForm } from "@/components/accommodation-form";
 import { AccommodationTimeline } from "@/components/accommodation-timeline";
 import { DeleteAccommodationButton } from "@/components/delete-accommodation-button";
 import { EditAccommodationModal } from "@/components/edit-accommodation-modal";
+import { JoinAccommodationButton, ManageAccommodationParticipants } from "@/components/accommodation-participants";
 import { EmptyState } from "@/components/ui";
-import { formatDate, formatDateShort, formatCurrency, formatDaysBetween } from "@/lib/format";
+import { formatDateShort, formatCurrency, formatDaysBetween } from "@/lib/format";
 import type { Accommodation, Profile } from "@/lib/types";
 
 export default async function AccommodationsPage({
@@ -22,14 +23,21 @@ export default async function AccommodationsPage({
   const memberProfiles = members
     .map((m) => m.profile)
     .filter((p): p is NonNullable<typeof p> => p !== null && p !== undefined);
+  const currentUserId = user?.id ?? "";
+  const myAccommodations = accommodations.filter((accommodation) =>
+    accommodation.participants?.some((participant) => participant.user_id === currentUserId),
+  );
+  const otherAccommodations = accommodations.filter((accommodation) =>
+    !accommodation.participants?.some((participant) => participant.user_id === currentUserId),
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Alojamientos</h2>
         {accommodations.length > 0 && (
           <span className="text-xs text-zinc-400">
-            {accommodations.length} {accommodations.length === 1 ? "alojamiento" : "alojamientos"}
+            {myAccommodations.length} en mi estancia · {accommodations.length} total
           </span>
         )}
       </div>
@@ -38,29 +46,63 @@ export default async function AccommodationsPage({
         <EmptyState
           icon={<BedIcon />}
           title="Sin alojamientos"
-          description="Añade tu Airbnb, hotel o apartamento con fechas para ver dónde estarás cada día."
+          description="Añade un alojamiento con fechas y selecciona quién se quedará allí."
         />
       ) : (
         <>
-          {/* Timeline visual */}
-          <AccommodationTimeline
-            accommodations={accommodations}
-            tripStartDate={trip?.start_date ?? null}
-            tripEndDate={trip?.end_date ?? null}
-          />
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Mi estancia</h3>
+              <p className="text-[11px] text-zinc-400">Solo los alojamientos a los que estás unido.</p>
+            </div>
 
-          {/* Tarjetas de alojamiento */}
-          <div className="space-y-2">
-            {accommodations.map((acc) => (
-              <AccommodationCard
-                key={acc.id}
-                accommodation={acc}
-                tripId={id}
-                currentUserId={user?.id ?? ""}
-                members={memberProfiles}
-              />
-            ))}
-          </div>
+            <AccommodationTimeline
+              accommodations={myAccommodations}
+              tripStartDate={trip?.start_date ?? null}
+              tripEndDate={trip?.end_date ?? null}
+            />
+
+            {myAccommodations.length > 0 ? (
+              <div className="space-y-2">
+                {myAccommodations.map((accommodation) => (
+                  <AccommodationCard
+                    key={accommodation.id}
+                    accommodation={accommodation}
+                    tripId={id}
+                    currentUserId={currentUserId}
+                    members={memberProfiles}
+                    myAccommodations={myAccommodations}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-zinc-300 bg-white/50 px-4 py-5 text-center dark:border-zinc-700 dark:bg-zinc-800/30">
+                <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">Todavía no te has unido a ningún alojamiento.</p>
+                <p className="mt-1 text-[11px] text-zinc-400">Únete a uno de los alojamientos disponibles para añadirlo a tu timeline.</p>
+              </div>
+            )}
+          </section>
+
+          {otherAccommodations.length > 0 && (
+            <section className="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Otros alojamientos</h3>
+                <p className="text-[11px] text-zinc-400">Reservas del grupo en las que no estás incluido.</p>
+              </div>
+              <div className="space-y-2">
+                {otherAccommodations.map((accommodation) => (
+                  <AccommodationCard
+                    key={accommodation.id}
+                    accommodation={accommodation}
+                    tripId={id}
+                    currentUserId={currentUserId}
+                    members={memberProfiles}
+                    myAccommodations={myAccommodations}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
 
@@ -74,16 +116,20 @@ function AccommodationCard({
   tripId,
   currentUserId,
   members,
+  myAccommodations,
 }: {
   accommodation: Accommodation;
   tripId: string;
   currentUserId: string;
   members: Profile[];
+  myAccommodations: Accommodation[];
 }) {
   const hasDates = acc.check_in && acc.check_out;
   const nights = hasDates ? formatDaysBetween(acc.check_in, acc.check_out) : "";
   const costPerNight = hasDates && acc.cost ? acc.cost / (parseInt(nights) || 1) : null;
   const isBooker = acc.booked_by === currentUserId;
+  const participants = acc.participants ?? [];
+  const isJoined = participants.some((participant) => participant.user_id === currentUserId);
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800/50">
@@ -143,6 +189,43 @@ function AccommodationCard({
         </div>
       )}
 
+      <div className="flex items-center gap-2 border-t border-zinc-100 px-3 py-2 dark:border-zinc-700/50">
+        <div className="flex -space-x-1.5">
+          {participants.slice(0, 5).map((participant) => {
+            const name = participant.profile?.name ?? "Usuario";
+            const initials = name
+              .split(" ")
+              .map((part) => part[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+            return (
+              <div
+                key={participant.id}
+                className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-emerald-500 text-[8px] font-bold text-white dark:border-zinc-800"
+                title={name}
+              >
+                {participant.profile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={participant.profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : initials}
+              </div>
+            );
+          })}
+          {participants.length > 5 && (
+            <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-zinc-200 text-[8px] font-bold text-zinc-600 dark:border-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">
+              +{participants.length - 5}
+            </div>
+          )}
+        </div>
+        <span className="min-w-0 flex-1 text-[11px] text-zinc-400">
+          {participants.length === 0
+            ? "Nadie se ha unido"
+            : `${participants.length} ${participants.length === 1 ? "persona" : "personas"}`}
+        </span>
+        <ManageAccommodationParticipants accommodation={acc} members={members} />
+      </div>
+
       {/* Detalles: coste, reservado por, enlace */}
       <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 px-3 py-2 dark:border-zinc-700/50">
         {acc.cost != null && (
@@ -191,6 +274,16 @@ function AccommodationCard({
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{acc.notes}</p>
         </div>
       )}
+
+      <div className="border-t border-zinc-100 p-3 dark:border-zinc-700/50">
+        <JoinAccommodationButton
+          accommodation={acc}
+          tripId={tripId}
+          isJoined={isJoined}
+          myAccommodations={myAccommodations}
+          className="w-full py-2.5"
+        />
+      </div>
     </div>
   );
 }

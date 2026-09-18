@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Brasil Trip Planner",
   description:
-    "Planifica tu viaje a Brasil con amigos: itinerario, hoteles, transporte y gastos compartidos.",
+    "Planifica tu viaje a Brasil con amigos: itinerario, alojamientos, transporte y gastos compartidos.",
   appleWebApp: {
     capable: true,
     title: "Brasil Trip",

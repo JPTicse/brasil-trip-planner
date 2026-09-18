@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser, getAuthClient } from "@/lib/auth";
+import { getAuthClient } from "@/lib/auth";
 import { getTripMembers, isTripMember, isTripOwner } from "@/lib/data";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { Inspiration } from "@/lib/types";
 
 // --- Viajes ---
@@ -425,10 +426,17 @@ export async function createAccommodation(formData: FormData) {
 
   const checkIn = formData.get("check_in") as string;
   const checkOut = formData.get("check_out") as string;
+  const bookedBy = (formData.get("booked_by") as string) || null;
   if (!checkIn || !checkOut) throw new Error("El check-in y checkout son obligatorios");
   if (checkOut <= checkIn) throw new Error("El checkout debe ser posterior al check-in");
+  if (bookedBy) {
+    const tripMembers = await getTripMembers(tripId);
+    if (!tripMembers.some((tripMember) => tripMember.user_id === bookedBy)) {
+      throw new Error("La persona que reservó debe ser miembro del viaje");
+    }
+  }
 
-  const { error } = await supabase
+  const { data: accommodation, error } = await supabase
     .from("accommodations")
     .insert({
       trip_id: tripId,
@@ -439,11 +447,21 @@ export async function createAccommodation(formData: FormData) {
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       booking_url: (formData.get("booking_url") as string) || null,
-      booked_by: (formData.get("booked_by") as string) || null,
+      booked_by: bookedBy,
       notes: (formData.get("notes") as string) || null,
-    });
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(`Error al crear alojamiento: ${error.message}`);
+
+  const participantIds = [...new Set([user.id, bookedBy].filter((id): id is string => Boolean(id)))];
+  const admin = createSupabaseAdminClient();
+  const { error: participantsError } = await admin
+    .from("accommodation_participants")
+    .insert(participantIds.map((userId) => ({ accommodation_id: accommodation.id, user_id: userId })));
+  if (participantsError) throw new Error(`Alojamiento creado, pero no se pudieron asignar participantes: ${participantsError.message}`);
+
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
 
@@ -459,9 +477,16 @@ export async function updateAccommodation(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const checkIn = formData.get("check_in") as string;
   const checkOut = formData.get("check_out") as string;
+  const bookedBy = (formData.get("booked_by") as string) || null;
   if (!name) throw new Error("El nombre del alojamiento es obligatorio");
   if (!checkIn || !checkOut) throw new Error("El check-in y checkout son obligatorios");
   if (checkOut <= checkIn) throw new Error("El checkout debe ser posterior al check-in");
+  if (bookedBy) {
+    const tripMembers = await getTripMembers(tripId);
+    if (!tripMembers.some((tripMember) => tripMember.user_id === bookedBy)) {
+      throw new Error("La persona que reservó debe ser miembro del viaje");
+    }
+  }
 
   const { error } = await supabase
     .from("accommodations")
@@ -473,13 +498,131 @@ export async function updateAccommodation(formData: FormData) {
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       booking_url: (formData.get("booking_url") as string) || null,
-      booked_by: (formData.get("booked_by") as string) || null,
+      booked_by: bookedBy,
       notes: (formData.get("notes") as string) || null,
     })
     .eq("id", accommodationId)
     .eq("trip_id", tripId);
 
   if (error) throw new Error(`Error al actualizar alojamiento: ${error.message}`);
+  revalidatePath(`/trips/${tripId}/accommodations`);
+}
+
+export async function joinAccommodation(formData: FormData) {
+  const { user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const accommodationId = formData.get("accommodation_id") as string;
+  const tripId = formData.get("trip_id") as string;
+  const member = await isTripMember(tripId, user.id);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  const admin = createSupabaseAdminClient();
+  const { data: accommodation } = await admin
+    .from("accommodations")
+    .select("id")
+    .eq("id", accommodationId)
+    .eq("trip_id", tripId)
+    .maybeSingle();
+  if (!accommodation) throw new Error("Alojamiento no encontrado");
+
+  const { error } = await admin
+    .from("accommodation_participants")
+    .upsert(
+      { accommodation_id: accommodationId, user_id: user.id },
+      { onConflict: "accommodation_id,user_id", ignoreDuplicates: true },
+    );
+  if (error) throw new Error(`Error al unirse: ${error.message}`);
+  revalidatePath(`/trips/${tripId}/accommodations`);
+}
+
+export async function leaveAccommodation(formData: FormData) {
+  const { user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const accommodationId = formData.get("accommodation_id") as string;
+  const tripId = formData.get("trip_id") as string;
+  const member = await isTripMember(tripId, user.id);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  const admin = createSupabaseAdminClient();
+  const { data: accommodation } = await admin
+    .from("accommodations")
+    .select("id")
+    .eq("id", accommodationId)
+    .eq("trip_id", tripId)
+    .maybeSingle();
+  if (!accommodation) throw new Error("Alojamiento no encontrado");
+
+  const { error } = await admin
+    .from("accommodation_participants")
+    .delete()
+    .eq("accommodation_id", accommodationId)
+    .eq("user_id", user.id);
+  if (error) throw new Error(`Error al salir: ${error.message}`);
+  revalidatePath(`/trips/${tripId}/accommodations`);
+}
+
+export async function setAccommodationParticipants(formData: FormData) {
+  const { user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const accommodationId = formData.get("accommodation_id") as string;
+  const tripId = formData.get("trip_id") as string;
+  const member = await isTripMember(tripId, user.id);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  let requestedIds: string[];
+  try {
+    requestedIds = JSON.parse((formData.get("user_ids") as string) || "[]");
+  } catch {
+    throw new Error("La lista de participantes no es válida");
+  }
+  if (!Array.isArray(requestedIds) || requestedIds.some((id) => typeof id !== "string")) {
+    throw new Error("La lista de participantes no es válida");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data: accommodation } = await admin
+    .from("accommodations")
+    .select("id")
+    .eq("id", accommodationId)
+    .eq("trip_id", tripId)
+    .maybeSingle();
+  if (!accommodation) throw new Error("Alojamiento no encontrado");
+
+  const tripMembers = await getTripMembers(tripId);
+  const allowedIds = new Set(tripMembers.map((tripMember) => tripMember.user_id));
+  const desiredIds = [...new Set(requestedIds.filter((id) => allowedIds.has(id)))];
+  if (desiredIds.length !== new Set(requestedIds).size) {
+    throw new Error("Solo puedes añadir miembros de este viaje");
+  }
+
+  const { data: currentRows, error: readError } = await admin
+    .from("accommodation_participants")
+    .select("user_id")
+    .eq("accommodation_id", accommodationId);
+  if (readError) throw new Error(`Error al cargar participantes: ${readError.message}`);
+
+  const currentIds = new Set((currentRows ?? []).map((row) => row.user_id));
+  const idsToAdd = desiredIds.filter((id) => !currentIds.has(id));
+  const idsToRemove = [...currentIds].filter((id) => !desiredIds.includes(id));
+
+  if (idsToRemove.length > 0) {
+    const { error } = await admin
+      .from("accommodation_participants")
+      .delete()
+      .eq("accommodation_id", accommodationId)
+      .in("user_id", idsToRemove);
+    if (error) throw new Error(`Error al quitar participantes: ${error.message}`);
+  }
+  if (idsToAdd.length > 0) {
+    const { error } = await admin
+      .from("accommodation_participants")
+      .insert(idsToAdd.map((userId) => ({ accommodation_id: accommodationId, user_id: userId })));
+    if (error) throw new Error(`Error al añadir participantes: ${error.message}`);
+  }
+
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
 
@@ -493,7 +636,12 @@ export async function deleteAccommodation(formData: FormData) {
   const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
-  await supabase.from("accommodations").delete().eq("id", accId);
+  const { error } = await supabase
+    .from("accommodations")
+    .delete()
+    .eq("id", accId)
+    .eq("trip_id", tripId);
+  if (error) throw new Error(`Error al eliminar alojamiento: ${error.message}`);
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
 

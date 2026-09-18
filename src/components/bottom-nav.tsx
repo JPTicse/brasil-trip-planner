@@ -6,7 +6,7 @@ import { useDockVisible } from "@/components/use-dock-visible";
 
 const TABS = [
   { href: "itinerary", label: "Itinerario", icon: CalendarIcon },
-  { href: "accommodations", label: "Hoteles", icon: BedIcon },
+  { href: "accommodations", label: "Alojamiento", icon: BedIcon },
   { href: "transport", label: "Transporte", icon: PlaneIcon },
   { href: "expenses", label: "Gastos", icon: WalletIcon },
   { href: "members", label: "Miembros", icon: UsersIcon },

@@ -170,7 +170,7 @@ export async function getAccommodations(
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
     .from("accommodations")
-    .select("*, booker:profiles!booked_by(*)")
+    .select("*, booker:profiles!booked_by(*), participants:accommodation_participants(*, profile:profiles(*))")
     .eq("trip_id", tripId)
     .order("check_in", { ascending: true, nullsFirst: false });
   return (data ?? []) as Accommodation[];

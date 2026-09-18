@@ -70,7 +70,7 @@ export function EditAccommodationModal({
           <input type="hidden" name="accommodation_id" value={accommodation.id} />
           <input type="hidden" name="trip_id" value={accommodation.trip_id} />
 
-          <Field label="Nombre / Hotel *">
+          <Field label="Nombre del alojamiento *">
             <TextInput name="name" required defaultValue={accommodation.name} />
           </Field>
 

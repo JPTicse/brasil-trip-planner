@@ -106,6 +106,15 @@ export type Accommodation = {
   created_at: string;
   // Join
   booker?: Profile | null;
+  participants?: AccommodationParticipant[];
+};
+
+export type AccommodationParticipant = {
+  id: string;
+  accommodation_id: string;
+  user_id: string;
+  joined_at: string;
+  profile?: Profile | null;
 };
 
 export type TransportType =

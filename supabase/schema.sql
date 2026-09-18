@@ -74,6 +74,14 @@ create table if not exists public.accommodations (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.accommodation_participants (
+  id uuid primary key default gen_random_uuid(),
+  accommodation_id uuid not null references public.accommodations(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  unique(accommodation_id, user_id)
+);
+
 -- Transporte (vuelos, autobuses, coches, etc.)
 create table if not exists public.transports (
   id uuid primary key default gen_random_uuid(),
@@ -135,6 +143,7 @@ alter table public.trips enable row level security;
 alter table public.trip_members enable row level security;
 alter table public.activities enable row level security;
 alter table public.accommodations enable row level security;
+alter table public.accommodation_participants enable row level security;
 alter table public.transports enable row level security;
 alter table public.expenses enable row level security;
 alter table public.expense_splits enable row level security;
@@ -243,6 +252,38 @@ create policy "Accommodations updatable by trip members"
 create policy "Accommodations deletable by trip members"
   on public.accommodations for delete to authenticated
   using (public.is_trip_member(trip_id));
+
+create policy "Accommodation participants viewable by trip members"
+  on public.accommodation_participants for select to authenticated
+  using (
+    exists (
+      select 1 from public.accommodations a
+      where a.id = accommodation_id and public.is_trip_member(a.trip_id)
+    )
+  );
+
+create policy "Accommodation participants manageable by trip members"
+  on public.accommodation_participants for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.accommodations a
+      where a.id = accommodation_id
+        and public.is_trip_member(a.trip_id)
+        and exists (
+          select 1 from public.trip_members tm
+          where tm.trip_id = a.trip_id and tm.user_id = accommodation_participants.user_id
+        )
+    )
+  );
+
+create policy "Accommodation participants removable by trip members"
+  on public.accommodation_participants for delete to authenticated
+  using (
+    exists (
+      select 1 from public.accommodations a
+      where a.id = accommodation_id and public.is_trip_member(a.trip_id)
+    )
+  );
 
 create policy "Transports viewable by trip members"
   on public.transports for select to authenticated
