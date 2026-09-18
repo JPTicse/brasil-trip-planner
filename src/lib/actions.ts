@@ -423,14 +423,19 @@ export async function createAccommodation(formData: FormData) {
   const member = await isTripMember(tripId, user.id);
   if (!member) throw new Error("No tienes acceso a este viaje");
 
+  const checkIn = formData.get("check_in") as string;
+  const checkOut = formData.get("check_out") as string;
+  if (!checkIn || !checkOut) throw new Error("El check-in y checkout son obligatorios");
+  if (checkOut <= checkIn) throw new Error("El checkout debe ser posterior al check-in");
+
   const { error } = await supabase
     .from("accommodations")
     .insert({
       trip_id: tripId,
       name: formData.get("name") as string,
       address: (formData.get("address") as string) || null,
-      check_in: (formData.get("check_in") as string) || null,
-      check_out: (formData.get("check_out") as string) || null,
+      check_in: checkIn,
+      check_out: checkOut,
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       booking_url: (formData.get("booking_url") as string) || null,

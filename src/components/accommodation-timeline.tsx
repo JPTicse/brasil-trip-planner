@@ -80,10 +80,15 @@ export function AccommodationTimeline({
 
   // Detectar qué días tienen alojamiento
   const coveredDays = new Set<string>();
+  const arrivalsByDay = new Map<string, Accommodation[]>();
+  const departuresByDay = new Map<string, Accommodation[]>();
   for (const acc of accommodations) {
-    if (!acc.check_in || !acc.check_out) continue;
-    const days = getDaysBetween(acc.check_in, acc.check_out);
-    for (const d of days) coveredDays.add(d);
+    if (!acc.check_in || !acc.check_out || acc.check_out <= acc.check_in) continue;
+    for (const day of allDays) {
+      if (day >= acc.check_in && day < acc.check_out) coveredDays.add(day);
+    }
+    arrivalsByDay.set(acc.check_in, [...(arrivalsByDay.get(acc.check_in) ?? []), acc]);
+    departuresByDay.set(acc.check_out, [...(departuresByDay.get(acc.check_out) ?? []), acc]);
   }
 
   const gapDays = allDays.filter((d) => !coveredDays.has(d));
@@ -124,7 +129,7 @@ export function AccommodationTimeline({
             {allDays.length} {allDays.length === 1 ? "día" : "días"}
             {hasGaps && (
               <span className="ml-2 text-amber-600 dark:text-amber-400">
-                · {gapDays.length} sin alojamiento
+                · {gapDays.length} {gapDays.length === 1 ? "noche" : "noches"} sin alojamiento
               </span>
             )}
           </span>
@@ -134,19 +139,39 @@ export function AccommodationTimeline({
         <div className="flex gap-px overflow-x-auto pb-1">
           {allDays.map((day, i) => {
             const isCovered = coveredDays.has(day);
+            const hasArrival = arrivalsByDay.has(day);
+            const hasDeparture = departuresByDay.has(day);
+            const isTransfer = hasArrival && hasDeparture;
             const isFirst = i === 0;
             const isLast = i === allDays.length - 1;
+            const eventLabel = isTransfer
+              ? "traslado: salida y entrada"
+              : hasDeparture
+                ? "checkout: sin alojamiento para esta noche"
+                : hasArrival
+                  ? "check-in"
+                  : isCovered
+                    ? "alojamiento confirmado"
+                    : "sin alojamiento";
             return (
               <div
                 key={day}
-                className={`flex h-8 min-w-[28px] flex-1 items-center justify-center rounded-sm text-[9px] font-medium ${
-                  isCovered
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                className={`relative flex h-9 min-w-[31px] flex-1 items-center justify-center rounded-sm text-[9px] font-medium ${
+                  isTransfer
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    : isCovered
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                 } ${isFirst ? "rounded-l-md" : ""} ${isLast ? "rounded-r-md" : ""}`}
-                title={formatDateShort(day)}
+                title={`${formatDateShort(day)} · ${eventLabel}`}
               >
-                {parseLocalDate(day)?.getDate()}
+                <span>{parseLocalDate(day)?.getDate()}</span>
+                {(hasArrival || hasDeparture) && (
+                  <span className="absolute bottom-0.5 flex items-center gap-0.5">
+                    {hasDeparture && <span className="h-1 w-1 rounded-full bg-rose-500" />}
+                    {hasArrival && <span className="h-1 w-1 rounded-full bg-blue-500" />}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -158,6 +183,39 @@ export function AccommodationTimeline({
           <span>{formatDateShort(rangeEnd)}</span>
         </div>
 
+        {allDays.some((day) => departuresByDay.has(day)) && (
+          <div className="mt-3 space-y-1.5">
+            {allDays
+              .filter((day) => departuresByDay.has(day))
+              .map((day) => {
+                const departures = departuresByDay.get(day) ?? [];
+                const arrivals = arrivalsByDay.get(day) ?? [];
+                return (
+                  <div
+                    key={day}
+                    className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] ${
+                      arrivals.length > 0
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                        : coveredDays.has(day)
+                          ? "bg-zinc-50 text-zinc-600 dark:bg-zinc-700/40 dark:text-zinc-300"
+                          : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                    }`}
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                    <span className="font-semibold">{formatDateShort(day)}</span>
+                    <span className="truncate">
+                      {arrivals.length > 0
+                        ? `Traslado: ${departures.map((acc) => acc.name).join(", ")} → ${arrivals.map((acc) => acc.name).join(", ")}`
+                        : coveredDays.has(day)
+                          ? `Checkout de ${departures.map((acc) => acc.name).join(", ")}`
+                          : `Checkout de ${departures.map((acc) => acc.name).join(", ")} · noche sin reservar`}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
         {/* Barras de cada alojamiento */}
         <div className="mt-4 space-y-2">
           {accommodations
@@ -166,12 +224,12 @@ export function AccommodationTimeline({
               const color = colorMap.get(acc.id)!;
               const startIndex = dateToIndex(acc.check_in!, allDays);
               const endIndex = dateToIndex(acc.check_out!, allDays);
-              if (startIndex < 0 || endIndex < 0) return null;
+              if (startIndex < 0 || endIndex <= startIndex) return null;
 
               // Calcular posición y anchura como porcentajes
               const totalDays = allDays.length;
               const leftPercent = (startIndex / totalDays) * 100;
-              const widthPercent = ((endIndex - startIndex + 1) / totalDays) * 100;
+              const widthPercent = ((endIndex - startIndex) / totalDays) * 100;
               const isSelected = selectedId === acc.id;
 
               return (
@@ -195,6 +253,11 @@ export function AccommodationTimeline({
                         {acc.name}
                       </span>
                     </div>
+                    <span
+                      className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-sm dark:border-zinc-700"
+                      style={{ left: `${(endIndex / totalDays) * 100}%` }}
+                      title={`Checkout · ${formatDateShort(acc.check_out)}`}
+                    />
                   </div>
                 </button>
               );
@@ -209,7 +272,7 @@ export function AccommodationTimeline({
                 <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                {gapRanges.length} {gapRanges.length === 1 ? "hueco" : "huecos"} sin alojamiento:
+                {gapRanges.length} {gapRanges.length === 1 ? "periodo" : "periodos"} con noches sin alojamiento:
               </p>
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">

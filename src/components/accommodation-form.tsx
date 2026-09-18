@@ -44,13 +44,16 @@ export function AccommodationForm({
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Check-in">
-              <TextInput name="check_in" type="date" />
+            <Field label="Check-in *">
+              <TextInput name="check_in" type="date" required />
             </Field>
-            <Field label="Check-out">
-              <TextInput name="check_out" type="date" />
+            <Field label="Check-out *">
+              <TextInput name="check_out" type="date" required />
             </Field>
           </div>
+          <p className="-mt-1 text-[11px] text-zinc-400">
+            El día del checkout marca tu salida y no cuenta como noche alojada.
+          </p>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Coste total">
