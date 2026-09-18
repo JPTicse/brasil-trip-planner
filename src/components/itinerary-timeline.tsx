@@ -6,7 +6,7 @@ import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
-import { DayChips } from "@/components/day-chips";
+import { DayChipsV2 } from "@/components/v2/day-chips-v2";
 
 const TYPE_BG: Record<ActivityType, string> = {
   visit: "bg-blue-500",
@@ -106,11 +106,11 @@ export function ItineraryTimeline({
   return (
     <div className="space-y-3">
       {/* Chips de días (carrusel horizontal) */}
-      <DayChips
+      <DayChipsV2
         days={days}
         selectedDay={selectedDay}
         onSelect={onSelectDay}
-        getCount={(day) => (byDate.get(day) ?? []).length}
+        activities={activities}
       />
 
       {/* Timeline del día seleccionado */}

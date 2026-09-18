@@ -5,7 +5,7 @@ import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { loadGoogleMaps } from "@/lib/google-maps";
 import { formatTime } from "@/lib/format";
 import { type Activity, type ActivityType } from "@/lib/types";
-import { DayChips } from "@/components/day-chips";
+import { DayChipsV2 } from "@/components/v2/day-chips-v2";
 
 const TYPE_COLOR: Record<ActivityType, string> = {
   visit: "#3b82f6",
@@ -197,11 +197,11 @@ export function ItineraryMap({
     <div className="space-y-3">
       {/* Chips de días */}
       {days.length > 0 && (
-        <DayChips
+        <DayChipsV2
           days={days}
           selectedDay={selectedDay}
           onSelect={onSelectDay}
-          getCount={(day) => activities.filter((a) => a.date === day && a.location_lat != null).length}
+          activities={activities}
         />
       )}
 
