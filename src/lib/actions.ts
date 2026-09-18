@@ -447,6 +447,42 @@ export async function createAccommodation(formData: FormData) {
   revalidatePath(`/trips/${tripId}/accommodations`);
 }
 
+export async function updateAccommodation(formData: FormData) {
+  const { supabase, user } = await getAuthClient();
+  if (!user) throw new Error("No autenticado");
+
+  const accommodationId = formData.get("accommodation_id") as string;
+  const tripId = formData.get("trip_id") as string;
+  const member = await isTripMember(tripId, user.id);
+  if (!member) throw new Error("No tienes acceso a este viaje");
+
+  const name = (formData.get("name") as string)?.trim();
+  const checkIn = formData.get("check_in") as string;
+  const checkOut = formData.get("check_out") as string;
+  if (!name) throw new Error("El nombre del alojamiento es obligatorio");
+  if (!checkIn || !checkOut) throw new Error("El check-in y checkout son obligatorios");
+  if (checkOut <= checkIn) throw new Error("El checkout debe ser posterior al check-in");
+
+  const { error } = await supabase
+    .from("accommodations")
+    .update({
+      name,
+      address: (formData.get("address") as string) || null,
+      check_in: checkIn,
+      check_out: checkOut,
+      cost: formData.get("cost") ? Number(formData.get("cost")) : null,
+      currency: (formData.get("currency") as string) || "BRL",
+      booking_url: (formData.get("booking_url") as string) || null,
+      booked_by: (formData.get("booked_by") as string) || null,
+      notes: (formData.get("notes") as string) || null,
+    })
+    .eq("id", accommodationId)
+    .eq("trip_id", tripId);
+
+  if (error) throw new Error(`Error al actualizar alojamiento: ${error.message}`);
+  revalidatePath(`/trips/${tripId}/accommodations`);
+}
+
 export async function deleteAccommodation(formData: FormData) {
   const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");

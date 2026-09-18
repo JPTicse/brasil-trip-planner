@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { AccommodationForm } from "@/components/accommodation-form";
 import { AccommodationTimeline } from "@/components/accommodation-timeline";
 import { DeleteAccommodationButton } from "@/components/delete-accommodation-button";
+import { EditAccommodationModal } from "@/components/edit-accommodation-modal";
 import { EmptyState } from "@/components/ui";
 import { formatDate, formatDateShort, formatCurrency, formatDaysBetween } from "@/lib/format";
 import type { Accommodation, Profile } from "@/lib/types";
@@ -56,6 +57,7 @@ export default async function AccommodationsPage({
                 accommodation={acc}
                 tripId={id}
                 currentUserId={user?.id ?? ""}
+                members={memberProfiles}
               />
             ))}
           </div>
@@ -71,10 +73,12 @@ function AccommodationCard({
   accommodation: acc,
   tripId,
   currentUserId,
+  members,
 }: {
   accommodation: Accommodation;
   tripId: string;
   currentUserId: string;
+  members: Profile[];
 }) {
   const hasDates = acc.check_in && acc.check_out;
   const nights = hasDates ? formatDaysBetween(acc.check_in, acc.check_out) : "";
@@ -102,13 +106,16 @@ function AccommodationCard({
           )}
         </div>
 
-        {isBooker && (
-          <DeleteAccommodationButton
-            accommodationId={acc.id}
-            tripId={tripId}
-            accommodationName={acc.name}
-          />
-        )}
+        <div className="flex shrink-0 items-center gap-0.5">
+          <EditAccommodationModal accommodation={acc} members={members} />
+          {isBooker && (
+            <DeleteAccommodationButton
+              accommodationId={acc.id}
+              tripId={tripId}
+              accommodationName={acc.name}
+            />
+          )}
+        </div>
       </div>
 
       {/* Fechas */}
