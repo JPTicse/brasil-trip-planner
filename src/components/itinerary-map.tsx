@@ -152,23 +152,35 @@ export function ItineraryMap({
         lng: accommodation.location_lng!,
       };
       bounds.extend(position);
+      const isHome = label === "A";
       const marker = new google.maps.Marker({
         position,
         map,
-        label: {
-          text: label,
-          color: "white",
-          fontWeight: "bold",
-          fontSize: "11px",
-        },
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 15,
-          fillColor: color,
-          fillOpacity: 1,
-          strokeColor: "white",
-          strokeWeight: 3,
-        },
+        label: isHome
+          ? undefined
+          : {
+              text: label,
+              color: "white",
+              fontWeight: "bold",
+              fontSize: "11px",
+            },
+        icon: isHome
+          ? {
+              path: "M -10 0 L 0 -9 L 10 0 L 8 0 L 8 9 L 2 9 L 2 3 L -2 3 L -2 9 L -8 9 L -8 0 Z",
+              scale: 1.15,
+              fillColor: color,
+              fillOpacity: 1,
+              strokeColor: "white",
+              strokeWeight: 2,
+            }
+          : {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 15,
+              fillColor: color,
+              fillOpacity: 1,
+              strokeColor: "white",
+              strokeWeight: 3,
+            },
         title: `${title}: ${accommodation.name}`,
         zIndex: 100,
       });
@@ -307,7 +319,11 @@ export function ItineraryMap({
           {startAccommodation && (
             <div className="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900/60 dark:bg-emerald-900/20">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[10px] font-bold text-white">
-                {sameDayAccommodation ? "A" : "S"}
+                {sameDayAccommodation ? (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path d="M3 11l9-8 9 8M5 10v11h14V10M9 21v-6h6v6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : "S"}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
