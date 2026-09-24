@@ -72,6 +72,7 @@ export default async function AccommodationsPage({
                     currentUserId={currentUserId}
                     members={memberProfiles}
                     myAccommodations={myAccommodations}
+                    country={trip?.country ?? undefined}
                   />
                 ))}
               </div>
@@ -98,6 +99,7 @@ export default async function AccommodationsPage({
                     currentUserId={currentUserId}
                     members={memberProfiles}
                     myAccommodations={myAccommodations}
+                    country={trip?.country ?? undefined}
                   />
                 ))}
               </div>
@@ -106,7 +108,7 @@ export default async function AccommodationsPage({
         </>
       )}
 
-      <AccommodationForm tripId={id} members={memberProfiles} />
+      <AccommodationForm tripId={id} members={memberProfiles} country={trip?.country ?? undefined} />
     </div>
   );
 }
@@ -117,12 +119,14 @@ function AccommodationCard({
   currentUserId,
   members,
   myAccommodations,
+  country,
 }: {
   accommodation: Accommodation;
   tripId: string;
   currentUserId: string;
   members: Profile[];
   myAccommodations: Accommodation[];
+  country?: string;
 }) {
   const hasDates = acc.check_in && acc.check_out;
   const nights = hasDates ? formatDaysBetween(acc.check_in, acc.check_out) : "";
@@ -153,7 +157,7 @@ function AccommodationCard({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          <EditAccommodationModal accommodation={acc} members={members} />
+          <EditAccommodationModal accommodation={acc} members={members} country={country} />
           {isBooker && (
             <DeleteAccommodationButton
               accommodationId={acc.id}

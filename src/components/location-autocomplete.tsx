@@ -8,14 +8,18 @@ export function LocationAutocomplete({
   onChange,
   placeholder,
   country = "br",
+  preferFormattedAddress = false,
+  mode = "establishment",
 }: {
   value: string;
   onChange: (name: string, lat: number | null, lng: number | null, photoUrl?: string | null) => void;
   placeholder?: string;
   country?: string;
+  preferFormattedAddress?: boolean;
+  mode?: "establishment" | "address";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const onChangeRef = useRef(onChange);
 
   useEffect(() => {
@@ -29,13 +33,12 @@ export function LocationAutocomplete({
       .then(() => {
         if (cancelled || !inputRef.current) return;
 
-        const google = (window as any).google;
-        if (!google?.maps?.places) return;
+        const mapsApi = window.google;
+        if (!mapsApi?.maps?.places) return;
 
         // No se puede mezclar "geocode" con otros tipos
-        const types = ["establishment"];
-        const options: any = {
-          types,
+        const options: google.maps.places.AutocompleteOptions = {
+          types: [mode],
           fields: ["name", "geometry", "place_id", "formatted_address"],
         };
 
@@ -43,34 +46,37 @@ export function LocationAutocomplete({
           options.componentRestrictions = { country: country.toLowerCase() };
         }
 
-        autocompleteRef.current = new google.maps.places.Autocomplete(
+        const autocomplete = new mapsApi.maps.places.Autocomplete(
           inputRef.current,
           options,
         );
+        autocompleteRef.current = autocomplete;
 
-        autocompleteRef.current.addListener("place_changed", () => {
-          const place = autocompleteRef.current.getPlace();
-          if (!place || !place.geometry) return;
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (!place.geometry?.location) return;
 
-          const name = place.name || place.formatted_address || "";
+          const name = preferFormattedAddress
+            ? place.formatted_address || place.name || ""
+            : place.name || place.formatted_address || "";
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
 
           // Intentar obtener foto con getDetails
-          if (place.place_id) {
+          if (place.place_id && mode === "establishment") {
             const container = document.createElement("div");
             container.style.display = "none";
             document.body.appendChild(container);
-            const service = new google.maps.places.PlacesService(container);
+            const service = new mapsApi.maps.places.PlacesService(container);
 
             service.getDetails(
               {
                 placeId: place.place_id,
                 fields: ["photos"],
               },
-              (details: any, status: string) => {
+              (details, status) => {
                 let photoUrl: string | null = null;
-                if (status === google.maps.places.PlacesServiceStatus.OK && details?.photos?.[0]?.getUrl) {
+                if (status === mapsApi.maps.places.PlacesServiceStatus.OK && details?.photos?.[0]?.getUrl) {
                   try {
                     photoUrl = details.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
                   } catch {
@@ -92,7 +98,7 @@ export function LocationAutocomplete({
       cancelled = true;
       autocompleteRef.current = null;
     };
-  }, [country]);
+  }, [country, mode, preferFormattedAddress]);
 
   return (
     <input

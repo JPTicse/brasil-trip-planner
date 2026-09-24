@@ -1,4 +1,4 @@
-import { getActivities, getTrip, getTripMembers } from "@/lib/data";
+import { getActivities, getAccommodations, getTrip } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import { ActivityForm } from "@/components/activity-form";
 import { ExploreActivitiesModal } from "@/components/explore-activities-modal";
@@ -12,18 +12,17 @@ export default async function ItineraryPage({
   params,
 }: PageProps<"/trips/[id]/itinerary">) {
   const { id } = await params;
-  const [activities, trip, members, user] = await Promise.all([
+  const [activities, accommodations, trip, user] = await Promise.all([
     getActivities(id),
+    getAccommodations(id),
     getTrip(id),
-    getTripMembers(id),
     getCurrentUser(),
   ]);
 
-  const memberProfiles = members
-    .map((m) => m.profile)
-    .filter((p): p is NonNullable<typeof p> => p !== null && p !== undefined);
-
   const currentUserId = user?.id ?? "";
+  const myAccommodations = accommodations.filter((accommodation) =>
+    accommodation.participants?.some((participant) => participant.user_id === currentUserId),
+  );
 
   // Separar en "mis planes" (unidos) y "explorar" (todos los demás)
   const myActivities = activities.filter((a) =>
@@ -71,7 +70,7 @@ export default async function ItineraryPage({
 
       {/* Mis planes — vistas Día / Mapa / Lista */}
       <section>
-        {myActivities.length === 0 ? (
+        {myActivities.length === 0 && myAccommodations.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 bg-white/50 px-4 py-8 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
             <p className="text-sm text-zinc-400 dark:text-zinc-500">
               No te has unido a ningún plan todavía.
@@ -82,6 +81,7 @@ export default async function ItineraryPage({
         ) : (
           <ItineraryTabs
             activities={myActivities}
+            accommodations={myAccommodations}
             tripId={id}
             currentUserId={currentUserId}
             days={days}

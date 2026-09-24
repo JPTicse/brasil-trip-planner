@@ -415,6 +415,22 @@ export async function saveInspirations(formData: FormData) {
 
 // --- Alojamientos ---
 
+function getAccommodationCoordinates(formData: FormData) {
+  const rawLat = formData.get("location_lat") as string;
+  const rawLng = formData.get("location_lng") as string;
+  if (!rawLat || !rawLng) return { locationLat: null, locationLng: null };
+
+  const locationLat = Number(rawLat);
+  const locationLng = Number(rawLng);
+  if (!Number.isFinite(locationLat) || !Number.isFinite(locationLng)) {
+    throw new Error("Las coordenadas del alojamiento no son válidas");
+  }
+  if (locationLat < -90 || locationLat > 90 || locationLng < -180 || locationLng > 180) {
+    throw new Error("Las coordenadas del alojamiento están fuera de rango");
+  }
+  return { locationLat, locationLng };
+}
+
 export async function createAccommodation(formData: FormData) {
   const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
@@ -427,6 +443,7 @@ export async function createAccommodation(formData: FormData) {
   const checkIn = formData.get("check_in") as string;
   const checkOut = formData.get("check_out") as string;
   const bookedBy = (formData.get("booked_by") as string) || null;
+  const { locationLat, locationLng } = getAccommodationCoordinates(formData);
   if (!checkIn || !checkOut) throw new Error("El check-in y checkout son obligatorios");
   if (checkOut <= checkIn) throw new Error("El checkout debe ser posterior al check-in");
   if (bookedBy) {
@@ -442,6 +459,8 @@ export async function createAccommodation(formData: FormData) {
       trip_id: tripId,
       name: formData.get("name") as string,
       address: (formData.get("address") as string) || null,
+      location_lat: locationLat,
+      location_lng: locationLng,
       check_in: checkIn,
       check_out: checkOut,
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
@@ -478,6 +497,7 @@ export async function updateAccommodation(formData: FormData) {
   const checkIn = formData.get("check_in") as string;
   const checkOut = formData.get("check_out") as string;
   const bookedBy = (formData.get("booked_by") as string) || null;
+  const { locationLat, locationLng } = getAccommodationCoordinates(formData);
   if (!name) throw new Error("El nombre del alojamiento es obligatorio");
   if (!checkIn || !checkOut) throw new Error("El check-in y checkout son obligatorios");
   if (checkOut <= checkIn) throw new Error("El checkout debe ser posterior al check-in");
@@ -493,6 +513,8 @@ export async function updateAccommodation(formData: FormData) {
     .update({
       name,
       address: (formData.get("address") as string) || null,
+      location_lat: locationLat,
+      location_lng: locationLng,
       check_in: checkIn,
       check_out: checkOut,
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,

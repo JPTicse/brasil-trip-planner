@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { loadGoogleMaps } from "@/lib/google-maps";
 import { formatTime } from "@/lib/format";
-import { type Activity, type ActivityType } from "@/lib/types";
+import { type Accommodation, type Activity, type ActivityType } from "@/lib/types";
 import { DayChipsV2 } from "@/components/v2/day-chips-v2";
 
 const TYPE_COLOR: Record<ActivityType, string> = {
@@ -33,6 +33,7 @@ function timeToMinutes(t: string | null | undefined): number {
 
 export function ItineraryMap({
   activities,
+  accommodations,
   tripId,
   currentUserId,
   days,
@@ -40,6 +41,7 @@ export function ItineraryMap({
   onSelectDay,
 }: {
   activities: Activity[];
+  accommodations: Accommodation[];
   tripId: string;
   currentUserId: string;
   days: string[];
@@ -60,6 +62,29 @@ export function ItineraryMap({
       a.date === selectedDay &&
       a.location_lat != null &&
       a.location_lng != null,
+  );
+  const locatedAccommodations = accommodations.filter(
+    (accommodation) =>
+      accommodation.address &&
+      accommodation.location_lat != null &&
+      accommodation.location_lng != null &&
+      accommodation.check_in &&
+      accommodation.check_out,
+  );
+  const endAccommodation = locatedAccommodations
+    .filter(
+      (accommodation) =>
+        accommodation.check_in! <= selectedDay && selectedDay < accommodation.check_out!,
+    )
+    .sort((a, b) => b.check_in!.localeCompare(a.check_in!))[0] ?? null;
+  const startAccommodation = locatedAccommodations
+    .filter(
+      (accommodation) =>
+        accommodation.check_in! < selectedDay && selectedDay <= accommodation.check_out!,
+    )
+    .sort((a, b) => b.check_in!.localeCompare(a.check_in!))[0] ?? endAccommodation;
+  const sameDayAccommodation = Boolean(
+    startAccommodation && endAccommodation && startAccommodation.id === endAccommodation.id,
   );
 
   // Inicializar mapa una sola vez
@@ -110,12 +135,57 @@ export function ItineraryMap({
       polylineRef.current = null;
     }
 
-    if (dayActivities.length === 0) return;
+    if (dayActivities.length === 0 && !startAccommodation && !endAccommodation) return;
 
     const bounds = new google.maps.LatLngBounds();
     const sorted = dayActivities
       .slice()
       .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
+    const addAccommodationMarker = (
+      accommodation: Accommodation,
+      label: string,
+      color: string,
+      title: string,
+    ) => {
+      const position = {
+        lat: accommodation.location_lat!,
+        lng: accommodation.location_lng!,
+      };
+      bounds.extend(position);
+      const marker = new google.maps.Marker({
+        position,
+        map,
+        label: {
+          text: label,
+          color: "white",
+          fontWeight: "bold",
+          fontSize: "11px",
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 15,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: "white",
+          strokeWeight: 3,
+        },
+        title: `${title}: ${accommodation.name}`,
+        zIndex: 100,
+      });
+      markersRef.current.push(marker);
+    };
+
+    if (startAccommodation) {
+      addAccommodationMarker(
+        startAccommodation,
+        sameDayAccommodation ? "A" : "S",
+        "#047857",
+        sameDayAccommodation ? "Alojamiento" : "Salida",
+      );
+    }
+    if (endAccommodation && !sameDayAccommodation) {
+      addAccommodationMarker(endAccommodation, "F", "#0f766e", "Final");
+    }
 
     sorted.forEach((a, idx) => {
       const pos = { lat: a.location_lat!, lng: a.location_lng! };
@@ -155,11 +225,19 @@ export function ItineraryMap({
     });
 
     // Línea conectando actividades en orden de hora
-    if (sorted.length > 1) {
-      const path = sorted.map((a) => ({
-        lat: a.location_lat!,
-        lng: a.location_lng!,
-      }));
+    const path = [
+      ...(startAccommodation
+        ? [{ lat: startAccommodation.location_lat!, lng: startAccommodation.location_lng! }]
+        : []),
+      ...sorted.map((activity) => ({
+        lat: activity.location_lat!,
+        lng: activity.location_lng!,
+      })),
+      ...(endAccommodation && (!sameDayAccommodation || sorted.length > 0)
+        ? [{ lat: endAccommodation.location_lat!, lng: endAccommodation.location_lng! }]
+        : []),
+    ];
+    if (path.length > 1) {
       polylineRef.current = new google.maps.Polyline({
         path,
         map,
@@ -180,7 +258,7 @@ export function ItineraryMap({
     map.fitBounds(bounds, 50);
     const z = map.getZoom();
     if (z && z > 15) map.setZoom(15);
-  }, [dayActivities]);
+  }, [dayActivities, startAccommodation, endAccommodation, sameDayAccommodation]);
 
   if (error) {
     return (
@@ -215,14 +293,55 @@ export function ItineraryMap({
             </svg>
           </div>
         )}
-        {dayActivities.length === 0 && !loading && (
+        {dayActivities.length === 0 && !startAccommodation && !endAccommodation && !loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80">
             <p className="text-sm text-zinc-400 dark:text-zinc-500">
-              No hay actividades con ubicación para este día.
+              No hay actividades ni alojamiento con ubicación para este día.
             </p>
           </div>
         )}
       </div>
+
+      {(startAccommodation || endAccommodation) && (
+        <div className="space-y-1.5">
+          {startAccommodation && (
+            <div className="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900/60 dark:bg-emerald-900/20">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[10px] font-bold text-white">
+                {sameDayAccommodation ? "A" : "S"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                  {sameDayAccommodation ? "Inicio y final en tu alojamiento" : "Punto de salida"}
+                </p>
+                <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {startAccommodation.name}
+                </p>
+                <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                  {startAccommodation.address}
+                </p>
+              </div>
+            </div>
+          )}
+          {endAccommodation && !sameDayAccommodation && (
+            <div className="flex items-center gap-2.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 dark:border-teal-900/60 dark:bg-teal-900/20">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 text-[10px] font-bold text-white">
+                F
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-teal-700 dark:text-teal-400">
+                  Final del día
+                </p>
+                <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {endAccommodation.name}
+                </p>
+                <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                  {endAccommodation.address}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Lista compacta debajo (ordenada por hora) */}
       {dayActivities.length > 0 && (

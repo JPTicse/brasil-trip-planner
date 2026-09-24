@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ItineraryTimeline } from "@/components/itinerary-timeline";
 import { ItineraryMap } from "@/components/itinerary-map";
 import { ActivityCard } from "@/components/activity-card";
-import { type Activity } from "@/lib/types";
+import { type Accommodation, type Activity } from "@/lib/types";
 
 type Tab = "day" | "map" | "list";
 
@@ -22,11 +22,13 @@ function getDefaultDay(days: string[]): string {
 
 export function ItineraryTabs({
   activities,
+  accommodations,
   tripId,
   currentUserId,
   days,
 }: {
   activities: Activity[];
+  accommodations: Accommodation[];
   tripId: string;
   currentUserId: string;
   days: string[];
@@ -74,6 +76,7 @@ export function ItineraryTabs({
       {tab === "map" && (
         <ItineraryMap
           activities={activities}
+          accommodations={accommodations}
           tripId={tripId}
           currentUserId={currentUserId}
           days={days}

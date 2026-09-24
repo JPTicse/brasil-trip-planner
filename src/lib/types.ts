@@ -96,6 +96,8 @@ export type Accommodation = {
   trip_id: string;
   name: string;
   address: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   check_in: string | null;
   check_out: string | null;
   cost: number | null;

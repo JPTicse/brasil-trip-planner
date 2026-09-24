@@ -7,19 +7,25 @@ import { updateAccommodation } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { Modal } from "@/components/modal";
+import { LocationAutocomplete } from "@/components/location-autocomplete";
 import { CURRENCIES, type Accommodation, type Profile } from "@/lib/types";
 
 export function EditAccommodationModal({
   accommodation,
   members,
+  country,
 }: {
   accommodation: Accommodation;
   members: Profile[];
+  country?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [address, setAddress] = useState(accommodation.address ?? "");
+  const [lat, setLat] = useState<number | null>(accommodation.location_lat);
+  const [lng, setLng] = useState<number | null>(accommodation.location_lng);
 
   const handleSubmit = async (formData: FormData) => {
     setPending(true);
@@ -40,7 +46,12 @@ export function EditAccommodationModal({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setAddress(accommodation.address ?? "");
+          setLat(accommodation.location_lat);
+          setLng(accommodation.location_lng);
+          setOpen(true);
+        }}
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20"
         title="Editar alojamiento"
       >
@@ -69,14 +80,33 @@ export function EditAccommodationModal({
         <form action={handleSubmit} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-6 pt-1">
           <input type="hidden" name="accommodation_id" value={accommodation.id} />
           <input type="hidden" name="trip_id" value={accommodation.trip_id} />
+          <input type="hidden" name="address" value={address} />
+          <input type="hidden" name="location_lat" value={lat ?? ""} />
+          <input type="hidden" name="location_lng" value={lng ?? ""} />
 
           <Field label="Nombre del alojamiento *">
             <TextInput name="name" required defaultValue={accommodation.name} />
           </Field>
 
           <Field label="Dirección">
-            <TextInput name="address" defaultValue={accommodation.address ?? ""} />
+            <LocationAutocomplete
+              value={address}
+              onChange={(value, nextLat, nextLng) => {
+                setAddress(value);
+                setLat(nextLat);
+                setLng(nextLng);
+              }}
+              placeholder="Busca la dirección del alojamiento"
+              country={country}
+              preferFormattedAddress
+              mode="address"
+            />
           </Field>
+          {address && (lat == null || lng == null) && (
+            <p className="-mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+              Selecciona una sugerencia para ubicar el alojamiento en el mapa.
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Check-in *">

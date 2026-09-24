@@ -64,6 +64,8 @@ create table if not exists public.accommodations (
   trip_id uuid not null references public.trips(id) on delete cascade,
   name text not null,
   address text,
+  location_lat double precision,
+  location_lng double precision,
   check_in date,
   check_out date,
   cost numeric(12, 2),

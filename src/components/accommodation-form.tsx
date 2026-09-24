@@ -7,15 +7,21 @@ import { SubmitButton } from "@/components/submit-button";
 import { CURRENCIES, type Profile } from "@/lib/types";
 import { FloatingActionButton } from "@/components/floating-button";
 import { Modal } from "@/components/modal";
+import { LocationAutocomplete } from "@/components/location-autocomplete";
 
 export function AccommodationForm({
   tripId,
   members,
+  country,
 }: {
   tripId: string;
   members: Profile[];
+  country?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [address, setAddress] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
 
   return (
     <>
@@ -34,14 +40,33 @@ export function AccommodationForm({
         </div>
         <form action={createAccommodation} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 pb-6 pt-1">
           <input type="hidden" name="trip_id" value={tripId} />
+          <input type="hidden" name="address" value={address} />
+          <input type="hidden" name="location_lat" value={lat ?? ""} />
+          <input type="hidden" name="location_lng" value={lng ?? ""} />
 
           <Field label="Nombre del alojamiento *">
             <TextInput name="name" required placeholder="Ej: Airbnb Copacabana" />
           </Field>
 
           <Field label="Dirección">
-            <TextInput name="address" placeholder="Ej: Av. Atlântica, 1702 - Copacabana, Rio" />
+            <LocationAutocomplete
+              value={address}
+              onChange={(value, nextLat, nextLng) => {
+                setAddress(value);
+                setLat(nextLat);
+                setLng(nextLng);
+              }}
+              placeholder="Busca la dirección del alojamiento"
+              country={country}
+              preferFormattedAddress
+              mode="address"
+            />
           </Field>
+          {address && (lat == null || lng == null) && (
+            <p className="-mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+              Selecciona una sugerencia para ubicar el alojamiento en el mapa.
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Check-in *">
