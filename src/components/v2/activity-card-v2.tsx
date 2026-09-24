@@ -3,6 +3,7 @@
 import { ActivityDetailModalV2 as ActivityDetailModal } from "@/components/v2/activity-detail-modal-v2";
 import { EditActivityModal } from "@/components/edit-activity-modal";
 import { DeleteActivityButton } from "@/components/delete-activity-button";
+import { ActivityImage } from "@/components/activity-image";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 
@@ -50,12 +51,10 @@ export function ActivityCardV2({
     <div className={`group relative aspect-[16/9] overflow-hidden rounded-xl border border-zinc-200 bg-white transition active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 border-l-4 ${TYPE_BORDER[activity.type]}`}>
       {activity.image_url ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <ActivityImage
             src={activity.image_url}
             alt={activity.title}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         </>

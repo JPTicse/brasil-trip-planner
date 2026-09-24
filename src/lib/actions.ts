@@ -211,6 +211,18 @@ export async function removeTripMember(formData: FormData) {
 
 // --- Actividades ---
 
+function getPersistentActivityImageUrl(formData: FormData): string | null {
+  const value = (formData.get("image_url") as string)?.trim();
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    return url.hostname === "maps.googleapis.com" ? null : value;
+  } catch {
+    return null;
+  }
+}
+
 export async function createActivity(formData: FormData) {
   const { supabase, user } = await getAuthClient();
   if (!user) throw new Error("No autenticado");
@@ -235,7 +247,7 @@ export async function createActivity(formData: FormData) {
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       notes: (formData.get("notes") as string) || null,
-      image_url: (formData.get("image_url") as string) || null,
+      image_url: getPersistentActivityImageUrl(formData),
       assigned_to: (formData.get("assigned_to") as string) || null,
       created_by: user.id,
     })
@@ -287,7 +299,7 @@ export async function updateActivity(formData: FormData) {
       cost: formData.get("cost") ? Number(formData.get("cost")) : null,
       currency: (formData.get("currency") as string) || "BRL",
       notes: (formData.get("notes") as string) || null,
-      image_url: (formData.get("image_url") as string) || null,
+      image_url: getPersistentActivityImageUrl(formData),
     })
     .eq("id", activityId);
 

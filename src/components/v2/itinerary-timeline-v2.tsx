@@ -26,6 +26,7 @@ const TYPE_BORDER: Record<ActivityType, string> = {
 };
 import { haptic } from "@/lib/haptics";
 import { DayChipsV2 } from "@/components/v2/day-chips-v2";
+import { ActivityImage } from "@/components/activity-image";
 
 // Variantes para la entrada escalonada de las tarjetas del timeline.
 const containerVariants = {
@@ -216,8 +217,7 @@ function TimelineItemV2({
         )}
         {activity.image_url ? (
           <div className="relative h-14 w-full overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" loading="lazy" />
+            <ActivityImage src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
           </div>
         ) : null}

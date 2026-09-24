@@ -12,7 +12,7 @@ import { ImageUpload } from "@/components/image-upload";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
 import { TimePicker } from "@/components/time-picker";
 import { POPULAR_COUNTRIES } from "@/components/country-select";
-import { ACTIVITY_TYPE_LABELS, CURRENCIES, type ActivityType } from "@/lib/types";
+import { CURRENCIES, type ActivityType } from "@/lib/types";
 
 function parseTripDestination(destination?: string) {
   const [city = "", country = ""] = (destination ?? "").split(",").map((s) => s.trim());
@@ -85,16 +85,42 @@ export function NewActivityWizard({
 
   // Buscar sugerencias automáticamente al escribir título
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (title.trim().length >= 3) {
-        searchSuggestions(title);
-      } else {
+    const t = setTimeout(async () => {
+      if (title.trim().length < 3) {
         setSuggestions([]);
         setSearchError(null);
+        return;
+      }
+
+      setLoading(true);
+      setSearchError(null);
+      try {
+        const data = await suggestPlace(title, tripCountryName || tripDestination);
+        if (data.error) {
+          setSearchError(data.error);
+        } else if (data.suggestions?.length) {
+          const suggestion = data.suggestions[0];
+          setSuggestions(data.suggestions);
+          setSelectedSuggestion(suggestion);
+          setLocation(suggestion.address || suggestion.name);
+          setLat(suggestion.lat);
+          setLng(suggestion.lng);
+          if (suggestion.photo_url) setImageUrl(suggestion.photo_url);
+          if (suggestion.suggested_type) setType(suggestion.suggested_type as ActivityType);
+          if (suggestion.suggested_time) setStartTime(suggestion.suggested_time);
+          if (suggestion.suggested_cost != null) setCost(String(suggestion.suggested_cost));
+          if (suggestion.suggested_currency) setCurrency(suggestion.suggested_currency);
+        } else {
+          setSearchError("No se encontraron lugares. Puedes continuar manualmente.");
+        }
+      } catch {
+        setSearchError("Error al buscar. Puedes continuar manualmente.");
+      } finally {
+        setLoading(false);
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [title]);
+  }, [title, tripCountryName, tripDestination]);
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const prev = () => setStep((s) => Math.max(s - 1, 0));
@@ -102,6 +128,20 @@ export function NewActivityWizard({
   const handleSubmit = async (formData: FormData) => {
     if (!formData.has("image_url")) {
       formData.set("image_url", imageUrl ?? "");
+    }
+    const currentImage = formData.get("image_url") as string;
+    if (currentImage.includes("maps.googleapis.com/")) {
+      try {
+        const search = new URL("/api/pose-search", window.location.origin);
+        search.searchParams.set("q", [title, location].filter(Boolean).join(" "));
+        search.searchParams.set("type", "place");
+        search.searchParams.set("count", "1");
+        const response = await fetch(search);
+        const payload = response.ok ? await response.json() : null;
+        formData.set("image_url", payload?.results?.[0]?.url ?? "");
+      } catch {
+        formData.set("image_url", "");
+      }
     }
     try {
       await createActivity(formData);
@@ -111,27 +151,6 @@ export function NewActivityWizard({
     } catch (e) {
       toast.error("Error al crear el plan");
       setFormError(e instanceof Error ? e.message : "Error al crear");
-    }
-  };
-
-  const searchSuggestions = async (query: string) => {
-    if (query.trim().length < 3) return;
-    setLoading(true);
-    setSearchError(null);
-    try {
-      const data = await suggestPlace(query, tripCountryName || tripDestination);
-      if (data.error) {
-        setSearchError(data.error);
-      } else if (data.suggestions?.length) {
-        setSuggestions(data.suggestions);
-        selectSuggestion(data.suggestions[0]);
-      } else {
-        setSearchError("No se encontraron lugares. Puedes continuar manualmente.");
-      }
-    } catch {
-      setSearchError("Error al buscar. Puedes continuar manualmente.");
-    } finally {
-      setLoading(false);
     }
   };
 

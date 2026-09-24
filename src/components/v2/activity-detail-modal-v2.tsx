@@ -8,6 +8,7 @@ import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/ty
 import { ModalV2 } from "@/components/v2/modal-v2";
 import { SubmitButton } from "@/components/submit-button";
 import { ConfirmButton } from "@/components/confirm-button";
+import { ActivityImage } from "@/components/activity-image";
 
 const TYPE_BG: Record<string, string> = {
   visit: "bg-blue-600",
@@ -117,8 +118,7 @@ export function ActivityDetailModalV2({
           {/* Imagen */}
           {activity.image_url && (
             <div className="mx-5 mt-3 overflow-hidden rounded-xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={activity.image_url} alt={activity.title} className="h-40 w-full object-cover" />
+              <ActivityImage src={activity.image_url} alt={activity.title} className="h-40 w-full object-cover" loading="eager" />
             </div>
           )}
 

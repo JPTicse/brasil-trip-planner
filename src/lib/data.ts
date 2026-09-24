@@ -153,7 +153,7 @@ export async function getActivities(tripId: string): Promise<Activity[]> {
     .order("start_time", { ascending: true, nullsFirst: false });
   return ((data ?? []) as Activity[]).map((activity) => ({
     ...activity,
-    image_url: activity.image_url?.includes("maps.googleapis.com/maps/api/staticmap")
+    image_url: activity.image_url?.includes("maps.googleapis.com/")
       ? null
       : activity.image_url,
   }));

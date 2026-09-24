@@ -259,11 +259,10 @@ function EditActivityFormInner({
         <Field label="Ubicación">
           <LocationAutocomplete
             value={location}
-            onChange={(name, newLat, newLng, photoUrl) => {
+            onChange={(name, newLat, newLng) => {
               setLocation(name);
               setLat(newLat);
               setLng(newLng);
-              if (photoUrl != null) setImageUrl(photoUrl);
             }}
             placeholder="Busca un lugar..."
           />

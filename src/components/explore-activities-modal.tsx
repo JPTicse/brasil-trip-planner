@@ -7,6 +7,7 @@ import { ACTIVITY_TYPE_LABELS, type Activity } from "@/lib/types";
 import { ActivityDetailModal } from "@/components/activity-detail-modal";
 import { JoinActivityButton } from "@/components/join-activity-button";
 import { Modal } from "@/components/modal";
+import { ActivityImage } from "@/components/activity-image";
 
 function getInitials(name: string) {
   return name
@@ -156,12 +157,10 @@ function ExploreCard({
       {/* Fondo: imagen o color sólido */}
       {activity.image_url ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <ActivityImage
             src={activity.image_url}
             alt={activity.title}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
         </>

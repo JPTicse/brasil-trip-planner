@@ -7,6 +7,7 @@ import { DeleteActivityButton } from "@/components/delete-activity-button";
 import { formatTime, formatDateShort, formatCurrency } from "@/lib/format";
 import { ACTIVITY_TYPE_LABELS, type Activity, type ActivityType } from "@/lib/types";
 import { DayChipsV2 } from "@/components/v2/day-chips-v2";
+import { ActivityImage } from "@/components/activity-image";
 
 const TYPE_BG: Record<ActivityType, string> = {
   visit: "bg-blue-500",
@@ -202,8 +203,7 @@ function TimelineItem({
         )}
         {activity.image_url ? (
           <div className="relative h-16 w-full overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" loading="lazy" />
+            <ActivityImage src={activity.image_url} alt={activity.title} className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
           </div>
         ) : null}
