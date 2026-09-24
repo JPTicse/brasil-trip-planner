@@ -217,7 +217,7 @@ export function AccommodationTimeline({
         )}
 
         {/* Barras de cada alojamiento */}
-        <div className="mt-4 space-y-2">
+        <div className="relative mt-4 h-8 w-full rounded-md bg-zinc-100 dark:bg-zinc-700/50">
           {accommodations
             .filter((acc) => acc.check_in && acc.check_out)
             .map((acc) => {
@@ -233,33 +233,29 @@ export function AccommodationTimeline({
               const isSelected = selectedId === acc.id;
 
               return (
-                <button
+                <div
                   key={acc.id}
-                  onClick={() => setSelectedId(isSelected ? null : acc.id)}
-                  className={`group relative block w-full text-left transition ${isSelected ? "opacity-100" : "opacity-80 hover:opacity-100"}`}
+                  className="absolute top-0 h-8"
+                  style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                 >
-                  <div className="relative h-6 w-full rounded bg-zinc-100 dark:bg-zinc-700/50">
-                    <div
-                      className={`absolute top-0 h-6 rounded ${color.bg} flex items-center justify-center overflow-hidden px-1 transition ${
-                        isSelected ? "ring-2 ring-offset-1 ring-zinc-400 dark:ring-offset-zinc-800" : ""
-                      }`}
-                      style={{
-                        left: `${leftPercent}%`,
-                        width: `${widthPercent}%`,
-                        minWidth: "20px",
-                      }}
-                    >
-                      <span className="truncate text-[9px] font-semibold text-white">
-                        {acc.name}
-                      </span>
-                    </div>
-                    <span
-                      className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-sm dark:border-zinc-700"
-                      style={{ left: `${(endIndex / totalDays) * 100}%` }}
-                      title={`Checkout · ${formatDateShort(acc.check_out)}`}
-                    />
-                  </div>
-                </button>
+                  <button
+                    onClick={() => setSelectedId(isSelected ? null : acc.id)}
+                    className={`relative flex h-full w-full items-center justify-center overflow-hidden rounded px-1 text-left transition ${color.bg} ${
+                      isSelected
+                        ? "z-10 opacity-100 ring-2 ring-zinc-400 ring-offset-1 dark:ring-offset-zinc-800"
+                        : "opacity-80 hover:opacity-100"
+                    }`}
+                    title={`${acc.name} · ${formatDateShort(acc.check_in)} → ${formatDateShort(acc.check_out)}`}
+                  >
+                    <span className="truncate text-[9px] font-semibold text-white">
+                      {acc.name}
+                    </span>
+                  </button>
+                  <span
+                    className="pointer-events-none absolute right-0 top-1/2 z-20 h-3 w-3 translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-sm dark:border-zinc-700"
+                    title={`Checkout · ${formatDateShort(acc.check_out)}`}
+                  />
+                </div>
               );
             })}
         </div>
