@@ -17,6 +17,7 @@ const ALLOWED_DOMAINS = [
   "farm9.staticflickr.com",
   "images.unsplash.com",
   "images.pexels.com",
+  "maps.googleapis.com",
   "api.openverse.org",
   "upload.wikimedia.org",
   "thumb.wikimedia.org",

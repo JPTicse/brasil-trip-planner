@@ -1,24 +1,49 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+export async function archiveGooglePlacePhoto(imageUrl: string): Promise<string | null> {
+  try {
+    const url = new URL(imageUrl);
+    if (url.hostname !== "maps.googleapis.com") return imageUrl;
+
+    const response = await fetch(`/api/image-proxy?url=${encodeURIComponent(imageUrl)}`);
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    if (!blob.type.startsWith("image/")) return null;
+
+    const extension = blob.type === "image/png" ? "png" : "jpg";
+    const filePath = `activities/google-${crypto.randomUUID()}.${extension}`;
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.storage
+      .from("activity-images")
+      .upload(filePath, blob, { contentType: blob.type, cacheControl: "31536000", upsert: false });
+    if (error) return null;
+
+    return supabase.storage.from("activity-images").getPublicUrl(filePath).data.publicUrl;
+  } catch {
+    return null;
+  }
+}
 
 export function ImageUpload({
   imageUrl,
   onUploaded,
-  activityId,
 }: {
   imageUrl?: string | null;
   onUploaded: (url: string | null) => void;
-  activityId?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(imageUrl ?? null);
+  const [prevImageUrl, setPrevImageUrl] = useState(imageUrl);
 
-  useEffect(() => {
+  if (prevImageUrl !== imageUrl) {
+    setPrevImageUrl(imageUrl);
     setPreview(imageUrl ?? null);
-  }, [imageUrl]);
+  }
 
   const handleFile = async (file: File) => {
     if (!file) return;

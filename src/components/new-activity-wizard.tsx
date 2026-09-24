@@ -8,7 +8,7 @@ import { suggestPlace, type Suggestion } from "@/lib/suggest";
 import { getDaysBetween, formatDate } from "@/lib/format";
 import { TextInput, TextArea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { ImageUpload } from "@/components/image-upload";
+import { archiveGooglePlacePhoto, ImageUpload } from "@/components/image-upload";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
 import { TimePicker } from "@/components/time-picker";
 import { POPULAR_COUNTRIES } from "@/components/country-select";
@@ -131,17 +131,7 @@ export function NewActivityWizard({
     }
     const currentImage = formData.get("image_url") as string;
     if (currentImage.includes("maps.googleapis.com/")) {
-      try {
-        const search = new URL("/api/pose-search", window.location.origin);
-        search.searchParams.set("q", [title, location].filter(Boolean).join(" "));
-        search.searchParams.set("type", "place");
-        search.searchParams.set("count", "1");
-        const response = await fetch(search);
-        const payload = response.ok ? await response.json() : null;
-        formData.set("image_url", payload?.results?.[0]?.url ?? "");
-      } catch {
-        formData.set("image_url", "");
-      }
+      formData.set("image_url", (await archiveGooglePlacePhoto(currentImage)) ?? "");
     }
     try {
       await createActivity(formData);

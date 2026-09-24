@@ -7,7 +7,7 @@ import { updateActivity } from "@/lib/actions";
 import { Field, TextInput, TextArea, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { LocationAutocomplete } from "@/components/location-autocomplete";
-import { ImageUpload } from "@/components/image-upload";
+import { archiveGooglePlacePhoto, ImageUpload } from "@/components/image-upload";
 import { Modal } from "@/components/modal";
 import { ACTIVITY_TYPE_LABELS, CURRENCIES, type Activity, type ActivityType } from "@/lib/types";
 
@@ -136,7 +136,7 @@ function EditActivityFormInner({
     }
   }, [submitted, state, onClose, router]);
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
     formData.set("location_lat", lat != null ? String(lat) : "");
     formData.set("location_lng", lng != null ? String(lng) : "");
     formData.set("location", location);
@@ -149,7 +149,10 @@ function EditActivityFormInner({
     formData.set("currency", currency);
     formData.set("notes", notes);
 
-    formData.set("image_url", imageUrl ?? "");
+    const finalImage = imageUrl?.includes("maps.googleapis.com/")
+      ? await archiveGooglePlacePhoto(imageUrl)
+      : imageUrl;
+    formData.set("image_url", finalImage ?? "");
 
     setSubmitted(true);
     formAction(formData);
@@ -259,10 +262,11 @@ function EditActivityFormInner({
         <Field label="Ubicación">
           <LocationAutocomplete
             value={location}
-            onChange={(name, newLat, newLng) => {
+            onChange={(name, newLat, newLng, photoUrl) => {
               setLocation(name);
               setLat(newLat);
               setLng(newLng);
+              if (photoUrl) setImageUrl(photoUrl);
             }}
             placeholder="Busca un lugar..."
           />
