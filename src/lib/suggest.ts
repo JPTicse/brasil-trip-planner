@@ -40,7 +40,7 @@ export async function suggestPlace(query: string, regionBias = "Brasil"): Promis
 
   try {
     await loadGoogleMaps();
-    const google = (window as any).google;
+    const google = window.google;
     if (!google?.maps?.places) {
       return { error: "Google Places no disponible" };
     }
@@ -58,7 +58,7 @@ export async function suggestPlace(query: string, regionBias = "Brasil"): Promis
       // Tratar de geocodificar el destino
       const geocode = await new Promise<{ lat: number; lng: number; radius: number } | null>((resolve) => {
         const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: regionBias, language: "es" }, (results: any[], status: string) => {
+        geocoder.geocode({ address: regionBias, language: "es" }, (results, status) => {
           if (status === google.maps.GeocoderStatus.OK && results?.[0]?.geometry?.location) {
             const loc = results[0].geometry.location;
             resolve({ lat: loc.lat(), lng: loc.lng(), radius: 500_000 });
@@ -71,7 +71,7 @@ export async function suggestPlace(query: string, regionBias = "Brasil"): Promis
     }
 
     // Buscar lugares con nearbySearch sesgado a la ubicación del destino
-    const nearbyResults = await new Promise<any[]>((resolve, reject) => {
+    const nearbyResults = await new Promise<google.maps.places.PlaceResult[]>((resolve) => {
       service.nearbySearch(
         {
           location: new google.maps.LatLng(bias.lat, bias.lng),
@@ -79,12 +79,8 @@ export async function suggestPlace(query: string, regionBias = "Brasil"): Promis
           keyword: query,
           language: "es",
         },
-        (results: any[], status: string) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            resolve(results);
-          } else {
-            resolve([]);
-          }
+        (results, status) => {
+          resolve(status === google.maps.places.PlacesServiceStatus.OK && results ? results : []);
         },
       );
     });
@@ -92,13 +88,13 @@ export async function suggestPlace(query: string, regionBias = "Brasil"): Promis
     // Si nearbySearch no da resultados, fallback a textSearch con "en {region}"
     let results = nearbyResults;
     if (!results.length) {
-      results = await new Promise<any[]>((resolve) => {
+      results = await new Promise<google.maps.places.PlaceResult[]>((resolve) => {
         service.textSearch(
           {
             query: `${query} en ${regionBias}`,
             language: "es",
           },
-          (res: any[], status: string) => {
+          (res, status) => {
             resolve(status === google.maps.places.PlacesServiceStatus.OK && res ? res : []);
           },
         );
@@ -110,101 +106,50 @@ export async function suggestPlace(query: string, regionBias = "Brasil"): Promis
       return { error: "No se encontró el lugar", suggestions: [] };
     }
 
-    // Tomar los primeros 3 y obtener detalles
+    // Tomar los primeros 3 directamente del resultado de búsqueda.
+    // No llamamos a getDetails: los resultados ya traen foto, rating,
+    // types, precio y dirección — evita 3 llamadas billables por búsqueda.
     const topResults = results.slice(0, 3);
-    const suggestions: Suggestion[] = [];
-
-    for (const place of topResults) {
+    const costMap = [0, 30, 80, 200, 500];
+    const suggestions: Suggestion[] = topResults.map((place) => {
+      let photoUrl: string | null = null;
       try {
-        const details = await new Promise<any>((resolve) => {
-          service.getDetails(
-            {
-              placeId: place.place_id,
-              fields: ["name", "formatted_address", "geometry", "photos", "opening_hours", "website", "formatted_phone_number", "price_level", "rating", "types"],
-              language: "es",
-            },
-            (result: any, status: string) => {
-              resolve(status === google.maps.places.PlacesServiceStatus.OK && result ? result : null);
-            },
-          );
-        });
-
-        if (!details) {
-          suggestions.push({
-            place_id: place.place_id,
-            name: place.name,
-            address: place.vicinity ?? place.name,
-            lat: place.geometry?.location?.lat(),
-            lng: place.geometry?.location?.lng(),
-            photo_url: place.photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 }) ?? null,
-            rating: place.rating ?? null,
-            price_level: null,
-            suggested_type: "visit",
-            suggested_time: null,
-            suggested_cost: null,
-            suggested_currency: "BRL",
-            opening_hours: null,
-            website: null,
-            phone: null,
-            types: place.types ?? [],
-          });
-          continue;
-        }
-
-        let photoUrl: string | null = null;
-        if (details.photos?.[0]?.getUrl) {
-          try {
-            photoUrl = details.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
-          } catch {
-            photoUrl = null;
-          }
-        }
-
-        const types = details.types ?? [];
-        let suggestedType = "visit";
-        if (types.includes("restaurant") || types.includes("food") || types.includes("cafe")) {
-          suggestedType = "meal";
-        } else if (types.includes("transit_station") || types.includes("airport") || types.includes("bus_station")) {
-          suggestedType = "transport";
-        } else if (types.includes("tourist_attraction") || types.includes("amusement_park")) {
-          suggestedType = "tour";
-        } else if (types.includes("night_club") || types.includes("stadium")) {
-          suggestedType = "event";
-        }
-
-        let suggestedTime: string | null = null;
-        if (details.opening_hours?.weekday_text) {
-          suggestedTime = "10:00";
-        }
-
-        let suggestedCost: number | null = null;
-        if (details.price_level != null) {
-          const costMap = [0, 30, 80, 200, 500];
-          suggestedCost = costMap[details.price_level] ?? null;
-        }
-
-        suggestions.push({
-          place_id: details.place_id ?? place.place_id,
-          name: details.name ?? place.name,
-          address: details.formatted_address ?? place.vicinity ?? place.name,
-          lat: details.geometry?.location?.lat() ?? place.geometry?.location?.lat(),
-          lng: details.geometry?.location?.lng() ?? place.geometry?.location?.lng(),
-          photo_url: photoUrl,
-          rating: details.rating ?? null,
-          price_level: details.price_level ?? null,
-          suggested_type: suggestedType,
-          suggested_time: suggestedTime,
-          suggested_cost: suggestedCost,
-          suggested_currency: "BRL",
-          opening_hours: details.opening_hours?.weekday_text?.[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ?? null,
-          website: details.website ?? null,
-          phone: details.formatted_phone_number ?? null,
-          types: types,
-        });
+        photoUrl = place.photos?.[0]?.getUrl?.({ maxWidth: 800, maxHeight: 600 }) ?? null;
       } catch {
-        // Continuar con el siguiente resultado si falla
+        photoUrl = null;
       }
-    }
+
+      const types: string[] = place.types ?? [];
+      let suggestedType = "visit";
+      if (types.includes("restaurant") || types.includes("food") || types.includes("cafe")) {
+        suggestedType = "meal";
+      } else if (types.includes("transit_station") || types.includes("airport") || types.includes("bus_station")) {
+        suggestedType = "transport";
+      } else if (types.includes("tourist_attraction") || types.includes("amusement_park")) {
+        suggestedType = "tour";
+      } else if (types.includes("night_club") || types.includes("stadium")) {
+        suggestedType = "event";
+      }
+
+      return {
+        place_id: place.place_id ?? `place-${place.name ?? ""}`,
+        name: place.name ?? "",
+        address: place.formatted_address ?? place.vicinity ?? place.name ?? "",
+        lat: place.geometry?.location?.lat() ?? 0,
+        lng: place.geometry?.location?.lng() ?? 0,
+        photo_url: photoUrl,
+        rating: place.rating ?? null,
+        price_level: place.price_level ?? null,
+        suggested_type: suggestedType,
+        suggested_time: null,
+        suggested_cost: place.price_level != null ? (costMap[place.price_level] ?? null) : null,
+        suggested_currency: "BRL",
+        opening_hours: null,
+        website: null,
+        phone: null,
+        types,
+      };
+    });
 
     document.body.removeChild(container);
     return { suggestions };

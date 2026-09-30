@@ -118,7 +118,7 @@ export function NewActivityWizard({
       } finally {
         setLoading(false);
       }
-    }, 500);
+    }, 800);
     return () => clearTimeout(t);
   }, [title, tripCountryName, tripDestination]);
 

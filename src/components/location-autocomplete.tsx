@@ -39,7 +39,10 @@ export function LocationAutocomplete({
         // No se puede mezclar "geocode" con otros tipos
         const options: google.maps.places.AutocompleteOptions = {
           types: [mode],
-          fields: ["name", "geometry", "place_id", "formatted_address"],
+          fields:
+            mode === "establishment"
+              ? ["name", "geometry", "place_id", "formatted_address", "photos"]
+              : ["name", "geometry", "place_id", "formatted_address"],
         };
 
         if (country) {
@@ -62,34 +65,13 @@ export function LocationAutocomplete({
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
 
-          // Intentar obtener foto con getDetails
-          if (place.place_id && mode === "establishment") {
-            const container = document.createElement("div");
-            container.style.display = "none";
-            document.body.appendChild(container);
-            const service = new mapsApi.maps.places.PlacesService(container);
-
-            service.getDetails(
-              {
-                placeId: place.place_id,
-                fields: ["photos"],
-              },
-              (details, status) => {
-                let photoUrl: string | null = null;
-                if (status === mapsApi.maps.places.PlacesServiceStatus.OK && details?.photos?.[0]?.getUrl) {
-                  try {
-                    photoUrl = details.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
-                  } catch {
-                    photoUrl = null;
-                  }
-                }
-                onChangeRef.current(name, lat, lng, photoUrl);
-                document.body.removeChild(container);
-              },
-            );
-          } else {
-            onChangeRef.current(name, lat, lng, null);
+          let photoUrl: string | null = null;
+          try {
+            photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 800, maxHeight: 600 }) ?? null;
+          } catch {
+            photoUrl = null;
           }
+          onChangeRef.current(name, lat, lng, photoUrl);
         });
       })
       .catch(console.error);
