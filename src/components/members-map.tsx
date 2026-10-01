@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { GoogleMap, type MapMarker } from "@/components/google-map";
+import { OsmMap, type MapMarker } from "@/components/osm-map";
 import type { Profile } from "@/lib/types";
 
 export function MembersMap({ members }: { members: Profile[] }) {
@@ -39,7 +39,7 @@ export function MembersMap({ members }: { members: Profile[] }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
-      <GoogleMap markers={markers} height="250px" zoom={12} />
+      <OsmMap markers={markers} height="250px" zoom={12} />
       <div className="flex flex-wrap gap-2 border-t border-zinc-200 bg-white p-2.5 dark:border-zinc-700 dark:bg-zinc-900">
         {locatedMembers.map((member) => {
           const name = member.name ?? "Usuario";
