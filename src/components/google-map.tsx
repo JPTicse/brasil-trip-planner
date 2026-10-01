@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
-import { createOsmMap, fitMapToPoints } from "@/lib/maplibre";
+import { loadGoogleMaps } from "@/lib/google-maps";
 
 export type MapMarker = {
   id?: string;
@@ -14,7 +13,7 @@ export type MapMarker = {
   icon?: string;
 };
 
-export function OsmMap({
+export function GoogleMap({
   center,
   markers,
   zoom = 14,
@@ -28,31 +27,36 @@ export function OsmMap({
   height?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<maplibregl.Map | null>(null);
-  const markerInstances = useRef(new Map<string, maplibregl.Marker>());
+  const mapInstance = useRef<any>(null);
+  const markerInstances = useRef(new Map<string, any>());
   const fittedBounds = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve()
+
+    loadGoogleMaps()
       .then(() => {
         if (cancelled || !mapRef.current || mapInstance.current) return;
+        const google = (window as any).google;
+        if (!google?.maps) {
+          setError("Google Maps no disponible");
+          return;
+        }
+
         const defaultCenter = center ?? markers?.[0] ?? { lat: -22.9068, lng: -43.1729 };
-        const map = createOsmMap(mapRef.current, {
-          center: [defaultCenter.lng, defaultCenter.lat],
+        mapInstance.current = new google.maps.Map(mapRef.current, {
+          center: defaultCenter,
           zoom,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          styles: [
+            { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+          ],
         });
-        mapInstance.current = map;
-        let styleLoaded = false;
-        map.on("load", () => {
-          styleLoaded = true;
-          if (!cancelled) setMapReady(true);
-        });
-        map.on("error", () => {
-          if (!cancelled && !styleLoaded) setError("Error al cargar el mapa");
-        });
+        setMapReady(true);
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Error al cargar el mapa");
@@ -61,12 +65,11 @@ export function OsmMap({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const map = mapInstance.current;
-    if (!mapReady || !map) return;
+    if (!mapReady || !mapInstance.current) return;
+    const google = (window as any).google;
     const nextMarkers = markers ?? [];
     const activeKeys = new Set<string>();
 
@@ -76,51 +79,50 @@ export function OsmMap({
       const existing = markerInstances.current.get(key);
 
       if (existing) {
-        existing.setLngLat([item.lng, item.lat]);
+        existing.setPosition({ lat: item.lat, lng: item.lng });
+        existing.setTitle(item.title ?? "");
         return;
       }
 
-      let el: HTMLElement | undefined;
-      if (item.label) {
-        el = document.createElement("div");
-        el.style.cssText = `
-          width: 28px; height: 28px; border-radius: 9999px;
-          background: ${item.color ?? "#059669"}; color: #fff;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 10px; font-weight: 700;
-          border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35);
-        `;
-        el.textContent = item.label;
-      }
-
-      const marker = new maplibregl.Marker(el ? { element: el } : { color: item.color ?? "#059669" })
-        .setLngLat([item.lng, item.lat])
-        .addTo(map);
+      const marker = new google.maps.Marker({
+        position: { lat: item.lat, lng: item.lng },
+        map: mapInstance.current,
+        title: item.title,
+        label: item.label
+          ? { text: item.label, color: "#ffffff", fontSize: "11px", fontWeight: "700" }
+          : undefined,
+        animation: google.maps.Animation.DROP,
+      });
 
       if (item.title) {
-        const popup = new maplibregl.Popup({ closeButton: false, offset: 18 }).setText(item.title);
-        marker.setPopup(popup);
+        const content = document.createElement("div");
+        content.textContent = item.title;
+        content.style.fontWeight = "600";
+        const info = new google.maps.InfoWindow({ content });
+        marker.addListener("click", () => info.open(mapInstance.current, marker));
       }
       markerInstances.current.set(key, marker);
     });
 
     markerInstances.current.forEach((marker, key) => {
       if (!activeKeys.has(key)) {
-        marker.remove();
+        marker.setMap(null);
         markerInstances.current.delete(key);
       }
     });
 
     if (!fittedBounds.current && nextMarkers.length > 1) {
-      fitMapToPoints(map, nextMarkers.map((m) => [m.lng, m.lat]));
+      const bounds = new google.maps.LatLngBounds();
+      nextMarkers.forEach((item) => bounds.extend({ lat: item.lat, lng: item.lng }));
+      mapInstance.current.fitBounds(bounds, 50);
       fittedBounds.current = true;
     }
   }, [mapReady, markers]);
 
   useEffect(() => {
-    const map = mapInstance.current;
-    if (!mapReady || !center || !map) return;
-    map.jumpTo({ center: [center.lng, center.lat], zoom });
+    if (!mapReady || !center || !mapInstance.current) return;
+    mapInstance.current.setCenter(center);
+    mapInstance.current.setZoom(zoom);
   }, [center, mapReady, zoom]);
 
   if (error) {

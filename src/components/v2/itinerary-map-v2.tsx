@@ -1,14 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
 import { ActivityDetailModalV2 as ActivityDetailModal } from "@/components/v2/activity-detail-modal-v2";
-import {
-  createOsmMap,
-  dotMarkerElement,
-  fitMapToPoints,
-  setRouteLine,
-} from "@/lib/maplibre";
+import { loadGoogleMaps } from "@/lib/google-maps";
 import { formatTime } from "@/lib/format";
 import { type Activity, type ActivityType } from "@/lib/types";
 import { DayChipsV2 } from "@/components/v2/day-chips-v2";
@@ -44,8 +38,9 @@ export function ItineraryMapV2({
   onSelectDay: (day: string) => void;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const mapInstance = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -59,22 +54,26 @@ export function ItineraryMapV2({
 
   useEffect(() => {
     let cancelled = false;
-    Promise.resolve()
+    loadGoogleMaps()
       .then(() => {
-        if (cancelled || !mapRef.current || mapInstance.current) return;
-        const map = createOsmMap(mapRef.current, { center: [-46.6361, -23.5475], zoom: 12 });
-        mapInstance.current = map;
-        let styleLoaded = false;
-        map.on("load", () => {
-          styleLoaded = true;
-          if (!cancelled) setLoading(false);
+        if (cancelled || !mapRef.current) return;
+        if (mapInstance.current) {
+          setLoading(false);
+          return;
+        }
+        mapInstance.current = new google.maps.Map(mapRef.current, {
+          center: { lat: -23.5475, lng: -46.6361 },
+          zoom: 12,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          gestureHandling: "greedy",
+          styles: [
+            { featureType: "poi", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", stylers: [{ visibility: "simplified" }] },
+          ],
         });
-        map.on("error", () => {
-          if (!cancelled && !styleLoaded) {
-            setError("Error al cargar el mapa");
-            setLoading(false);
-          }
-        });
+        setLoading(false);
       })
       .catch((e) => {
         if (!cancelled) {
@@ -89,40 +88,84 @@ export function ItineraryMapV2({
 
   useEffect(() => {
     const map = mapInstance.current;
-    if (!map || loading) return;
+    if (!map) return;
 
-    for (const m of markersRef.current) m.remove();
+    for (const m of markersRef.current) m.setMap(null);
     markersRef.current = [];
-    setRouteLine(map, []);
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
 
     if (dayActivities.length === 0) return;
 
-    const points: [number, number][] = [];
+    const bounds = new google.maps.LatLngBounds();
     const sorted = dayActivities
       .slice()
       .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
 
     sorted.forEach((a, idx) => {
-      const pos: [number, number] = [a.location_lng!, a.location_lat!];
-      points.push(pos);
+      const pos = { lat: a.location_lat!, lng: a.location_lng! };
+      bounds.extend(pos);
 
       const color = TYPE_COLOR[a.type] ?? TYPE_COLOR.visit;
-      const el = dotMarkerElement(color, String(idx + 1));
-      el.title = a.title;
-      el.addEventListener("click", () => {
-        setHighlightId(a.id);
-        const item = document.getElementById(`map-item-v2-${a.id}`);
-        item?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const label = String(idx + 1);
+
+      const marker = new google.maps.Marker({
+        position: pos,
+        map,
+        label: {
+          text: label,
+          color: "white",
+          fontWeight: "bold",
+          fontSize: "11px",
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 14,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: "white",
+          strokeWeight: 2,
+        },
+        title: a.title,
       });
 
-      markersRef.current.push(
-        new maplibregl.Marker({ element: el }).setLngLat(pos).addTo(map),
-      );
+      marker.addListener("click", () => {
+        setHighlightId(a.id);
+        const el = document.getElementById(`map-item-v2-${a.id}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+      markersRef.current.push(marker);
     });
 
-    setRouteLine(map, sorted.map((a) => [a.location_lng!, a.location_lat!]));
-    fitMapToPoints(map, points);
-  }, [dayActivities, loading]);
+    if (sorted.length > 1) {
+      const path = sorted.map((a) => ({
+        lat: a.location_lat!,
+        lng: a.location_lng!,
+      }));
+      polylineRef.current = new google.maps.Polyline({
+        path,
+        map,
+        geodesic: true,
+        strokeColor: "#10b981",
+        strokeOpacity: 0.4,
+        strokeWeight: 2,
+        icons: [
+          {
+            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
+            offset: "100%",
+            repeat: "60px",
+          },
+        ],
+      });
+    }
+
+    map.fitBounds(bounds, 50);
+    const z = map.getZoom();
+    if (z && z > 15) map.setZoom(15);
+  }, [dayActivities]);
 
   if (error) {
     return (
